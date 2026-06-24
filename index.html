@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registros · Controle de Inspeção e Transporte · Rumo</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar (idêntica nas duas páginas) -->
+    <aside class="sidebar">
+      <div class="sidebar__brand">
+        <img class="sidebar__logo" src="assets/rumo/rumo-logo-branco.png" alt="Rumo" />
+        <div class="sidebar__tag">Inspeção &amp; Transporte</div>
+      </div>
+      <div class="sidebar__rule"></div>
+      <nav class="nav">
+        <a class="nav__item is-active" href="index.html"><span class="nav__ico">▤</span> Registros</a>
+        <a class="nav__item" href="dashboard.html"><span class="nav__ico">▦</span> Dashboard</a>
+      </nav>
+      <div class="sidebar__foot">
+        Controle de volumes do pedido à entrega.<br />Dados salvos neste navegador.
+      </div>
+    </aside>
+
+    <!-- Conteúdo -->
+    <main class="main">
+      <header class="page-head">
+        <div>
+          <div class="page-head__eyebrow">Registros</div>
+          <h1>Pedidos em inspeção e transporte</h1>
+          <p class="page-head__sub">
+            Cadastre cada pedido e acompanhe o volume estágio a estágio — do pronto para inspeção
+            até o transportado. O dashboard usa exatamente estes dados.
+          </p>
+        </div>
+        <div class="page-head__actions">
+          <button id="btn-exemplos" class="btn btn--success" type="button">Carregar 20 exemplos</button>
+          <button id="btn-limpar" class="btn btn--danger" type="button">Limpar tudo</button>
+        </div>
+      </header>
+
+      <!-- Formulário -->
+      <section class="card form-card">
+        <div class="card__head">
+          <h2 class="card__title">Novo registro</h2>
+          <p class="card__hint">Os volumes devem ser números (na mesma unidade — ex.: toneladas).</p>
+        </div>
+        <div class="card__body">
+          <form id="form-registro" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="fiscal">Fiscal</label>
+                <input id="fiscal" name="fiscal" type="text" placeholder="Ex.: Ana Souza" required />
+              </div>
+              <div class="field">
+                <label for="fornecedor">Fornecedor</label>
+                <input id="fornecedor" name="fornecedor" type="text" placeholder="Ex.: Cargill" required />
+              </div>
+              <div class="field">
+                <label for="local">Local</label>
+                <input id="local" name="local" type="text" placeholder="Ex.: Terminal Rondonópolis" required />
+              </div>
+              <div class="field">
+                <label for="pedido">Pedido</label>
+                <input id="pedido" name="pedido" type="text" placeholder="Ex.: PED-1001" required />
+              </div>
+              <div class="field">
+                <label for="volPedido">Volume do pedido</label>
+                <input id="volPedido" name="volPedido" type="number" min="0" step="any" placeholder="0" required />
+              </div>
+              <div class="field">
+                <label for="volPronto">Volume pronto p/ inspeção</label>
+                <input id="volPronto" name="volPronto" type="number" min="0" step="any" placeholder="0" required />
+              </div>
+              <div class="field">
+                <label for="volInspecionado">Volume inspecionado</label>
+                <input id="volInspecionado" name="volInspecionado" type="number" min="0" step="any" placeholder="0" required />
+              </div>
+              <div class="field">
+                <label for="volLiberado">Volume liberado p/ transporte</label>
+                <input id="volLiberado" name="volLiberado" type="number" min="0" step="any" placeholder="0" required />
+              </div>
+              <div class="field">
+                <label for="volTransportado">Volume transportado</label>
+                <input id="volTransportado" name="volTransportado" type="number" min="0" step="any" placeholder="0" required />
+              </div>
+            </div>
+            <div class="form-foot">
+              <button class="btn btn--primary" type="submit">Adicionar registro</button>
+              <span id="form-msg" class="form-msg" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Tabela -->
+      <section class="card">
+        <div class="card__head">
+          <div class="chart-head-flex">
+            <div>
+              <h2 class="card__title">Registros cadastrados</h2>
+              <p class="card__hint" id="contador">Nenhum registro.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card__body">
+          <div id="tabela-area"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/registros.js"></script>
+</body>
+</html>
