@@ -72,47 +72,47 @@
   function count() { return load().length; }
 
   // Exemplos usados pelo botão "Carregar 20 exemplos".
-  // Todos seguem o padrão solicitado: Fiscal Ivan Souza, Fornecedor Pandolfi,
-  // pedido iniciando em 4502028992 e volumes na mesma escala de grandeza.
+  // Agora a massa alterna entre Ivan Souza e Walter, mantendo Pandolfi
+  // e pedidos sequenciais a partir de 4502028992, com volumes mais variados.
   var SEED = [
-    ["Enéias Marques",      4502028992, 12000, 0, 672, 430, 8652, 44],
-    ["Cascavel",            4502028993, 11850, 0, 645, 410, 8420, 42],
-    ["Guarapuava",          4502028994, 12120, 0, 710, 455, 8890, 39],
-    ["Pato Branco",         4502028995, 12340, 0, 688, 445, 9025, 37],
-    ["Francisco Beltrão",   4502028996, 11960, 0, 625, 398, 8540, 34],
-    ["Dois Vizinhos",       4502028997, 12500, 0, 740, 470, 9180, 32],
-    ["Foz do Iguaçu",       4502028998, 11780, 0, 660, 420, 8330, 30],
-    ["Toledo",              4502028999, 12275, 0, 705, 450, 8955, 28],
-    ["Medianeira",          4502029000, 12420, 0, 690, 440, 9070, 25],
-    ["Laranjeiras do Sul",  4502029001, 11690, 0, 635, 405, 8210, 23],
-    ["Clevelândia",         4502029002, 12800, 0, 760, 485, 9340, 21],
-    ["Palmas",              4502029003, 11910, 0, 650, 415, 8465, 18],
-    ["União da Vitória",    4502029004, 12175, 0, 715, 460, 8820, 16],
-    ["Irati",               4502029005, 12640, 0, 730, 475, 9215, 14],
-    ["Ponta Grossa",        4502029006, 11830, 0, 670, 428, 8585, 12],
-    ["Maringá",             4502029007, 12390, 0, 700, 452, 8990, 9],
-    ["Londrina",            4502029008, 12080, 0, 682, 435, 8710, 7],
-    ["Campo Mourão",        4502029009, 12750, 0, 755, 480, 9295, 5],
-    ["Apucarana",           4502029010, 11560, 0, 620, 390, 8125, 3],
-    ["Paranaguá",           4502029011, 12480, 0, 725, 465, 9105, 1]
+    // [fiscal, local, pedido, volPedido, volPronto, volInspecionado, volLiberado, volTransportado, diasAtras]
+    ["Ivan Souza", "Enéias Marques",      4502028992, 12000, 0,  672,  430,  8652, 58],
+    ["Walter",     "Cascavel",            4502028993,  9650, 0,  410,  185,  4270, 53],
+    ["Ivan Souza", "Guarapuava",          4502028994, 15480, 0, 1285,  940, 13260, 49],
+    ["Walter",     "Pato Branco",         4502028995, 10890, 0,  930,  620,  7845, 46],
+    ["Ivan Souza", "Francisco Beltrão",   4502028996, 18240, 0, 1510, 1125, 15780, 42],
+    ["Walter",     "Dois Vizinhos",       4502028997,  8920, 0,  355,  140,  5015, 39],
+    ["Ivan Souza", "Foz do Iguaçu",       4502028998, 13760, 0,  785,  515,  9950, 36],
+    ["Walter",     "Toledo",              4502028999, 16950, 0, 1220,  875, 14530, 33],
+    ["Ivan Souza", "Medianeira",          4502029000, 11140, 0,  545,  260,  6835, 30],
+    ["Walter",     "Laranjeiras do Sul",  4502029001, 14320, 0, 1035,  690, 11075, 27],
+    ["Ivan Souza", "Clevelândia",         4502029002,  9780, 0,  725,  380,  5920, 24],
+    ["Walter",     "Palmas",              4502029003, 17630, 0, 1395, 1010, 15045, 21],
+    ["Ivan Souza", "União da Vitória",    4502029004, 12670, 0,  615,  335,  9025, 18],
+    ["Walter",     "Irati",               4502029005, 16110, 0,  995,  745, 12080, 15],
+    ["Ivan Souza", "Ponta Grossa",        4502029006, 10450, 0,  465,  205,  5510, 12],
+    ["Walter",     "Maringá",             4502029007, 14890, 0, 1160,  825, 12640, 10],
+    ["Ivan Souza", "Londrina",            4502029008, 13420, 0,  870,  590,  9675, 8],
+    ["Walter",     "Campo Mourão",        4502029009, 19080, 0, 1585, 1180, 16425, 6],
+    ["Ivan Souza", "Apucarana",           4502029010,  9175, 0,  395,  175,  4760, 4],
+    ["Walter",     "Paranaguá",           4502029011, 15640, 0, 1085,  760, 13890, 1]
   ];
 
-  // [local, pedido, volPedido, volPronto, volInspecionado, volLiberado, volTransportado, diasAtras]
   function buildSamples() {
     return SEED.map(function (s, i) {
       var d = new Date();
-      d.setDate(d.getDate() - s[7]);
+      d.setDate(d.getDate() - s[8]);
       return {
         id: "sample-" + (i + 1),
-        fiscal: "Ivan Souza",
+        fiscal: s[0],
         fornecedor: "Pandolfi",
-        local: s[0],
-        pedido: String(s[1]),
-        volPedido: s[2],
-        volPronto: s[3],
-        volInspecionado: s[4],
-        volLiberado: s[5],
-        volTransportado: s[6],
+        local: s[1],
+        pedido: String(s[2]),
+        volPedido: s[3],
+        volPronto: s[4],
+        volInspecionado: s[5],
+        volLiberado: s[6],
+        volTransportado: s[7],
         createdAt: d.toISOString()
       };
     });
@@ -943,6 +943,14 @@
     var link = e.target.closest("[data-view]");
     if (!link) return;
     e.preventDefault();
+
+    // Ao clicar em qualquer opção do menu lateral, o menu fecha sozinho.
+    if (link.closest(".sidebar")) {
+      document.body.classList.add("sidebar-collapsed");
+      var menuButton = document.getElementById("btn-menu");
+      if (menuButton) menuButton.setAttribute("aria-expanded", "false");
+    }
+
     var v = link.getAttribute("data-view");
     if (location.hash !== "#" + v) {
       location.hash = "#" + v; // dispara hashchange -> show
