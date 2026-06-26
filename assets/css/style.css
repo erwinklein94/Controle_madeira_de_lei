@@ -432,7 +432,20 @@ body.sidebar-collapsed .main {
   min-width: 64px;
   transition: width 0.5s ease;
 }
-.funnel__bar span.pct { opacity: 0.85; font-weight: 600; margin-left: 8px; font-size: 12px; }
+.funnel__value { display: inline-flex; align-items: baseline; flex: 0 0 auto; white-space: nowrap; }
+.funnel__value .pct { opacity: 0.85; font-weight: 600; margin-left: 8px; font-size: 12px; }
+/* Rótulo deslocado para fora da barra (quando ela é curta demais). */
+.funnel__value--out {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--txt);
+  text-shadow: none;
+  font-weight: 700;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
 .funnel__drop {
   font-size: 12px; color: var(--rumo-texto-claro); font-weight: 600;
   padding-left: 192px; margin-top: -4px;
