@@ -503,6 +503,11 @@
       els.fFiscal.value = ""; els.fForn.value = ""; els.fLocal.value = ""; els.fBusca.value = "";
       render();
     });
+    var resizeTimer;
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () { requestAnimationFrame(placeFunnelLabels); }, 120);
+    });
     wired = true;
   }
 
@@ -601,9 +606,11 @@
         '<div class="funnel__row">' +
           '<div class="funnel__name">' + st.short + "<small>" + st.label + "</small></div>" +
           '<div class="funnel__track">' +
-            '<div class="funnel__bar" style="width:' + Math.max(w, 6).toFixed(1) + "% ;background:" + st.color + ";color:" + txt + ";" + shadow + '">' +
-              withUnit(st.total) +
-              '<span class="pct">' + Math.round(pofp) + "%</span>" +
+            '<div class="funnel__bar" data-w="' + Math.max(w, 6).toFixed(1) + '" style="width:' + Math.max(w, 6).toFixed(1) + "% ;background:" + st.color + ";color:" + txt + ";" + shadow + '">' +
+              '<span class="funnel__value">' +
+                withUnit(st.total) +
+                '<span class="pct">' + Math.round(pofp) + "%</span>" +
+              "</span>" +
             "</div>" +
           "</div>" +
         "</div>"
@@ -617,6 +624,54 @@
       '<b style="color:var(--rumo-laranja);">(−' + pct(k.gargalo.drop) + ")</b></div>";
 
     els.funnel.innerHTML = rows + note;
+    requestAnimationFrame(placeFunnelLabels);
+  }
+
+  /* Mantém o rótulo (valor + %) dentro da barra quando há espaço; quando a
+     barra é estreita demais e o número seria cortado, move o rótulo para fora,
+     logo à direita da barra, em cor escura (legível sobre o trilho cinza). */
+  function placeFunnelLabels() {
+    if (!els.funnel) return;
+    var rows = els.funnel.querySelectorAll(".funnel__row");
+    var i, row, track, bar, value;
+
+    // 1) Reseta todos os rótulos para "dentro da barra" antes de medir.
+    for (i = 0; i < rows.length; i++) {
+      row = rows[i];
+      bar = row.querySelector(".funnel__bar");
+      value = row.querySelector(".funnel__value");
+      if (!bar || !value) continue;
+      if (value.parentNode !== bar) bar.appendChild(value);
+      value.classList.remove("funnel__value--out");
+      value.style.left = "";
+    }
+
+    // 2) Mede cada linha e move o rótulo para fora quando não couber.
+    for (i = 0; i < rows.length; i++) {
+      row = rows[i];
+      track = row.querySelector(".funnel__track");
+      bar = row.querySelector(".funnel__bar");
+      value = row.querySelector(".funnel__value");
+      if (!track || !bar || !value) continue;
+
+      var trackW = track.clientWidth;
+      if (!trackW) continue; // aba oculta ou ainda sem layout
+
+      // Largura final da barra (não depende da animação de width em curso).
+      var frac = (parseFloat(bar.getAttribute("data-w")) || 0) / 100;
+      var barW = Math.max(trackW * frac, 64); // 64 = min-width da .funnel__bar
+      var innerW = barW - 24;                 // 24 = padding lateral (12 + 12)
+      var need = value.getBoundingClientRect().width;
+
+      if (need > innerW) {
+        var left = barW + 8; // 8px de respiro depois da barra
+        if (left + need <= trackW) { // só move se realmente couber à direita
+          value.classList.add("funnel__value--out");
+          value.style.left = left + "px";
+          track.appendChild(value);
+        }
+      }
+    }
   }
 
   function renderTrendBadge(list) {
