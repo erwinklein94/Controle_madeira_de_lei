@@ -529,7 +529,7 @@ h1, h2, h3 { margin: 0; font-weight: 700; color: var(--rumo-azul); }
                 </div>
                 <div class="field">
                   <label for="pedido">Pedido</label>
-                  <input id="pedido" name="pedido" type="text" placeholder="Ex.: PED-1001" required />
+                  <input id="pedido" name="pedido" type="text" placeholder="Ex.: 4502028992" required />
                 </div>
                 <div class="field">
                   <label for="volPedido">Volume do pedido</label>
@@ -766,54 +766,48 @@ h1, h2, h3 { margin: 0; font-weight: 700; color: var(--rumo-azul); }
   function clear() { persist([]); }
   function count() { return load().length; }
 
-  var FISCAIS = ["Ana Souza", "Bruno Lima", "Carla Mendes", "Diego Rocha", "Eduarda Alves"];
-  var FORNECEDORES = ["Cargill", "Bunge", "ADM", "Amaggi", "COFCO", "Louis Dreyfus"];
-  var LOCAIS = ["Terminal Rondonópolis", "Terminal Sumaré", "Terminal Itirapina", "Terminal São Simão", "Pátio Araraquara"];
-
-  // [fiscal, fornecedor, local, volPedido, rPronto, rInsp, rLib, rTransp, diasAtras]
+  // Exemplos usados pelo botão "Carregar 20 exemplos".
+  // Todos seguem o padrão solicitado: Fiscal Ivan Souza, Fornecedor Pandolfi,
+  // pedido iniciando em 4502028992 e volumes na mesma escala de grandeza.
   var SEED = [
-    [0, 0, 0, 4200, 0.95, 0.88, 0.80, 0.72, 44],
-    [1, 1, 1, 1800, 0.90, 0.70, 0.55, 0.40, 42],
-    [2, 2, 2, 3100, 0.98, 0.92, 0.70, 0.50, 39],
-    [0, 3, 0, 2600, 0.85, 0.60, 0.45, 0.30, 37],
-    [3, 0, 3, 5000, 0.96, 0.90, 0.84, 0.78, 34],
-    [4, 4, 4, 1200, 0.80, 0.65, 0.50, 0.42, 32],
-    [1, 1, 1, 2750, 0.93, 0.85, 0.78, 0.66, 30],
-    [2, 5, 2, 980,  1.00, 0.95, 0.90, 0.85, 28],
-    [0, 2, 0, 3600, 0.97, 0.91, 0.85, 0.80, 25],
-    [3, 3, 3, 4400, 0.88, 0.75, 0.62, 0.55, 23],
-    [4, 0, 4, 2100, 0.92, 0.84, 0.74, 0.70, 21],
-    [1, 4, 1, 1550, 0.90, 0.80, 0.72, 0.68, 18],
-    [2, 1, 2, 5200, 0.99, 0.95, 0.90, 0.88, 16],
-    [0, 5, 0, 2900, 0.94, 0.88, 0.83, 0.79, 14],
-    [3, 2, 3, 3300, 0.96, 0.90, 0.86, 0.82, 12],
-    [4, 3, 4, 1750, 0.91, 0.86, 0.80, 0.77, 9],
-    [1, 0, 1, 4600, 0.98, 0.93, 0.89, 0.86, 7],
-    [2, 4, 2, 2400, 0.95, 0.90, 0.87, 0.84, 5],
-    [0, 1, 0, 3850, 0.97, 0.94, 0.90, 0.88, 3],
-    [3, 5, 3, 5400, 0.99, 0.96, 0.93, 0.91, 1]
+    ["Enéias Marques",      4502028992, 12000, 0, 672, 430, 8652, 44],
+    ["Cascavel",            4502028993, 11850, 0, 645, 410, 8420, 42],
+    ["Guarapuava",          4502028994, 12120, 0, 710, 455, 8890, 39],
+    ["Pato Branco",         4502028995, 12340, 0, 688, 445, 9025, 37],
+    ["Francisco Beltrão",   4502028996, 11960, 0, 625, 398, 8540, 34],
+    ["Dois Vizinhos",       4502028997, 12500, 0, 740, 470, 9180, 32],
+    ["Foz do Iguaçu",       4502028998, 11780, 0, 660, 420, 8330, 30],
+    ["Toledo",              4502028999, 12275, 0, 705, 450, 8955, 28],
+    ["Medianeira",          4502029000, 12420, 0, 690, 440, 9070, 25],
+    ["Laranjeiras do Sul",  4502029001, 11690, 0, 635, 405, 8210, 23],
+    ["Clevelândia",         4502029002, 12800, 0, 760, 485, 9340, 21],
+    ["Palmas",              4502029003, 11910, 0, 650, 415, 8465, 18],
+    ["União da Vitória",    4502029004, 12175, 0, 715, 460, 8820, 16],
+    ["Irati",               4502029005, 12640, 0, 730, 475, 9215, 14],
+    ["Ponta Grossa",        4502029006, 11830, 0, 670, 428, 8585, 12],
+    ["Maringá",             4502029007, 12390, 0, 700, 452, 8990, 9],
+    ["Londrina",            4502029008, 12080, 0, 682, 435, 8710, 7],
+    ["Campo Mourão",        4502029009, 12750, 0, 755, 480, 9295, 5],
+    ["Apucarana",           4502029010, 11560, 0, 620, 390, 8125, 3],
+    ["Paranaguá",           4502029011, 12480, 0, 725, 465, 9105, 1]
   ];
 
+  // [local, pedido, volPedido, volPronto, volInspecionado, volLiberado, volTransportado, diasAtras]
   function buildSamples() {
     return SEED.map(function (s, i) {
-      var volPedido = s[3];
-      var volPronto = Math.round(volPedido * s[4]);
-      var volInspecionado = Math.round(volPronto * s[5]);
-      var volLiberado = Math.round(volInspecionado * s[6]);
-      var volTransportado = Math.round(volLiberado * s[7]);
       var d = new Date();
-      d.setDate(d.getDate() - s[8]);
+      d.setDate(d.getDate() - s[7]);
       return {
         id: "sample-" + (i + 1),
-        fiscal: FISCAIS[s[0]],
-        fornecedor: FORNECEDORES[s[1]],
-        local: LOCAIS[s[2]],
-        pedido: "PED-" + (1001 + i),
-        volPedido: volPedido,
-        volPronto: volPronto,
-        volInspecionado: volInspecionado,
-        volLiberado: volLiberado,
-        volTransportado: volTransportado,
+        fiscal: "Ivan Souza",
+        fornecedor: "Pandolfi",
+        local: s[0],
+        pedido: String(s[1]),
+        volPedido: s[2],
+        volPronto: s[3],
+        volInspecionado: s[4],
+        volLiberado: s[5],
+        volTransportado: s[6],
         createdAt: d.toISOString()
       };
     });
