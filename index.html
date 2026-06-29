@@ -157,24 +157,22 @@
           <!-- KPIs -->
           <div class="kpi-grid" id="kpi-grid"></div>
 
-          <!-- Funil -->
-          <section class="card">
-            <div class="card__head">
-              <h2 class="card__title">Funil de volume — do pedido ao transporte</h2>
-              <p class="card__hint">Soma de cada estágio, com retenção (%) em relação ao pedido e a maior perda destacada.</p>
-            </div>
-            <div class="card__body">
-              <div class="funnel" id="funnel"></div>
-            </div>
-          </section>
+          <!-- Grade compacta: todos os gráficos cabem na primeira tela do Dashboard -->
+          <div class="dashboard-grid">
+            <section class="card chart-card funnel-card">
+              <div class="card__head">
+                <h2 class="card__title">Funil de volume</h2>
+                <p class="card__hint">Do pedido ao transporte, com retenção por etapa.</p>
+              </div>
+              <div class="card__body">
+                <div class="funnel" id="funnel"></div>
+              </div>
+            </section>
 
-          <!-- Distribuição -->
-          <div class="section-title">Distribuição</div>
-          <div class="charts-2">
             <section class="card chart-card">
               <div class="card__head">
                 <h2 class="card__title">Volume por fornecedor</h2>
-                <p class="card__hint">Pedido x transportado, por fornecedor.</p>
+                <p class="card__hint">Pedido x transportado.</p>
               </div>
               <div class="card__body"><div class="chart-box"><canvas id="chart-fornecedor"></canvas></div></div>
             </section>
@@ -182,19 +180,15 @@
             <section class="card chart-card">
               <div class="card__head">
                 <h2 class="card__title">Distribuição por local</h2>
-                <p class="card__hint">Participação de cada local no volume do pedido.</p>
+                <p class="card__hint">Participação no volume do pedido.</p>
               </div>
               <div class="card__body"><div class="chart-box"><canvas id="chart-local"></canvas></div></div>
             </section>
-          </div>
 
-          <!-- Evolução -->
-          <div class="section-title">Evolução &amp; tendência</div>
-          <div class="charts-2">
             <section class="card chart-card">
               <div class="card__head">
                 <h2 class="card__title">Carga por fiscal</h2>
-                <p class="card__hint">Volume inspecionado sob responsabilidade de cada fiscal.</p>
+                <p class="card__hint">Volume inspecionado por fiscal.</p>
               </div>
               <div class="card__body"><div class="chart-box"><canvas id="chart-fiscal"></canvas></div></div>
             </section>
@@ -203,25 +197,23 @@
               <div class="card__head">
                 <div class="chart-head-flex">
                   <div>
-                    <h2 class="card__title">Tendência de conclusão por pedido</h2>
-                    <p class="card__hint">% concluído por pedido (na ordem de criação) + linha de tendência.</p>
+                    <h2 class="card__title">Tendência de conclusão</h2>
+                    <p class="card__hint">% concluído por pedido + tendência.</p>
                   </div>
                   <span id="trend-badge"></span>
                 </div>
               </div>
               <div class="card__body"><div class="chart-box"><canvas id="chart-tendencia"></canvas></div></div>
             </section>
-          </div>
 
-          <!-- Histórico -->
-          <div class="section-title">Histórico</div>
-          <section class="card chart-card">
-            <div class="card__head">
-              <h2 class="card__title">Volume transportado acumulado</h2>
-              <p class="card__hint">Evolução do total entregue ao longo do tempo.</p>
-            </div>
-            <div class="card__body"><div class="chart-box chart-box--tall"><canvas id="chart-historico"></canvas></div></div>
-          </section>
+            <section class="card chart-card">
+              <div class="card__head">
+                <h2 class="card__title">Transportado acumulado</h2>
+                <p class="card__hint">Evolução do total entregue.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="chart-historico"></canvas></div></div>
+            </section>
+          </div>
         </div>
       </section>
     </main>

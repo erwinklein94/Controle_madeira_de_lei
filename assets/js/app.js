@@ -692,7 +692,7 @@
   function ensureDefaults() {
     if (defaultsSet || typeof Chart === "undefined") return;
     Chart.defaults.font.family = '"Cera Pro", Verdana, Geneva, Tahoma, sans-serif';
-    Chart.defaults.font.size = 12;
+    Chart.defaults.font.size = 10;
     Chart.defaults.color = C.texto;
     defaultsSet = true;
   }
@@ -747,8 +747,8 @@
 
   function baseScales() {
     return {
-      x: { grid: { color: C.grid }, ticks: { color: C.texto } },
-      y: { grid: { color: C.grid }, ticks: { color: C.texto }, beginAtZero: true }
+      x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 } } },
+      y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 } }, beginAtZero: true }
     };
   }
 
@@ -775,10 +775,10 @@
       options: {
         indexAxis: "y",
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 72, top: 8, bottom: 8 } },
+        layout: { padding: { right: 38, top: 2, bottom: 2 } },
         scales: scales,
         plugins: {
-          legend: { position: "top", labels: { boxWidth: 12, boxHeight: 12 } },
+          legend: { position: "top", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 } } },
           tooltip: { callbacks: { label: tipVal } },
           datalabels: barEndLabels()
         }
@@ -803,7 +803,7 @@
       options: {
         indexAxis: "y",
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 72, top: 8, bottom: 8 } },
+        layout: { padding: { right: 38, top: 2, bottom: 2 } },
         scales: scales,
         plugins: {
           legend: { display: false },
@@ -828,7 +828,7 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 34, right: 18 } },
+        layout: { padding: { top: 18, right: 10 } },
         scales: scales,
         plugins: {
           legend: { display: false },
@@ -836,7 +836,7 @@
           datalabels: {
             anchor: "end", align: "top", offset: 5, clamp: true, clip: false,
             color: C.azul, backgroundColor: "rgba(255,255,255,0.88)", borderRadius: 4, padding: 3,
-            font: { size: 11, weight: "700" },
+            font: { size: 9, weight: "700" },
             formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
           }
         }
@@ -866,13 +866,13 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 32, right: 24, left: 8 } },
+        layout: { padding: { top: 18, right: 12, left: 2 } },
         scales: {
-          x: { grid: { color: C.grid }, ticks: { color: C.texto, maxRotation: 45, minRotation: 0, autoSkip: true } },
-          y: { grid: { color: C.grid }, ticks: { color: C.texto, callback: function (v) { return v + "%"; } }, min: 0, max: 110 }
+          x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 }, maxRotation: 35, minRotation: 0, autoSkip: true, maxTicksLimit: 7 } },
+          y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 }, callback: function (v) { return v + "%"; } }, min: 0, max: 110 }
         },
         plugins: {
-          legend: { position: "top", labels: { boxWidth: 12, boxHeight: 12 } },
+          legend: { position: "top", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 } } },
           tooltip: { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + fmt.format(c.parsed.y) + "%"; } } },
           datalabels: linePointLabels(function (v) { return fmt.format(v) + "%"; })
         }
@@ -898,7 +898,7 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 32, right: 34, left: 8 } },
+        layout: { padding: { top: 18, right: 16, left: 2 } },
         scales: scales,
         plugins: {
           legend: { display: false },
@@ -919,17 +919,23 @@
     return {
       anchor: "end", align: "right", clamp: true, clip: false, offset: 4,
       color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: 3,
-      font: { size: 11, weight: "700" },
+      font: { size: 9, weight: "700" },
       formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
     };
   }
 
   function linePointLabels(formatter) {
     return {
-      display: function (ctx) { return ctx.datasetIndex === 0; },
-      anchor: "end", align: "top", offset: 5, clamp: true, clip: false,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 4, padding: 3,
-      font: { size: 10, weight: "700" },
+      display: function (ctx) {
+        if (ctx.datasetIndex !== 0) return false;
+        var total = ctx.dataset && ctx.dataset.data ? ctx.dataset.data.length : 0;
+        if (total <= 6) return true;
+        var step = Math.ceil(total / 5);
+        return ctx.dataIndex === 0 || ctx.dataIndex === total - 1 || ctx.dataIndex % step === 0;
+      },
+      anchor: "end", align: "top", offset: 4, clamp: true, clip: false,
+      color: C.texto, backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 4, padding: 2,
+      font: { size: 9, weight: "700" },
       formatter: formatter
     };
   }
@@ -986,6 +992,8 @@
     for (var i = 0; i < items.length; i++) {
       items[i].classList.toggle("is-active", items[i].getAttribute("data-view") === view);
     }
+
+    document.body.classList.toggle("dashboard-mode", view === "dashboard");
 
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();

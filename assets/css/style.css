@@ -509,3 +509,251 @@ body.sidebar-collapsed .main {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+/* =====================================================================
+   Dashboard compacto — todos os gráficos visíveis na primeira tela
+   ===================================================================== */
+body.dashboard-mode .main {
+  padding: 12px 18px 12px;
+}
+body.dashboard-mode .top-menu {
+  margin-bottom: 6px;
+}
+body.dashboard-mode .menu-toggle {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+#view-dashboard .page-head {
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+#view-dashboard .page-head__eyebrow {
+  font-size: 10px;
+  margin-bottom: 2px;
+  letter-spacing: 0.1em;
+}
+#view-dashboard .page-head h1 {
+  font-size: 20px;
+  line-height: 1.05;
+}
+#view-dashboard .page-head__actions .btn {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+#view-dashboard .filters {
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+}
+#view-dashboard .filters__field {
+  gap: 2px;
+}
+#view-dashboard .filters__field label {
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+}
+#view-dashboard .filters select,
+#view-dashboard .filters input {
+  min-width: 118px;
+  height: 30px;
+  padding: 5px 7px;
+  font-size: 11px;
+  border-radius: 8px;
+}
+#view-dashboard .filters__count {
+  font-size: 11px;
+}
+#view-dashboard .btn--sm {
+  padding: 6px 9px;
+  font-size: 11px;
+}
+#view-dashboard .kpi-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+#view-dashboard .kpi {
+  min-width: 0;
+  padding: 9px 10px 8px;
+  border-radius: 10px;
+}
+#view-dashboard .kpi::after {
+  height: 2px;
+}
+#view-dashboard .kpi__label {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#view-dashboard .kpi__value {
+  margin-top: 3px;
+  font-size: 19px;
+  line-height: 1;
+  white-space: nowrap;
+}
+#view-dashboard .kpi__foot {
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.15;
+  min-height: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#view-dashboard .trend-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  gap: 3px;
+  white-space: nowrap;
+}
+#view-dashboard .dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+#view-dashboard .card {
+  border-radius: 10px;
+}
+#view-dashboard .card__head {
+  padding: 9px 10px 0;
+}
+#view-dashboard .card__title {
+  font-size: 13px;
+  line-height: 1.1;
+}
+#view-dashboard .card__hint {
+  margin-top: 1px;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+#view-dashboard .card__body {
+  padding: 7px 10px 10px;
+}
+#view-dashboard .chart-box {
+  position: relative;
+  height: clamp(145px, calc((100vh - 322px) / 2), 190px);
+}
+#view-dashboard .chart-box--tall {
+  height: clamp(145px, calc((100vh - 322px) / 2), 190px);
+}
+#view-dashboard .funnel {
+  gap: 4px;
+}
+#view-dashboard .funnel__row {
+  grid-template-columns: 112px 1fr;
+  gap: 8px;
+}
+#view-dashboard .funnel__name {
+  font-size: 10.5px;
+  line-height: 1.05;
+}
+#view-dashboard .funnel__name small {
+  font-size: 8.8px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#view-dashboard .funnel__track {
+  height: 25px;
+  border-radius: 6px;
+}
+#view-dashboard .funnel__bar {
+  min-width: 44px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 10.5px;
+}
+#view-dashboard .funnel__value .pct {
+  margin-left: 4px;
+  font-size: 9.5px;
+}
+#view-dashboard .funnel__value--out {
+  font-size: 10.5px;
+}
+#view-dashboard .funnel [style*="margin-top:14px"] {
+  margin-top: 5px !important;
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+}
+#view-dashboard .chart-head-flex {
+  gap: 6px;
+}
+#view-dashboard .section-title {
+  display: none;
+}
+
+@media (min-width: 1101px) and (min-height: 700px) {
+  body.dashboard-mode {
+    overflow: hidden;
+  }
+}
+
+@media (max-height: 720px) and (min-width: 1101px) {
+  body.dashboard-mode .main {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  body.dashboard-mode .top-menu {
+    margin-bottom: 4px;
+  }
+  #view-dashboard .card__hint {
+    display: none;
+  }
+  #view-dashboard .filters {
+    padding: 6px 8px;
+    margin-bottom: 6px;
+  }
+  #view-dashboard .kpi-grid {
+    margin-bottom: 6px;
+  }
+  #view-dashboard .kpi {
+    padding: 7px 8px 6px;
+  }
+  #view-dashboard .kpi__value {
+    font-size: 17px;
+  }
+  #view-dashboard .chart-box,
+  #view-dashboard .chart-box--tall {
+    height: clamp(122px, calc((100vh - 285px) / 2), 176px);
+  }
+  #view-dashboard .funnel__row {
+    grid-template-columns: 96px 1fr;
+  }
+  #view-dashboard .funnel__track {
+    height: 22px;
+  }
+  #view-dashboard .funnel__bar {
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 1180px) {
+  body.dashboard-mode {
+    overflow: auto;
+  }
+  #view-dashboard .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #view-dashboard .chart-box,
+  #view-dashboard .chart-box--tall {
+    height: 220px;
+  }
+}
+
+@media (max-width: 900px) {
+  #view-dashboard .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  #view-dashboard .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  #view-dashboard .filters select,
+  #view-dashboard .filters input {
+    min-width: 150px;
+  }
+}
