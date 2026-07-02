@@ -5,13 +5,13 @@
    ===================================================================== */
 
 /* =====================================================================
-   (1) STORE — camada de dados (schema, localStorage, exemplos, agregações)
+   (1) STORE — camada de dados (schema, localStorage e agregações)
    Não toca no DOM. Exposto como window.Store.
    ===================================================================== */
 (function (global) {
   "use strict";
 
-  var STORAGE_KEY = "rumo-inspecao:registros:v1";
+  var STORAGE_KEY = "rumo-inspecao:registros:v2";
   var UNIT = ""; // unidade exibida ao lado dos volumes; vazio para não mostrar letra após os números
 
   var STAGES = [
@@ -22,13 +22,34 @@
     { key: "volTransportado", label: "Transportado",            short: "Transportado",  color: "#7FE06C" }
   ];
 
+  var DEFAULT_RECORDS = [
+    {
+      id: "registro-ivan-pandolfi-4502028992",
+      fiscal: "Ivan Souza",
+      fornecedor: "Pandolfi",
+      local: "Enéias Marques",
+      pedido: "4502028992",
+      volPedido: 12000,
+      volPronto: 0,
+      volInspecionado: 672,
+      volLiberado: 430,
+      volTransportado: 8652,
+      createdAt: "2026-07-02T12:00:00.000Z"
+    }
+  ];
+
+  function cloneDefaultRecords() {
+    return DEFAULT_RECORDS.map(function (r) { return Object.assign({}, r); });
+  }
+
   function load() {
     try {
       var raw = global.localStorage.getItem(STORAGE_KEY);
-      var list = raw ? JSON.parse(raw) : [];
-      return Array.isArray(list) ? list : [];
+      if (raw === null) return cloneDefaultRecords();
+      var list = JSON.parse(raw);
+      return Array.isArray(list) ? list : cloneDefaultRecords();
     } catch (e) {
-      return [];
+      return cloneDefaultRecords();
     }
   }
 
@@ -70,55 +91,6 @@
 
   function clear() { persist([]); }
   function count() { return load().length; }
-
-  // Exemplos usados pelo botão "Carregar 20 exemplos".
-  // Agora a massa alterna entre Ivan Souza e Walter, mantendo Pandolfi
-  // e pedidos sequenciais a partir de 4502028992, com volumes mais variados.
-  var SEED = [
-    // [fiscal, local, pedido, volPedido, volPronto, volInspecionado, volLiberado, volTransportado, diasAtras]
-    ["Ivan Souza", "Enéias Marques",      4502028992, 12000, 0,  672,  430,  8652, 58],
-    ["Walter",     "Cascavel",            4502028993,  9650, 0,  410,  185,  4270, 53],
-    ["Ivan Souza", "Guarapuava",          4502028994, 15480, 0, 1285,  940, 13260, 49],
-    ["Walter",     "Pato Branco",         4502028995, 10890, 0,  930,  620,  7845, 46],
-    ["Ivan Souza", "Francisco Beltrão",   4502028996, 18240, 0, 1510, 1125, 15780, 42],
-    ["Walter",     "Dois Vizinhos",       4502028997,  8920, 0,  355,  140,  5015, 39],
-    ["Ivan Souza", "Foz do Iguaçu",       4502028998, 13760, 0,  785,  515,  9950, 36],
-    ["Walter",     "Toledo",              4502028999, 16950, 0, 1220,  875, 14530, 33],
-    ["Ivan Souza", "Medianeira",          4502029000, 11140, 0,  545,  260,  6835, 30],
-    ["Walter",     "Laranjeiras do Sul",  4502029001, 14320, 0, 1035,  690, 11075, 27],
-    ["Ivan Souza", "Clevelândia",         4502029002,  9780, 0,  725,  380,  5920, 24],
-    ["Walter",     "Palmas",              4502029003, 17630, 0, 1395, 1010, 15045, 21],
-    ["Ivan Souza", "União da Vitória",    4502029004, 12670, 0,  615,  335,  9025, 18],
-    ["Walter",     "Irati",               4502029005, 16110, 0,  995,  745, 12080, 15],
-    ["Ivan Souza", "Ponta Grossa",        4502029006, 10450, 0,  465,  205,  5510, 12],
-    ["Walter",     "Maringá",             4502029007, 14890, 0, 1160,  825, 12640, 10],
-    ["Ivan Souza", "Londrina",            4502029008, 13420, 0,  870,  590,  9675, 8],
-    ["Walter",     "Campo Mourão",        4502029009, 19080, 0, 1585, 1180, 16425, 6],
-    ["Ivan Souza", "Apucarana",           4502029010,  9175, 0,  395,  175,  4760, 4],
-    ["Walter",     "Paranaguá",           4502029011, 15640, 0, 1085,  760, 13890, 1]
-  ];
-
-  function buildSamples() {
-    return SEED.map(function (s, i) {
-      var d = new Date();
-      d.setDate(d.getDate() - s[8]);
-      return {
-        id: "sample-" + (i + 1),
-        fiscal: s[0],
-        fornecedor: "Pandolfi",
-        local: s[1],
-        pedido: String(s[2]),
-        volPedido: s[3],
-        volPronto: s[4],
-        volInspecionado: s[5],
-        volLiberado: s[6],
-        volTransportado: s[7],
-        createdAt: d.toISOString()
-      };
-    });
-  }
-
-  function loadSamples() { persist(buildSamples()); return getAll(); }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 
@@ -232,7 +204,6 @@
     remove: remove,
     clear: clear,
     count: count,
-    loadSamples: loadSamples,
     funnelTotals: funnelTotals,
     groupSum: groupSum,
     pedidoVsTransportado: pedidoVsTransportado,
@@ -271,7 +242,7 @@
       tabelaArea.innerHTML =
         '<div class="empty">' +
           '<div class="empty__title">Nenhum registro ainda</div>' +
-          '<div class="empty__txt">Adicione um registro no formulário acima ou carregue 20 exemplos para testar o dashboard.</div>' +
+          '<div class="empty__txt">Adicione um registro no formulário acima para alimentar o dashboard.</div>' +
         "</div>";
       return;
     }
@@ -337,14 +308,6 @@
     }
 
     render();
-  });
-
-  document.getElementById("btn-exemplos").addEventListener("click", function () {
-    if (Store.count() > 0 && !confirm("Isso substitui os registros atuais pelos 20 exemplos. Continuar?")) return;
-    Store.loadSamples();
-    stopEditing(true);
-    render();
-    showMsg("20 exemplos carregados. Abra o Dashboard para ver os gráficos.", true);
   });
 
   document.getElementById("btn-limpar").addEventListener("click", function () {
