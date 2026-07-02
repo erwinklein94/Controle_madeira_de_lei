@@ -437,7 +437,7 @@
     volPedido: "#fff", volPronto: "#fff", volInspecionado: "#0c2c3f",
     volLiberado: "#fff", volTransportado: "#0c2c3f"
   };
-  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-fiscal", "chart-tendencia", "chart-historico"];
+  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico"];
 
   var charts = {};
   var modalChart = null;
@@ -498,21 +498,28 @@
   function setupChartModal() {
     if (!modal.root) return;
 
-    var cards = document.querySelectorAll("#view-dashboard .chart-card[data-modal-chart]");
-    for (var i = 0; i < cards.length; i++) {
-      var card = cards[i];
-      card.setAttribute("tabindex", "0");
-      card.setAttribute("role", "button");
-      card.setAttribute("title", "Clique para ampliar este gráfico");
-      card.setAttribute("aria-label", "Ampliar gráfico " + getChartInfo(card.getAttribute("data-modal-chart")).title);
-      card.addEventListener("click", function () { openChartModal(this.getAttribute("data-modal-chart")); });
-      card.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openChartModal(this.getAttribute("data-modal-chart"));
-        }
-      });
-    }
+    var dashboard = document.getElementById("view-dashboard");
+    if (!dashboard) return;
+
+    // Delega o clique ao dashboard inteiro. Isso é mais robusto do que prender
+    // o evento em cada card uma única vez e evita falhas quando o layout recarrega.
+    dashboard.addEventListener("click", function (e) {
+      var card = e.target.closest(".chart-card[data-modal-chart]");
+      if (!card || !dashboard.contains(card)) return;
+      e.preventDefault();
+      openChartModal(card.getAttribute("data-modal-chart"));
+    });
+
+    dashboard.addEventListener("keydown", function (e) {
+      var card = e.target.closest(".chart-card[data-modal-chart]");
+      if (!card || !dashboard.contains(card)) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openChartModal(card.getAttribute("data-modal-chart"));
+      }
+    });
+
+    refreshModalTriggers();
 
     modal.root.addEventListener("click", function (e) {
       if (e.target.closest("[data-modal-close]")) closeChartModal();
@@ -523,12 +530,23 @@
     });
   }
 
+  function refreshModalTriggers() {
+    var cards = document.querySelectorAll("#view-dashboard .chart-card[data-modal-chart]");
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var info = getChartInfo(card.getAttribute("data-modal-chart"));
+      card.setAttribute("tabindex", "0");
+      card.setAttribute("role", "button");
+      card.setAttribute("title", "Clique para ampliar este gráfico");
+      card.setAttribute("aria-label", "Ampliar gráfico " + info.title);
+    }
+  }
+
   function getChartInfo(kind) {
     var map = {
       funnel: { title: "Funil de volume", hint: "Do pedido ao transporte, com retenção por etapa." },
       fornecedor: { title: "Volume por fornecedor", hint: "Pedido x transportado, com saldo a transportar." },
       local: { title: "Distribuição por local", hint: "Participação no volume do pedido." },
-      fiscal: { title: "Carga por fiscal", hint: "Volume inspecionado por fiscal." },
       tendencia: { title: "Tendência de conclusão", hint: "% concluído por pedido + tendência." },
       historico: { title: "Transportado acumulado", hint: "Evolução do total entregue." }
     };
@@ -612,6 +630,7 @@
     }
     els.empty.hidden = true;
     els.content.hidden = false;
+    refreshModalTriggers();
     resetSelect(els.fFiscal, Store.distinct(all, "fiscal"));
     resetSelect(els.fForn, Store.distinct(all, "fornecedor"));
     resetSelect(els.fLocal, Store.distinct(all, "local"));
@@ -823,7 +842,6 @@
     ensureDefaults();
     chartFornecedor(list);
     chartLocal(list);
-    chartFiscal(list);
     chartTendencia(list);
     chartHistorico(list);
   }
@@ -850,14 +868,12 @@
 
   function chartFornecedor(list) { mount("chart-fornecedor", buildChartConfig("fornecedor", list, false)); }
   function chartLocal(list) { mount("chart-local", buildChartConfig("local", list, false)); }
-  function chartFiscal(list) { mount("chart-fiscal", buildChartConfig("fiscal", list, false)); }
   function chartTendencia(list) { mount("chart-tendencia", buildChartConfig("tendencia", list, false)); }
   function chartHistorico(list) { mount("chart-historico", buildChartConfig("historico", list, false)); }
 
   function buildChartConfig(kind, list, expanded) {
     if (kind === "fornecedor") return fornecedorConfig(list, expanded);
     if (kind === "local") return localConfig(list, expanded);
-    if (kind === "fiscal") return fiscalConfig(list, expanded);
     if (kind === "tendencia") return tendenciaConfig(list, expanded);
     if (kind === "historico") return historicoConfig(list, expanded);
     return fornecedorConfig(list, expanded);
@@ -917,36 +933,6 @@
           legend: { display: false },
           tooltip: { callbacks: { label: tipVal } },
           datalabels: barEndLabels(expanded)
-        }
-      },
-      plugins: [ChartDataLabels]
-    };
-  }
-
-  function fiscalConfig(list, expanded) {
-    var d = Store.groupSum(list, "fiscal", "volInspecionado");
-    var scales = baseScales(expanded);
-    scales.y.suggestedMax = paddedMax(d.map(function (x) { return x.value; }), expanded ? 1.35 : 1.2);
-
-    return {
-      type: "bar",
-      data: {
-        labels: d.map(function (x) { return x.label; }),
-        datasets: [{ label: "Inspecionado", data: d.map(function (x) { return x.value; }), backgroundColor: C.azulClaro, borderRadius: expanded ? 7 : 4 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 24 : 10, left: expanded ? 10 : 0, bottom: expanded ? 8 : 0 } },
-        scales: scales,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: tipVal } },
-          datalabels: {
-            anchor: "end", align: "top", offset: expanded ? 8 : 5, clamp: true, clip: false,
-            color: C.azul, backgroundColor: "rgba(255,255,255,0.88)", borderRadius: 4, padding: expanded ? 5 : 3,
-            font: { size: expanded ? 12 : 9, weight: "700" },
-            formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
-          }
         }
       },
       plugins: [ChartDataLabels]
