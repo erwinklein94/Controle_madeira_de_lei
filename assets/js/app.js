@@ -124,7 +124,10 @@
       map[k].transportado += num(r.volTransportado);
     });
     return Object.keys(map)
-      .map(function (k) { return { label: k, pedido: map[k].pedido, transportado: map[k].transportado }; })
+      .map(function (k) {
+        var saldo = Math.max(map[k].pedido - map[k].transportado, 0);
+        return { label: k, pedido: map[k].pedido, transportado: map[k].transportado, saldo: saldo };
+      })
       .sort(function (a, b) { return b.pedido - a.pedido; });
   }
 
@@ -722,7 +725,7 @@
 
   function chartFornecedor(list) {
     var d = Store.pedidoVsTransportado(list, "fornecedor");
-    var max = paddedMax(d.reduce(function (arr, x) { arr.push(x.pedido, x.transportado); return arr; }, []), 1.18);
+    var max = paddedMax(d.reduce(function (arr, x) { arr.push(x.pedido, x.transportado, x.saldo); return arr; }, []), 1.18);
     var scales = baseScales();
     scales.x.suggestedMax = max;
 
@@ -732,7 +735,8 @@
         labels: d.map(function (x) { return x.label; }),
         datasets: [
           { label: "Pedido", data: d.map(function (x) { return x.pedido; }), backgroundColor: C.azul, borderRadius: 4 },
-          { label: "Transportado", data: d.map(function (x) { return x.transportado; }), backgroundColor: C.verde, borderRadius: 4 }
+          { label: "Transportado", data: d.map(function (x) { return x.transportado; }), backgroundColor: C.verde, borderRadius: 4 },
+          { label: "Saldo a transportar", data: d.map(function (x) { return x.saldo; }), backgroundColor: C.laranja, borderRadius: 4 }
         ]
       },
       options: {
@@ -743,7 +747,7 @@
         plugins: {
           legend: { position: "top", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 } } },
           tooltip: { callbacks: { label: tipVal } },
-          datalabels: barEndLabels()
+          datalabels: barEndLabelsExact()
         }
       },
       plugins: [ChartDataLabels]
@@ -884,6 +888,18 @@
       color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: 3,
       font: { size: 9, weight: "700" },
       formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
+    };
+  }
+
+  function barEndLabelsExact() {
+    return {
+      anchor: "end", align: "right", clamp: true, clip: false, offset: 4,
+      color: C.texto, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 4, padding: 3,
+      font: { size: 9, weight: "700" },
+      formatter: function (v, ctx) {
+        if (v <= 0) return "";
+        return ctx.dataset && ctx.dataset.label === "Saldo a transportar" ? "Saldo: " + withUnit(v) : withUnit(v);
+      }
     };
   }
 
