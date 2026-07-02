@@ -405,7 +405,7 @@
   }
   function clearMsg() { msg.textContent = ""; msg.className = "form-msg"; }
   function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>\"]/g, function (c) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
   }
@@ -440,9 +440,11 @@
   var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-fiscal", "chart-tendencia", "chart-historico"];
 
   var charts = {};
+  var modalChart = null;
   var wired = false;
   var defaultsSet = false;
   var els = {};
+  var modal = {};
 
   function grab() {
     els = {
@@ -458,6 +460,15 @@
       fBusca: document.getElementById("f-busca"),
       fLimpar: document.getElementById("f-limpar")
     };
+
+    modal = {
+      root: document.getElementById("chart-modal"),
+      title: document.getElementById("chart-modal-title"),
+      hint: document.getElementById("chart-modal-hint"),
+      canvas: document.getElementById("chart-modal-canvas"),
+      canvasWrap: document.getElementById("chart-modal-canvas-wrap"),
+      funnel: document.getElementById("chart-modal-funnel")
+    };
   }
 
   function setup() {
@@ -472,9 +483,111 @@
     var resizeTimer;
     window.addEventListener("resize", function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () { requestAnimationFrame(placeFunnelLabels); }, 120);
+      resizeTimer = setTimeout(function () {
+        requestAnimationFrame(function () {
+          placeFunnelLabels();
+          if (modal.root && !modal.root.hidden && modal.funnel && !modal.funnel.hidden) placeFunnelLabelsIn(modal.funnel);
+        });
+      }, 120);
     });
+
+    setupChartModal();
     wired = true;
+  }
+
+  function setupChartModal() {
+    if (!modal.root) return;
+
+    var cards = document.querySelectorAll("#view-dashboard .chart-card[data-modal-chart]");
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      card.setAttribute("tabindex", "0");
+      card.setAttribute("role", "button");
+      card.setAttribute("title", "Clique para ampliar este gráfico");
+      card.setAttribute("aria-label", "Ampliar gráfico " + getChartInfo(card.getAttribute("data-modal-chart")).title);
+      card.addEventListener("click", function () { openChartModal(this.getAttribute("data-modal-chart")); });
+      card.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openChartModal(this.getAttribute("data-modal-chart"));
+        }
+      });
+    }
+
+    modal.root.addEventListener("click", function (e) {
+      if (e.target.closest("[data-modal-close]")) closeChartModal();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modal.root && !modal.root.hidden) closeChartModal();
+    });
+  }
+
+  function getChartInfo(kind) {
+    var map = {
+      funnel: { title: "Funil de volume", hint: "Do pedido ao transporte, com retenção por etapa." },
+      fornecedor: { title: "Volume por fornecedor", hint: "Pedido x transportado, com saldo a transportar." },
+      local: { title: "Distribuição por local", hint: "Participação no volume do pedido." },
+      fiscal: { title: "Carga por fiscal", hint: "Volume inspecionado por fiscal." },
+      tendencia: { title: "Tendência de conclusão", hint: "% concluído por pedido + tendência." },
+      historico: { title: "Transportado acumulado", hint: "Evolução do total entregue." }
+    };
+    return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
+  }
+
+  function openChartModal(kind) {
+    if (!modal.root) return;
+
+    var info = getChartInfo(kind);
+    var list = getFiltered();
+
+    modal.title.textContent = info.title;
+    modal.hint.textContent = info.hint + " Os filtros atuais do dashboard foram mantidos.";
+    modal.root.hidden = false;
+    modal.root.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+
+    if (modalChart) {
+      modalChart.destroy();
+      modalChart = null;
+    }
+
+    if (kind === "funnel") {
+      modal.canvasWrap.hidden = true;
+      modal.funnel.hidden = false;
+      renderFunnelInto(modal.funnel, list);
+      requestAnimationFrame(function () { placeFunnelLabelsIn(modal.funnel); });
+    } else {
+      modal.funnel.hidden = true;
+      modal.canvasWrap.hidden = false;
+
+      if (!chartsAvailable()) {
+        modal.canvasWrap.innerHTML = '<p class="card__hint chart-modal__fallback">A biblioteca de gráficos não carregou. Verifique a conexão e recarregue a página.</p>';
+        return;
+      }
+
+      if (!modal.canvasWrap.querySelector("canvas")) {
+        modal.canvasWrap.innerHTML = '<canvas id="chart-modal-canvas"></canvas>';
+        modal.canvas = document.getElementById("chart-modal-canvas");
+      }
+
+      ensureDefaults();
+      modalChart = new Chart(modal.canvas, buildChartConfig(kind, list, true));
+    }
+
+    var closeBtn = modal.root.querySelector(".chart-modal__close");
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function closeChartModal() {
+    if (!modal.root) return;
+    if (modalChart) {
+      modalChart.destroy();
+      modalChart = null;
+    }
+    modal.root.hidden = true;
+    modal.root.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
   }
 
   function resetSelect(sel, values) {
@@ -555,11 +668,18 @@
   }
 
   function renderFunnel(list) {
+    renderFunnelInto(els.funnel, list);
+    requestAnimationFrame(placeFunnelLabels);
+  }
+
+  function renderFunnelInto(container, list) {
     var totals = Store.funnelTotals(list);
     var base = totals[0].total || 0;
 
+    if (!container) return;
+
     if (!list.length || base === 0) {
-      els.funnel.innerHTML = '<p class="card__hint">Nenhum registro para os filtros atuais.</p>';
+      container.innerHTML = '<p class="card__hint">Nenhum registro para os filtros atuais.</p>';
       return;
     }
 
@@ -585,20 +705,23 @@
 
     var k = Store.kpis(list);
     var note =
-      '<div style="margin-top:14px;font-size:12.5px;color:var(--rumo-texto);">' +
+      '<div class="funnel__note">' +
       "Maior perda entre estágios: <strong>" + k.gargalo.label + "</strong> " +
-      '<b style="color:var(--rumo-laranja);">(−' + pct(k.gargalo.drop) + ")</b></div>";
+      '<b>(−' + pct(k.gargalo.drop) + ")</b></div>";
 
-    els.funnel.innerHTML = rows + note;
-    requestAnimationFrame(placeFunnelLabels);
+    container.innerHTML = rows + note;
   }
 
   /* Mantém o rótulo (valor + %) dentro da barra quando há espaço; quando a
      barra é estreita demais e o número seria cortado, move o rótulo para fora,
      logo à direita da barra, em cor escura (legível sobre o trilho cinza). */
   function placeFunnelLabels() {
-    if (!els.funnel) return;
-    var rows = els.funnel.querySelectorAll(".funnel__row");
+    placeFunnelLabelsIn(els.funnel);
+  }
+
+  function placeFunnelLabelsIn(container) {
+    if (!container) return;
+    var rows = container.querySelectorAll(".funnel__row");
     var i, row, track, bar, value;
 
     // 1) Reseta todos os rótulos para "dentro da barra" antes de medir.
@@ -625,8 +748,9 @@
 
       // Largura final da barra (não depende da animação de width em curso).
       var frac = (parseFloat(bar.getAttribute("data-w")) || 0) / 100;
-      var barW = Math.max(trackW * frac, 64); // 64 = min-width da .funnel__bar
-      var innerW = barW - 24;                 // 24 = padding lateral (12 + 12)
+      var minBar = container.classList.contains("chart-modal__funnel") ? 92 : 64;
+      var barW = Math.max(trackW * frac, minBar);
+      var innerW = barW - 24;
       var need = value.getBoundingClientRect().width;
 
       if (need > innerW) {
@@ -711,10 +835,11 @@
     charts[id] = new Chart(cv, config);
   }
 
-  function baseScales() {
+  function baseScales(expanded) {
+    var tickSize = expanded ? 12 : 10;
     return {
-      x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 } } },
-      y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 } }, beginAtZero: true }
+      x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: tickSize } } },
+      y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: tickSize } }, beginAtZero: true }
     };
   }
 
@@ -723,98 +848,114 @@
     return max > 0 ? Math.ceil(max * (factor || 1.18)) : 10;
   }
 
-  function chartFornecedor(list) {
-    var d = Store.pedidoVsTransportado(list, "fornecedor");
-    var max = paddedMax(d.reduce(function (arr, x) { arr.push(x.pedido, x.transportado, x.saldo); return arr; }, []), 1.18);
-    var scales = baseScales();
-    scales.x.suggestedMax = max;
+  function chartFornecedor(list) { mount("chart-fornecedor", buildChartConfig("fornecedor", list, false)); }
+  function chartLocal(list) { mount("chart-local", buildChartConfig("local", list, false)); }
+  function chartFiscal(list) { mount("chart-fiscal", buildChartConfig("fiscal", list, false)); }
+  function chartTendencia(list) { mount("chart-tendencia", buildChartConfig("tendencia", list, false)); }
+  function chartHistorico(list) { mount("chart-historico", buildChartConfig("historico", list, false)); }
 
-    mount("chart-fornecedor", {
+  function buildChartConfig(kind, list, expanded) {
+    if (kind === "fornecedor") return fornecedorConfig(list, expanded);
+    if (kind === "local") return localConfig(list, expanded);
+    if (kind === "fiscal") return fiscalConfig(list, expanded);
+    if (kind === "tendencia") return tendenciaConfig(list, expanded);
+    if (kind === "historico") return historicoConfig(list, expanded);
+    return fornecedorConfig(list, expanded);
+  }
+
+  function fornecedorConfig(list, expanded) {
+    var d = Store.pedidoVsTransportado(list, "fornecedor");
+    var max = paddedMax(d.reduce(function (arr, x) { arr.push(x.pedido, x.transportado, x.saldo); return arr; }, []), expanded ? 1.26 : 1.18);
+    var scales = baseScales(expanded);
+    scales.x.suggestedMax = max;
+    scales.y.ticks.autoSkip = false;
+
+    return {
       type: "bar",
       data: {
         labels: d.map(function (x) { return x.label; }),
         datasets: [
-          { label: "Pedido", data: d.map(function (x) { return x.pedido; }), backgroundColor: C.azul, borderRadius: 4 },
-          { label: "Transportado", data: d.map(function (x) { return x.transportado; }), backgroundColor: C.verde, borderRadius: 4 },
-          { label: "Saldo a transportar", data: d.map(function (x) { return x.saldo; }), backgroundColor: C.laranja, borderRadius: 4 }
+          { label: "Pedido", data: d.map(function (x) { return x.pedido; }), backgroundColor: C.azul, borderRadius: expanded ? 7 : 4 },
+          { label: "Transportado", data: d.map(function (x) { return x.transportado; }), backgroundColor: C.verde, borderRadius: expanded ? 7 : 4 },
+          { label: "Saldo a transportar", data: d.map(function (x) { return x.saldo; }), backgroundColor: C.laranja, borderRadius: expanded ? 7 : 4 }
         ]
       },
       options: {
         indexAxis: "y",
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 38, top: 2, bottom: 2 } },
+        layout: { padding: { right: expanded ? 86 : 38, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2, left: expanded ? 8 : 0 } },
         scales: scales,
         plugins: {
-          legend: { position: "top", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 } } },
+          legend: legendConfig(expanded),
           tooltip: { callbacks: { label: tipVal } },
-          datalabels: barEndLabelsExact()
+          datalabels: barEndLabelsExact(expanded)
         }
       },
       plugins: [ChartDataLabels]
-    });
+    };
   }
 
-  function chartLocal(list) {
+  function localConfig(list, expanded) {
     var d = Store.groupSum(list, "local", "volPedido");
-    var max = paddedMax(d.map(function (x) { return x.value; }), 1.22);
-    var scales = baseScales();
+    var max = paddedMax(d.map(function (x) { return x.value; }), expanded ? 1.28 : 1.22);
+    var scales = baseScales(expanded);
     scales.x.suggestedMax = max;
     scales.y.ticks.autoSkip = false;
 
-    mount("chart-local", {
+    return {
       type: "bar",
       data: {
         labels: d.map(function (x) { return x.label; }),
-        datasets: [{ label: "Volume do pedido", data: d.map(function (x) { return x.value; }), backgroundColor: C.azulClaro, borderRadius: 4 }]
+        datasets: [{ label: "Volume do pedido", data: d.map(function (x) { return x.value; }), backgroundColor: C.azulClaro, borderRadius: expanded ? 7 : 4 }]
       },
       options: {
         indexAxis: "y",
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: 38, top: 2, bottom: 2 } },
+        layout: { padding: { right: expanded ? 70 : 38, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2 } },
         scales: scales,
         plugins: {
           legend: { display: false },
           tooltip: { callbacks: { label: tipVal } },
-          datalabels: barEndLabels()
+          datalabels: barEndLabels(expanded)
         }
       },
       plugins: [ChartDataLabels]
-    });
+    };
   }
 
-  function chartFiscal(list) {
+  function fiscalConfig(list, expanded) {
     var d = Store.groupSum(list, "fiscal", "volInspecionado");
-    var scales = baseScales();
-    scales.y.suggestedMax = paddedMax(d.map(function (x) { return x.value; }), 1.2);
+    var scales = baseScales(expanded);
+    scales.y.suggestedMax = paddedMax(d.map(function (x) { return x.value; }), expanded ? 1.35 : 1.2);
 
-    mount("chart-fiscal", {
+    return {
       type: "bar",
       data: {
         labels: d.map(function (x) { return x.label; }),
-        datasets: [{ label: "Inspecionado", data: d.map(function (x) { return x.value; }), backgroundColor: C.azulClaro, borderRadius: 4 }]
+        datasets: [{ label: "Inspecionado", data: d.map(function (x) { return x.value; }), backgroundColor: C.azulClaro, borderRadius: expanded ? 7 : 4 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 18, right: 10 } },
+        layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 24 : 10, left: expanded ? 10 : 0, bottom: expanded ? 8 : 0 } },
         scales: scales,
         plugins: {
           legend: { display: false },
           tooltip: { callbacks: { label: tipVal } },
           datalabels: {
-            anchor: "end", align: "top", offset: 5, clamp: true, clip: false,
-            color: C.azul, backgroundColor: "rgba(255,255,255,0.88)", borderRadius: 4, padding: 3,
-            font: { size: 9, weight: "700" },
+            anchor: "end", align: "top", offset: expanded ? 8 : 5, clamp: true, clip: false,
+            color: C.azul, backgroundColor: "rgba(255,255,255,0.88)", borderRadius: 4, padding: expanded ? 5 : 3,
+            font: { size: expanded ? 12 : 9, weight: "700" },
             formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
           }
         }
       },
       plugins: [ChartDataLabels]
-    });
+    };
   }
 
-  function chartTendencia(list) {
+  function tendenciaConfig(list, expanded) {
     var t = Store.trendByOrder(list);
-    mount("chart-tendencia", {
+    return {
       type: "line",
       data: {
         labels: t.points.map(function (p) { return p.pedido; }),
@@ -822,50 +963,50 @@
           {
             label: "% concluído", data: t.points.map(function (p) { return p.pct; }),
             borderColor: C.azulClaro, backgroundColor: "rgba(50,166,230,0.12)",
-            fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: C.azul, borderWidth: 2
+            fill: true, tension: 0.3, pointRadius: expanded ? 5 : 3, pointBackgroundColor: C.azul, borderWidth: expanded ? 3 : 2
           },
           {
             label: "Tendência", data: t.trendLine,
-            borderColor: C.laranja, borderDash: [6, 5], borderWidth: 2,
+            borderColor: C.laranja, borderDash: [6, 5], borderWidth: expanded ? 3 : 2,
             pointRadius: 0, fill: false, tension: 0
           }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 18, right: 12, left: 2 } },
+        layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 28 : 12, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: {
-          x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 }, maxRotation: 35, minRotation: 0, autoSkip: true, maxTicksLimit: 7 } },
-          y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: 10 }, callback: function (v) { return v + "%"; } }, min: 0, max: 110 }
+          x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, maxRotation: expanded ? 25 : 35, minRotation: 0, autoSkip: true, maxTicksLimit: expanded ? 12 : 7 } },
+          y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, callback: function (v) { return v + "%"; } }, min: 0, max: 110 }
         },
         plugins: {
-          legend: { position: "top", labels: { boxWidth: 9, boxHeight: 9, font: { size: 10 } } },
+          legend: legendConfig(expanded),
           tooltip: { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + fmt.format(c.parsed.y) + "%"; } } },
-          datalabels: linePointLabels(function (v) { return fmt.format(v) + "%"; })
+          datalabels: linePointLabels(function (v) { return fmt.format(v) + "%"; }, expanded)
         }
       },
       plugins: [ChartDataLabels]
-    });
+    };
   }
 
-  function chartHistorico(list) {
+  function historicoConfig(list, expanded) {
     var d = Store.cumulativeTransported(list);
-    var scales = baseScales();
-    scales.y.suggestedMax = paddedMax(d.map(function (x) { return x.total; }), 1.16);
+    var scales = baseScales(expanded);
+    scales.y.suggestedMax = paddedMax(d.map(function (x) { return x.total; }), expanded ? 1.25 : 1.16);
 
-    mount("chart-historico", {
+    return {
       type: "line",
       data: {
         labels: d.map(function (x) { return fmtDate.format(new Date(x.date)); }),
         datasets: [{
           label: "Transportado acumulado", data: d.map(function (x) { return x.total; }),
           borderColor: C.verde, backgroundColor: "rgba(30,159,127,0.14)",
-          fill: true, tension: 0.3, pointRadius: 2, pointBackgroundColor: C.verde, borderWidth: 2
+          fill: true, tension: 0.3, pointRadius: expanded ? 5 : 2, pointBackgroundColor: C.verde, borderWidth: expanded ? 3 : 2
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 18, right: 16, left: 2 } },
+        layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 32 : 16, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: scales,
         plugins: {
           legend: { display: false },
@@ -875,27 +1016,34 @@
               label: function (c) { return " Acumulado: " + withUnit(c.parsed.y); }
             }
           },
-          datalabels: linePointLabels(function (v) { return fmtC.format(v); })
+          datalabels: linePointLabels(function (v) { return fmtC.format(v); }, expanded)
         }
       },
       plugins: [ChartDataLabels]
-    });
+    };
   }
 
-  function barEndLabels() {
+  function legendConfig(expanded) {
     return {
-      anchor: "end", align: "right", clamp: true, clip: false, offset: 4,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: 3,
-      font: { size: 9, weight: "700" },
+      position: "top",
+      labels: { boxWidth: expanded ? 13 : 9, boxHeight: expanded ? 13 : 9, font: { size: expanded ? 13 : 10 } }
+    };
+  }
+
+  function barEndLabels(expanded) {
+    return {
+      anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
+      color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+      font: { size: expanded ? 12 : 9, weight: "700" },
       formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
     };
   }
 
-  function barEndLabelsExact() {
+  function barEndLabelsExact(expanded) {
     return {
-      anchor: "end", align: "right", clamp: true, clip: false, offset: 4,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 4, padding: 3,
-      font: { size: 9, weight: "700" },
+      anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
+      color: C.texto, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 4, padding: expanded ? 5 : 3,
+      font: { size: expanded ? 12 : 9, weight: "700" },
       formatter: function (v, ctx) {
         if (v <= 0) return "";
         return ctx.dataset && ctx.dataset.label === "Saldo a transportar" ? "Saldo: " + withUnit(v) : withUnit(v);
@@ -903,7 +1051,7 @@
     };
   }
 
-  function linePointLabels(formatter) {
+  function linePointLabels(formatter, expanded) {
     return {
       display: function (ctx) {
         if (ctx.datasetIndex !== 0) return false;
@@ -912,9 +1060,9 @@
         var step = Math.ceil(total / 5);
         return ctx.dataIndex === 0 || ctx.dataIndex === total - 1 || ctx.dataIndex % step === 0;
       },
-      anchor: "end", align: "top", offset: 4, clamp: true, clip: false,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 4, padding: 2,
-      font: { size: 9, weight: "700" },
+      anchor: "end", align: "top", offset: expanded ? 7 : 4, clamp: true, clip: false,
+      color: C.texto, backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 4, padding: expanded ? 4 : 2,
+      font: { size: expanded ? 11 : 9, weight: "700" },
       formatter: formatter
     };
   }

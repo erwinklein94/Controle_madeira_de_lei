@@ -158,7 +158,7 @@
 
           <!-- Grade compacta: todos os gráficos cabem na primeira tela do Dashboard -->
           <div class="dashboard-grid">
-            <section class="card chart-card funnel-card">
+            <section class="card chart-card funnel-card" data-modal-chart="funnel">
               <div class="card__head">
                 <h2 class="card__title">Funil de volume</h2>
                 <p class="card__hint">Do pedido ao transporte, com retenção por etapa.</p>
@@ -168,7 +168,7 @@
               </div>
             </section>
 
-            <section class="card chart-card">
+            <section class="card chart-card" data-modal-chart="fornecedor">
               <div class="card__head">
                 <h2 class="card__title">Volume por fornecedor</h2>
                 <p class="card__hint">Pedido x transportado, com saldo a transportar.</p>
@@ -176,7 +176,7 @@
               <div class="card__body"><div class="chart-box"><canvas id="chart-fornecedor"></canvas></div></div>
             </section>
 
-            <section class="card chart-card">
+            <section class="card chart-card" data-modal-chart="local">
               <div class="card__head">
                 <h2 class="card__title">Distribuição por local</h2>
                 <p class="card__hint">Participação no volume do pedido.</p>
@@ -184,7 +184,7 @@
               <div class="card__body"><div class="chart-box"><canvas id="chart-local"></canvas></div></div>
             </section>
 
-            <section class="card chart-card">
+            <section class="card chart-card" data-modal-chart="fiscal">
               <div class="card__head">
                 <h2 class="card__title">Carga por fiscal</h2>
                 <p class="card__hint">Volume inspecionado por fiscal.</p>
@@ -192,7 +192,7 @@
               <div class="card__body"><div class="chart-box"><canvas id="chart-fiscal"></canvas></div></div>
             </section>
 
-            <section class="card chart-card">
+            <section class="card chart-card" data-modal-chart="tendencia">
               <div class="card__head">
                 <div class="chart-head-flex">
                   <div>
@@ -205,7 +205,7 @@
               <div class="card__body"><div class="chart-box"><canvas id="chart-tendencia"></canvas></div></div>
             </section>
 
-            <section class="card chart-card">
+            <section class="card chart-card" data-modal-chart="historico">
               <div class="card__head">
                 <h2 class="card__title">Transportado acumulado</h2>
                 <p class="card__hint">Evolução do total entregue.</p>
@@ -216,6 +216,27 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Modal para visualização expandida dos gráficos -->
+  <div id="chart-modal" class="chart-modal" hidden aria-hidden="true">
+    <div class="chart-modal__overlay" data-modal-close></div>
+    <div class="chart-modal__panel" role="dialog" aria-modal="true" aria-labelledby="chart-modal-title">
+      <button class="chart-modal__close" type="button" data-modal-close aria-label="Fechar gráfico expandido">✕</button>
+      <div class="chart-modal__head">
+        <div>
+          <div class="chart-modal__eyebrow">Gráfico expandido</div>
+          <h2 id="chart-modal-title">Gráfico</h2>
+          <p id="chart-modal-hint"></p>
+        </div>
+      </div>
+      <div class="chart-modal__body">
+        <div id="chart-modal-funnel" class="funnel chart-modal__funnel" hidden></div>
+        <div id="chart-modal-canvas-wrap" class="chart-modal__box">
+          <canvas id="chart-modal-canvas"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Chart.js + datalabels (CDN, versões fixas). Precisa de internet na 1ª carga do Dashboard. -->
