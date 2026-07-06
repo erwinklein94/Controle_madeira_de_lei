@@ -6,7 +6,31 @@
   <title>Controle de Inspeção e Transporte · Rumo</title>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
-<body class="sidebar-collapsed">
+<body class="sidebar-collapsed auth-loading">
+  <!-- ============================ LOGIN ============================ -->
+  <div id="auth-screen" class="auth">
+    <div class="auth__loading">Carregando…</div>
+    <div class="auth__box">
+      <img class="auth__logo" src="assets/img/rumo-logo.png" alt="Rumo" />
+      <div class="auth__card">
+        <div class="auth__eyebrow">Controle de Inspeção e Transporte</div>
+        <h1 class="auth__title">Acessar o sistema</h1>
+        <form id="auth-form" novalidate>
+          <div class="field">
+            <label for="auth-email">E-mail</label>
+            <input id="auth-email" type="email" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="auth-pass">Senha</label>
+            <input id="auth-pass" type="password" autocomplete="current-password" required />
+          </div>
+          <button id="auth-submit" class="btn btn--primary auth__submit" type="submit">Entrar</button>
+          <p id="auth-msg" class="auth__msg" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="app">
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
@@ -23,6 +47,10 @@
     <main class="main">
       <div class="top-menu">
         <button id="btn-menu" class="btn btn--ghost menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">☰ Menu</button>
+        <div class="top-menu__user">
+          <span id="user-chip" class="user-chip"></span>
+          <button class="btn btn--ghost btn--sm" type="button" data-logout>Sair</button>
+        </div>
       </div>
       <!-- ============================ TELA: REGISTROS ============================ -->
       <section id="view-registros" class="view">
@@ -207,6 +235,24 @@
           </div>
         </div>
       </section>
+
+      <!-- ============================ TELA: FORNECEDOR ============================ -->
+      <section id="view-fornecedor" class="view">
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Fornecedor</div>
+            <h1>Olá, <span id="forn-nome"></span></h1>
+          </div>
+        </header>
+        <section class="card">
+          <div class="card__body">
+            <div class="empty">
+              <div class="empty__title">Sua área está sendo preparada</div>
+              <div class="empty__txt">Em breve você poderá inserir e acompanhar os volumes dos seus pedidos por aqui.</div>
+            </div>
+          </div>
+        </section>
+      </section>
     </main>
   </div>
 
@@ -235,6 +281,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
+  <!-- Supabase (autenticação + dados). Precisa de internet. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-config.js"></script>
+
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth.js"></script>
 </body>
 </html>

@@ -782,6 +782,72 @@ body.dashboard-mode .menu-toggle {
 .funnel__note b { color: var(--rumo-laranja); }
 
 body.modal-open { overflow: hidden; }
+
+/* =====================================================================
+   Login (Supabase Auth) e visibilidade por perfil
+   ===================================================================== */
+/* Enquanto não autenticado, o app fica oculto (evita vazar dados). */
+body:not(.authed) .app { display: none; }
+
+.auth {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--rumo-azul) 0%, var(--rumo-azul-noite) 100%);
+}
+body.authed .auth { display: none; }
+body.auth-loading .auth__box { display: none; }
+body:not(.auth-loading) .auth__loading { display: none; }
+
+.auth__loading { color: rgba(255, 255, 255, 0.85); font-size: 15px; }
+
+.auth__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 380px;
+}
+.auth__logo { width: 150px; height: auto; }
+
+.auth__card {
+  width: 100%;
+  background: var(--surface);
+  border-radius: var(--rumo-raio);
+  box-shadow: var(--rumo-sombra-hover);
+  padding: 28px 26px 24px;
+}
+.auth__eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rumo-azul-claro);
+}
+.auth__title { margin: 4px 0 18px; font-size: 22px; color: var(--rumo-azul); }
+.auth__card .field { margin-bottom: 14px; }
+.auth__submit { width: 100%; margin-top: 4px; }
+.auth__msg { min-height: 18px; margin: 12px 0 0; font-size: 13px; color: var(--rumo-texto); }
+.auth__msg.is-error { color: var(--rumo-erro); }
+
+/* Barra do topo: identificação do usuário + sair */
+.top-menu__user { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.user-chip { font-size: 13px; font-weight: 600; color: var(--rumo-azul); }
+
+/* Perfil FORNECEDOR: enxerga apenas a própria área. */
+#view-fornecedor { display: none; }
+body.role-fornecedor #view-fornecedor { display: block; }
+body.role-fornecedor .sidebar,
+body.role-fornecedor .menu-toggle,
+body.role-fornecedor #view-registros,
+body.role-fornecedor #view-dashboard { display: none; }
 .chart-modal {
   position: fixed;
   inset: 0;
