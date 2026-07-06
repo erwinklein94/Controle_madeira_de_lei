@@ -52,11 +52,16 @@
       sb.from("profiles")
         .select("role, nome, fornecedor")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
         .then(function (p) {
-          if (p.error || !p.data) {
-            showMsg("Seu usuário não tem um perfil configurado. Fale com o administrador.", true);
-            sb.auth.signOut().then(showLogin);
+          if (p.error) {
+            console.error("Erro ao carregar perfil:", p.error, "| user id:", user.id);
+            showMsg("Erro ao carregar perfil (" + (p.error.code || "?") + "): " + p.error.message, true);
+            return;
+          }
+          if (!p.data) {
+            console.warn("Perfil não encontrado para o usuário:", user.id);
+            showMsg("Perfil não encontrado (id " + user.id + "). Confira se há uma linha em profiles com esse id e se o RLS permite lê-la.", true);
             return;
           }
           showApp(p.data);
