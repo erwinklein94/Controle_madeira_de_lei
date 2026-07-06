@@ -1,28 +1,34 @@
 /* =====================================================================
    AUTENTICAÇÃO — porta de entrada do site (Supabase Auth + perfis).
-   Deslogado: mostra o login. Ao entrar, resolve o papel na tabela
-   profiles (admin ou fornecedor) e libera a tela correspondente.
+   Dois cards (Administrador e Fornecedor) na mesma tela. Cada card só
+   deixa entrar quem tem o perfil correspondente na tabela profiles.
    ===================================================================== */
 (function () {
   "use strict";
 
   var sb = window.sbClient;
   var body = document.body;
-  var form = document.getElementById("auth-form");
-  var emailEl = document.getElementById("auth-email");
-  var passEl = document.getElementById("auth-pass");
-  var msg = document.getElementById("auth-msg");
-  var submitBtn = document.getElementById("auth-submit");
   var userChip = document.getElementById("user-chip");
+  var forms = document.querySelectorAll(".auth__card form");
 
-  function showMsg(text, isError) {
-    msg.textContent = text || "";
-    msg.classList.toggle("is-error", !!isError);
+  var LABEL = { admin: "administrador", fornecedor: "fornecedor" };
+
+  function showMsg(el, text, isError) {
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.toggle("is-error", !!isError);
+  }
+  function clearMsgs() {
+    var all = document.querySelectorAll(".auth__msg");
+    for (var i = 0; i < all.length; i++) {
+      all[i].textContent = "";
+      all[i].classList.remove("is-error");
+    }
   }
 
   if (!sb) {
     body.classList.remove("auth-loading");
-    showMsg("Não foi possível conectar ao servidor. Recarregue a página.", true);
+    showMsg(document.querySelector(".auth__msg"), "Não foi possível conectar ao servidor. Recarregue a página.", true);
     return;
   }
 
@@ -44,8 +50,9 @@
     if (fornNome) fornNome.textContent = profile.fornecedor || profile.nome || "";
   }
 
-  /* Verifica a sessão atual e entra, ou volta para o login. */
-  function enter() {
+  /* Resolve a sessão atual. Quando vem de um card (expectedRole/msgEl),
+     valida se a conta bate com o card usado. */
+  function resolveSession(expectedRole, msgEl) {
     sb.auth.getUser().then(function (res) {
       var user = res.data ? res.data.user : null;
       if (!user) { showLogin(); return; }
@@ -56,12 +63,16 @@
         .then(function (p) {
           if (p.error) {
             console.error("Erro ao carregar perfil:", p.error, "| user id:", user.id);
-            showMsg("Erro ao carregar perfil (" + (p.error.code || "?") + "): " + p.error.message, true);
+            showMsg(msgEl, "Erro ao carregar perfil (" + (p.error.code || "?") + "): " + p.error.message, true);
             return;
           }
           if (!p.data) {
-            console.warn("Perfil não encontrado para o usuário:", user.id);
-            showMsg("Perfil não encontrado (id " + user.id + "). Confira se há uma linha em profiles com esse id e se o RLS permite lê-la.", true);
+            showMsg(msgEl, "Perfil não encontrado (id " + user.id + "). Fale com o administrador.", true);
+            return;
+          }
+          if (expectedRole && p.data.role !== expectedRole) {
+            showMsg(msgEl, "Esta conta é de " + LABEL[p.data.role] + ". Use o acesso de " + LABEL[p.data.role] + ".", true);
+            sb.auth.signOut();
             return;
           }
           showApp(p.data);
@@ -69,26 +80,33 @@
     });
   }
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    showMsg("");
-    submitBtn.disabled = true;
-    sb.auth
-      .signInWithPassword({ email: emailEl.value.trim(), password: passEl.value })
-      .then(function (res) {
-        submitBtn.disabled = false;
-        if (res.error) { showMsg("E-mail ou senha inválidos.", true); return; }
+  for (var i = 0; i < forms.length; i++) {
+    forms[i].addEventListener("submit", function (e) {
+      e.preventDefault();
+      var form = e.currentTarget;
+      var msgEl = form.querySelector(".auth__msg");
+      var role = form.getAttribute("data-role");
+      var email = form.querySelector('input[type="email"]').value.trim();
+      var passEl = form.querySelector('input[type="password"]');
+      var btn = form.querySelector('button[type="submit"]');
+      clearMsgs();
+      btn.disabled = true;
+      sb.auth.signInWithPassword({ email: email, password: passEl.value }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) { showMsg(msgEl, "E-mail ou senha inválidos.", true); return; }
         passEl.value = "";
-        enter();
+        resolveSession(role, msgEl);
       });
-  });
+    });
+  }
 
   var logoutBtns = document.querySelectorAll("[data-logout]");
-  for (var i = 0; i < logoutBtns.length; i++) {
-    logoutBtns[i].addEventListener("click", function () {
+  for (var j = 0; j < logoutBtns.length; j++) {
+    logoutBtns[j].addEventListener("click", function () {
       sb.auth.signOut().then(showLogin);
     });
   }
 
-  enter();
+  // Auto-retoma uma sessão existente (sem card específico).
+  resolveSession(null, null);
 })();

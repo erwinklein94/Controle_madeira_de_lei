@@ -12,21 +12,46 @@
     <div class="auth__loading">Carregando…</div>
     <div class="auth__box">
       <img class="auth__logo" src="assets/img/rumo-logo.png" alt="Rumo" />
-      <div class="auth__card">
+      <div class="auth__title-wrap">
         <div class="auth__eyebrow">Controle de Inspeção e Transporte</div>
         <h1 class="auth__title">Acessar o sistema</h1>
-        <form id="auth-form" novalidate>
-          <div class="field">
-            <label for="auth-email">E-mail</label>
-            <input id="auth-email" type="email" autocomplete="username" required />
-          </div>
-          <div class="field">
-            <label for="auth-pass">Senha</label>
-            <input id="auth-pass" type="password" autocomplete="current-password" required />
-          </div>
-          <button id="auth-submit" class="btn btn--primary auth__submit" type="submit">Entrar</button>
-          <p id="auth-msg" class="auth__msg" role="status" aria-live="polite"></p>
-        </form>
+      </div>
+      <div class="auth__cards">
+        <!-- Administrador -->
+        <div class="auth__card auth__card--admin">
+          <div class="auth__card-eyebrow">Acesso do administrador</div>
+          <h2 class="auth__card-title">Administrador</h2>
+          <form data-role="admin" novalidate>
+            <div class="field">
+              <label for="admin-email">E-mail</label>
+              <input id="admin-email" type="email" autocomplete="username" required />
+            </div>
+            <div class="field">
+              <label for="admin-pass">Senha</label>
+              <input id="admin-pass" type="password" autocomplete="current-password" required />
+            </div>
+            <button class="btn btn--primary auth__submit" type="submit">Entrar</button>
+            <p class="auth__msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <!-- Fornecedor -->
+        <div class="auth__card auth__card--fornecedor">
+          <div class="auth__card-eyebrow">Acesso do fornecedor</div>
+          <h2 class="auth__card-title">Fornecedor</h2>
+          <form data-role="fornecedor" novalidate>
+            <div class="field">
+              <label for="forn-email">E-mail</label>
+              <input id="forn-email" type="email" autocomplete="username" required />
+            </div>
+            <div class="field">
+              <label for="forn-pass">Senha</label>
+              <input id="forn-pass" type="password" autocomplete="current-password" required />
+            </div>
+            <button class="btn btn--success auth__submit" type="submit">Entrar</button>
+            <p class="auth__msg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
       </div>
     </div>
   </div>
