@@ -478,7 +478,6 @@
       content: document.getElementById("dash-content"),
       kpi: document.getElementById("kpi-grid"),
       funnel: document.getElementById("funnel"),
-      trendBadge: document.getElementById("trend-badge"),
       count: document.getElementById("filtro-count"),
       fFiscal: document.getElementById("f-fiscal"),
       fForn: document.getElementById("f-fornecedor"),
@@ -572,7 +571,7 @@
       funnel: { title: "Funil de volume", hint: "Do pedido ao transporte, com retenção por etapa." },
       fornecedor: { title: "Volume por fornecedor", hint: "Pedido x transportado, com saldo a transportar." },
       local: { title: "Distribuição por local", hint: "Participação no volume do pedido." },
-      tendencia: { title: "Tendência de conclusão", hint: "% concluído por pedido + tendência." },
+      tendencia: { title: "Conclusão por Pedido", hint: "Volume, saldo a concluir e % de conclusão por pedido." },
       historico: { title: "Transportado acumulado", hint: "Evolução do total entregue." }
     };
     return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
@@ -682,7 +681,6 @@
     els.count.innerHTML = "Mostrando <strong>" + list.length + "</strong> de " + all.length + " registros";
     renderKpis(list);
     renderFunnel(list);
-    renderTrendBadge(list);
     renderCharts(list);
   }
 
@@ -807,10 +805,6 @@
         }
       }
     }
-  }
-
-  function renderTrendBadge(list) {
-    els.trendBadge.innerHTML = trendBadgeHtml(Store.trendByOrder(list));
   }
 
   function trendBadgeHtml(trend) {
@@ -966,38 +960,52 @@
   }
 
   function tendenciaConfig(list, expanded) {
-    var t = Store.trendByOrder(list);
+    var d = Store.pedidoVsTransportado(list, "pedido");
+    var pcts = d.map(function (x) { return x.pedido > 0 ? (x.transportado / x.pedido) * 100 : 0; });
+    var max = paddedMax(d.map(function (x) { return x.pedido; }), expanded ? 1.24 : 1.18);
+
     return {
-      type: "line",
+      type: "bar",
       data: {
-        labels: t.points.map(function (p) { return p.pedido; }),
+        labels: d.map(function (x) { return x.label; }),
         datasets: [
-          {
-            label: "% concluído", data: t.points.map(function (p) { return p.pct; }),
-            borderColor: C.azulClaro, backgroundColor: "rgba(50,166,230,0.12)",
-            fill: true, tension: 0.3, pointRadius: expanded ? 5 : 3, pointBackgroundColor: C.azul, borderWidth: expanded ? 3 : 2
-          },
-          {
-            label: "Tendência", data: t.trendLine,
-            borderColor: C.laranja, borderDash: [6, 5], borderWidth: expanded ? 3 : 2,
-            pointRadius: 0, fill: false, tension: 0
-          }
+          { label: "Concluído", data: d.map(function (x) { return x.transportado; }), backgroundColor: C.verde, borderRadius: expanded ? 6 : 3, stack: "vol" },
+          { label: "Falta concluir", data: d.map(function (x) { return x.saldo; }), backgroundColor: C.laranja, borderRadius: expanded ? 6 : 3, stack: "vol" }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 28 : 12, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
+        layout: { padding: { top: expanded ? 36 : 22, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: {
-          x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, maxRotation: expanded ? 25 : 35, minRotation: 0, autoSkip: true, maxTicksLimit: expanded ? 12 : 7 } },
-          y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, callback: function (v) { return v + "%"; } }, min: 0, max: 110 }
+          x: { stacked: true, grid: { display: false }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, maxRotation: expanded ? 25 : 40, minRotation: 0, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
+          y: { stacked: true, beginAtZero: true, suggestedMax: max, grid: { color: C.grid }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, callback: function (v) { return fmtC.format(v); } } }
         },
         plugins: {
           legend: legendConfig(expanded),
-          tooltip: { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + fmt.format(c.parsed.y) + "%"; } } },
-          datalabels: linePointLabels(function (v) { return fmt.format(v) + "%"; }, expanded)
+          tooltip: {
+            callbacks: {
+              label: function (c) { return " " + c.dataset.label + ": " + withUnit(c.parsed.y); },
+              afterBody: function (items) { return "Conclusão: " + pct(pcts[items[0].dataIndex]); }
+            }
+          },
+          datalabels: pedidoPctLabels(d, pcts, expanded)
         }
       },
       plugins: [ChartDataLabels]
+    };
+  }
+
+  /* Rótulo com o % de conclusão no topo de cada coluna (segmento mais alto da pilha). */
+  function pedidoPctLabels(d, pcts, expanded) {
+    return {
+      display: function (ctx) {
+        var saldo = d[ctx.dataIndex].saldo;
+        return ctx.dataset.label === "Falta concluir" ? saldo > 0 : saldo <= 0;
+      },
+      anchor: "end", align: "top", offset: expanded ? 6 : 3, clamp: true, clip: false,
+      color: C.azul, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+      font: { size: expanded ? 12 : 9, weight: "700" },
+      formatter: function (v, ctx) { return pct(pcts[ctx.dataIndex]); }
     };
   }
 
