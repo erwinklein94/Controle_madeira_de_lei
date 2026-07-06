@@ -483,7 +483,7 @@
       fFiscal: document.getElementById("f-fiscal"),
       fForn: document.getElementById("f-fornecedor"),
       fLocal: document.getElementById("f-local"),
-      fBusca: document.getElementById("f-busca"),
+      fPedido: document.getElementById("f-pedido"),
       fLimpar: document.getElementById("f-limpar")
     };
 
@@ -500,10 +500,9 @@
   function setup() {
     if (wired) return;
     grab();
-    [els.fFiscal, els.fForn, els.fLocal].forEach(function (s) { s.addEventListener("change", render); });
-    els.fBusca.addEventListener("input", render);
+    [els.fFiscal, els.fForn, els.fLocal, els.fPedido].forEach(function (s) { s.addEventListener("change", render); });
     els.fLimpar.addEventListener("click", function () {
-      els.fFiscal.value = ""; els.fForn.value = ""; els.fLocal.value = ""; els.fBusca.value = "";
+      els.fFiscal.value = ""; els.fForn.value = ""; els.fLocal.value = ""; els.fPedido.value = "";
       render();
     });
     var resizeTimer;
@@ -660,18 +659,19 @@
     resetSelect(els.fFiscal, Store.distinct(all, "fiscal"));
     resetSelect(els.fForn, Store.distinct(all, "fornecedor"));
     resetSelect(els.fLocal, Store.distinct(all, "local"));
+    resetSelect(els.fPedido, Store.distinct(all, "pedido"));
     render();
   }
 
   function getFiltered() {
     var all = Store.getAll();
     var fis = els.fFiscal.value, forn = els.fForn.value, loc = els.fLocal.value;
-    var q = els.fBusca.value.trim().toLowerCase();
+    var ped = els.fPedido.value;
     return all.filter(function (r) {
       if (fis && r.fiscal !== fis) return false;
       if (forn && r.fornecedor !== forn) return false;
       if (loc && r.local !== loc) return false;
-      if (q && String(r.pedido).toLowerCase().indexOf(q) === -1) return false;
+      if (ped && String(r.pedido) !== ped) return false;
       return true;
     });
   }
