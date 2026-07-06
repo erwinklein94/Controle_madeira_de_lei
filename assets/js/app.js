@@ -11,7 +11,7 @@
 (function (global) {
   "use strict";
 
-  var STORAGE_KEY = "rumo-inspecao:registros:v2";
+  var STORAGE_KEY = "rumo-inspecao:registros:v3";
   var UNIT = ""; // unidade exibida ao lado dos volumes; vazio para não mostrar letra após os números
 
   var STAGES = [
@@ -24,17 +24,43 @@
 
   var DEFAULT_RECORDS = [
     {
-      id: "registro-ivan-pandolfi-4502028992",
+      id: "registro-pandolfi-4502028987",
+      fiscal: "Ivan Souza",
+      fornecedor: "Pandolfi",
+      local: "Enéias Marques",
+      pedido: "4502028987",
+      volPedido: 10500,
+      volPronto: 0,
+      volInspecionado: 0,
+      volLiberado: 0,
+      volTransportado: 8288,
+      createdAt: "2026-07-02T12:00:00.000Z"
+    },
+    {
+      id: "registro-pandolfi-4502028992",
       fiscal: "Ivan Souza",
       fornecedor: "Pandolfi",
       local: "Enéias Marques",
       pedido: "4502028992",
-      volPedido: 12000,
+      volPedido: 4000,
       volPronto: 0,
-      volInspecionado: 672,
-      volLiberado: 430,
-      volTransportado: 8652,
-      createdAt: "2026-07-02T12:00:00.000Z"
+      volInspecionado: 0,
+      volLiberado: 0,
+      volTransportado: 4000,
+      createdAt: "2026-07-03T12:00:00.000Z"
+    },
+    {
+      id: "registro-pandolfi-4502040200",
+      fiscal: "Ivan Souza",
+      fornecedor: "Pandolfi",
+      local: "Enéias Marques",
+      pedido: "4502040200",
+      volPedido: 10000,
+      volPronto: 0,
+      volInspecionado: 0,
+      volLiberado: 672,
+      volTransportado: 172,
+      createdAt: "2026-07-04T12:00:00.000Z"
     }
   ];
 
