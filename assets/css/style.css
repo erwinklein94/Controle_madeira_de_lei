@@ -282,6 +282,15 @@ body.sidebar-collapsed .main {
 .table-wrap { overflow-x: auto; }
 .tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 920px; }
 .tabela--slim { min-width: 0; }
+.tag-pend {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rumo-laranja);
+  background: rgba(247, 131, 68, 0.12);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
 .tabela thead th {
   text-align: right;
   font-weight: 700;
