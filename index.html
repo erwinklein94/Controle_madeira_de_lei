@@ -66,6 +66,7 @@
       <nav class="nav">
         <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
+        <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
       </nav>
     </aside>
 
@@ -269,12 +270,73 @@
             <h1>Olá, <span id="forn-nome"></span></h1>
           </div>
         </header>
-        <section class="card">
+
+        <section class="card form-card">
+          <div class="card__head">
+            <h2 class="card__title">Enviar informação</h2>
+            <p class="card__hint">Preencha e envie. Os dados vão para o painel do administrador.</p>
+          </div>
           <div class="card__body">
-            <div class="empty">
-              <div class="empty__title">Sua área está sendo preparada</div>
-              <div class="empty__txt">Em breve você poderá inserir e acompanhar os volumes dos seus pedidos por aqui.</div>
+            <form id="forn-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="forn-pedido">Pedido</label>
+                  <input id="forn-pedido" type="text" required />
+                </div>
+                <div class="field">
+                  <label for="forn-volpedido">Volume do pedido</label>
+                  <input id="forn-volpedido" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="forn-transportado">Transportado</label>
+                  <input id="forn-transportado" type="number" min="0" step="any" required />
+                </div>
+              </div>
+              <div class="form-foot">
+                <button class="btn btn--success" type="submit">Enviar</button>
+                <span id="forn-msg" class="form-msg" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Suas informações enviadas</h2>
+                <p class="card__hint" id="forn-count">—</p>
+              </div>
             </div>
+          </div>
+          <div class="card__body">
+            <div id="forn-tabela"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ===================== TELA: INFORMAÇÕES PENDENTES (admin) ===================== -->
+      <section id="view-pendentes" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Administrador</div>
+            <h1>Informações pendentes</h1>
+          </div>
+          <div class="page-head__actions">
+            <button id="pendentes-refresh" class="btn btn--ghost" type="button">Atualizar</button>
+          </div>
+        </header>
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Recebido dos fornecedores</h2>
+                <p class="card__hint" id="pendentes-count">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="pendentes-tabela"></div>
           </div>
         </section>
       </section>
@@ -309,6 +371,7 @@
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/pendencias.js"></script>
 
   <script src="assets/js/app.js"></script>
   <script src="assets/js/auth.js"></script>

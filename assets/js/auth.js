@@ -37,6 +37,7 @@
   }
 
   function showApp(profile) {
+    window.currentProfile = profile;
     body.classList.remove("auth-loading");
     body.classList.add("authed");
     body.classList.toggle("role-admin", profile.role === "admin");
@@ -48,6 +49,8 @@
 
     var fornNome = document.getElementById("forn-nome");
     if (fornNome) fornNome.textContent = profile.fornecedor || profile.nome || "";
+
+    if (profile.role === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
   }
 
   /* Resolve a sessão atual. Quando vem de um card (expectedRole/msgEl),

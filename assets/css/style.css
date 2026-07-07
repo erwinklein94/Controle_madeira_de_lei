@@ -281,6 +281,7 @@ body.sidebar-collapsed .main {
    ===================================================================== */
 .table-wrap { overflow-x: auto; }
 .tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 920px; }
+.tabela--slim { min-width: 0; }
 .tabela thead th {
   text-align: right;
   font-weight: 700;
@@ -872,7 +873,8 @@ body.role-fornecedor #view-fornecedor { display: block; }
 body.role-fornecedor .sidebar,
 body.role-fornecedor .menu-toggle,
 body.role-fornecedor #view-registros,
-body.role-fornecedor #view-dashboard { display: none; }
+body.role-fornecedor #view-dashboard,
+body.role-fornecedor #view-pendentes { display: none; }
 .chart-modal {
   position: fixed;
   inset: 0;
