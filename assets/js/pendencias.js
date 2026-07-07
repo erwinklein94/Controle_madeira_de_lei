@@ -229,7 +229,7 @@
         var head = "<thead><tr>" +
           '<th class="col-text">Fornecedor</th><th class="col-text">Pedido</th>' +
           "<th>Volume solicitado</th><th>Transportado solicitado</th>" +
-          '<th class="col-text">Observação</th><th>Ações</th></tr></thead>";
+          '<th class="col-text">Observação</th><th>Ações</th></tr></thead>';
         var rows = solicitacoes.map(function (s) {
           return "<tr>" +
             '<td class="col-text">' + esc(s.fornecedor) + "</td>" +
