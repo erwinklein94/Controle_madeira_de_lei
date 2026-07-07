@@ -24,10 +24,11 @@
 
   /* ---------- camada de dados (RLS filtra fornecedor x admin) ---------- */
   var Data = {
-    listPendencias: function () {
-      return sb.from("pendencias")
-        .select("id, fornecedor, pedido, vol_pedido, vol_transportado, created_at")
+    listPendencias: function (somenteEnviadas) {
+      var q = sb.from("pendencias")
+        .select("id, fornecedor, pedido, vol_pedido, vol_transportado, status, created_at")
         .order("created_at", { ascending: false });
+      return somenteEnviadas ? q.eq("status", "enviada") : q;
     },
     addPendencia: function (rec) { return sb.from("pendencias").insert(rec); },
     updatePendencia: function (id, patch) { return sb.from("pendencias").update(patch).eq("id", id); },
@@ -87,16 +88,26 @@
           return;
         }
         var head = "<thead><tr>" +
-          '<th class="col-text">Pedido</th><th>Volume do pedido</th><th>Transportado</th><th>Ações</th>' +
+          '<th class="col-text">Pedido</th><th>Volume do pedido</th><th>Transportado</th><th>Status</th><th>Ações</th>' +
           "</tr></thead>";
         var rows = linhas.map(function (r) {
-          var acao = solicitados[r.id]
-            ? '<span class="tag-pend">Alteração solicitada</span>'
-            : '<button class="btn btn--ghost btn--sm row-request" data-id="' + r.id + '" type="button">Solicitar alteração</button>';
+          var st = r.status || "enviada";
+          var tag = st === "aceita"
+            ? '<span class="tag-ok">Aceita</span>'
+            : st === "recusada"
+              ? '<span class="tag-no">Recusada</span>'
+              : '<span class="tag-wait">Aguardando</span>';
+          var acao = "—";
+          if (st === "enviada") {
+            acao = solicitados[r.id]
+              ? '<span class="tag-pend">Alteração solicitada</span>'
+              : '<button class="btn btn--ghost btn--sm row-request" data-id="' + r.id + '" type="button">Solicitar alteração</button>';
+          }
           return "<tr>" +
             '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
             "<td>" + fmt.format(num(r.vol_pedido)) + "</td>" +
             "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
+            "<td>" + tag + "</td>" +
             '<td><div class="row-actions">' + acao + "</div></td>" +
             "</tr>";
         }).join("");
@@ -184,7 +195,7 @@
     }
 
     function renderPendencias() {
-      Data.listPendencias().then(function (res) {
+      Data.listPendencias(true).then(function (res) {
         if (res.error) {
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + ").</p>";
           return;
@@ -275,15 +286,15 @@
         volLiberado: 0,
         volTransportado: num(r.vol_transportado)
       });
-      Data.removePendencia(r.id).then(function (res) {
-        if (res.error) { window.alert("Registro criado, mas erro ao remover a pendência: " + res.error.message); }
+      Data.updatePendencia(r.id, { status: "aceita" }).then(function (res) {
+        if (res.error) { window.alert("Registro criado, mas erro ao atualizar o status: " + res.error.message); }
         render();
         if (window.RegistrosUI) window.RegistrosUI.render();
       });
     }
 
     function recusarPendencia(r) {
-      Data.removePendencia(r.id).then(function (res) {
+      Data.updatePendencia(r.id, { status: "recusada" }).then(function (res) {
         if (res.error) { window.alert("Erro ao recusar: " + res.error.message); return; }
         render();
       });
@@ -322,8 +333,8 @@
           var id = (ok || no).getAttribute("data-id");
           var r = pendencias.filter(function (x) { return x.id === id; })[0];
           if (!r) return;
-          if (ok) { if (window.confirm("Aceitar o pedido " + r.pedido + " de " + r.fornecedor + "? Ele vira um registro oficial e sai das pendências.")) aceitarPendencia(r); }
-          else { if (window.confirm("Recusar e descartar o envio do pedido " + r.pedido + "?")) recusarPendencia(r); }
+          if (ok) { if (window.confirm("Aceitar o pedido " + r.pedido + " de " + r.fornecedor + "? Ele vira um registro oficial e fica como Aceita no histórico do fornecedor.")) aceitarPendencia(r); }
+          else { if (window.confirm("Recusar o envio do pedido " + r.pedido + "? Ele fica como Recusada no histórico do fornecedor.")) recusarPendencia(r); }
         });
       }
       if (solicTabela) {

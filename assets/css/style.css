@@ -282,15 +282,17 @@ body.sidebar-collapsed .main {
 .table-wrap { overflow-x: auto; }
 .tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 920px; }
 .tabela--slim { min-width: 0; }
-.tag-pend {
+.tag-pend, .tag-ok, .tag-no, .tag-wait {
   display: inline-block;
   font-size: 12px;
   font-weight: 700;
-  color: var(--rumo-laranja);
-  background: rgba(247, 131, 68, 0.12);
   border-radius: 999px;
   padding: 3px 10px;
 }
+.tag-pend { color: var(--rumo-laranja); background: rgba(247, 131, 68, 0.12); }
+.tag-ok   { color: #14785e; background: rgba(30, 159, 127, 0.14); }
+.tag-no   { color: var(--rumo-erro); background: rgba(216, 69, 69, 0.10); }
+.tag-wait { color: var(--rumo-azul2, #1F6FA5); background: rgba(50, 166, 230, 0.13); }
 .tabela thead th {
   text-align: right;
   font-weight: 700;
