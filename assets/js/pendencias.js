@@ -98,7 +98,7 @@
               ? '<span class="tag-no">Recusada</span>'
               : '<span class="tag-wait">Aguardando</span>';
           var acao = "—";
-          if (st === "enviada") {
+          if (st === "enviada" || st === "aceita") {
             acao = solicitados[r.id]
               ? '<span class="tag-pend">Alteração solicitada</span>'
               : '<button class="btn btn--ghost btn--sm row-request" data-id="' + r.id + '" type="button">Solicitar alteração</button>';
@@ -307,11 +307,27 @@
         vol_transportado: num(s.vol_transportado_novo)
       }).then(function (res) {
         if (res.error) { window.alert("Erro ao aplicar alteração: " + res.error.message); return; }
+        sincronizaRegistro(s);
         Data.setStatusSolicitacao(s.id, "aprovada").then(function (r2) {
           if (r2.error) { window.alert("Alteração aplicada, mas erro ao fechar a solicitação: " + r2.error.message); }
           render();
         });
       });
+    }
+
+    /* Se o envio já tinha sido aceito (existe como registro oficial),
+       aplica os novos valores também no registro para refletir no dashboard. */
+    function sincronizaRegistro(s) {
+      if (!window.Store) return;
+      var alvo = window.Store.getAll().filter(function (r) {
+        return r.fornecedor === s.fornecedor && String(r.pedido) === String(s.pedido);
+      })[0];
+      if (!alvo) return;
+      window.Store.update(alvo.id, {
+        volPedido: num(s.vol_pedido_novo),
+        volTransportado: num(s.vol_transportado_novo)
+      });
+      if (window.RegistrosUI) window.RegistrosUI.render();
     }
 
     function recusar(s) {
