@@ -31,6 +31,7 @@
     },
     addPendencia: function (rec) { return sb.from("pendencias").insert(rec); },
     updatePendencia: function (id, patch) { return sb.from("pendencias").update(patch).eq("id", id); },
+    removePendencia: function (id) { return sb.from("pendencias").delete().eq("id", id); },
 
     listSolicitacoesPendentes: function () {
       return sb.from("solicitacoes")
@@ -172,6 +173,7 @@
   var PendentesUI = (function () {
     var tabela, count, refreshBtn, solicTabela, solicCount, wired = false;
     var solicitacoes = [];
+    var pendencias = [];
 
     function grab() {
       tabela = document.getElementById("pendentes-tabela");
@@ -187,7 +189,8 @@
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + ").</p>";
           return;
         }
-        var list = res.data || [];
+        pendencias = res.data || [];
+        var list = pendencias;
         count.textContent = list.length ? (list.length === 1 ? "1 informação." : list.length + " informações.") : "Nada recebido.";
         if (!list.length) {
           tabela.innerHTML =
@@ -197,13 +200,17 @@
         }
         var head = "<thead><tr>" +
           '<th class="col-text">Fornecedor</th><th class="col-text">Pedido</th>' +
-          "<th>Volume do pedido</th><th>Transportado</th></tr></thead>";
+          '<th>Volume do pedido</th><th>Transportado</th><th>Ações</th></tr></thead>';
         var rows = list.map(function (r) {
           return "<tr>" +
             '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
             '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
             "<td>" + fmt.format(num(r.vol_pedido)) + "</td>" +
             "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
+            '<td><div class="row-actions">' +
+              '<button class="btn btn--success btn--sm pend-ok" data-id="' + r.id + '" type="button">Aceitar</button>' +
+              '<button class="btn btn--danger btn--sm pend-no" data-id="' + r.id + '" type="button">Recusar</button>' +
+            "</div></td>" +
             "</tr>";
         }).join("");
         tabela.innerHTML = '<div class="table-wrap"><table class="tabela tabela--slim">' + head + "<tbody>" + rows + "</tbody></table></div>";
@@ -254,6 +261,34 @@
       renderSolicitacoes();
     }
 
+    function aceitarPendencia(r) {
+      // Vira registro oficial (tabela de Registros -> dashboard) e sai das pendências.
+      if (!window.Store) { window.alert("Não foi possível acessar os registros. Recarregue a página."); return; }
+      window.Store.add({
+        fiscal: "",
+        fornecedor: r.fornecedor,
+        local: "",
+        pedido: r.pedido,
+        volPedido: num(r.vol_pedido),
+        volPronto: 0,
+        volInspecionado: 0,
+        volLiberado: 0,
+        volTransportado: num(r.vol_transportado)
+      });
+      Data.removePendencia(r.id).then(function (res) {
+        if (res.error) { window.alert("Registro criado, mas erro ao remover a pendência: " + res.error.message); }
+        render();
+        if (window.RegistrosUI) window.RegistrosUI.render();
+      });
+    }
+
+    function recusarPendencia(r) {
+      Data.removePendencia(r.id).then(function (res) {
+        if (res.error) { window.alert("Erro ao recusar: " + res.error.message); return; }
+        render();
+      });
+    }
+
     function aprovar(s) {
       // Aplica os valores propostos na pendência e marca a solicitação como aprovada.
       Data.updatePendencia(s.pendencia_id, {
@@ -279,6 +314,18 @@
       if (wired) return;
       grab();
       if (refreshBtn) refreshBtn.addEventListener("click", render);
+      if (tabela) {
+        tabela.addEventListener("click", function (e) {
+          var ok = e.target.closest(".pend-ok");
+          var no = e.target.closest(".pend-no");
+          if (!ok && !no) return;
+          var id = (ok || no).getAttribute("data-id");
+          var r = pendencias.filter(function (x) { return x.id === id; })[0];
+          if (!r) return;
+          if (ok) { if (window.confirm("Aceitar o pedido " + r.pedido + " de " + r.fornecedor + "? Ele vira um registro oficial e sai das pendências.")) aceitarPendencia(r); }
+          else { if (window.confirm("Recusar e descartar o envio do pedido " + r.pedido + "?")) recusarPendencia(r); }
+        });
+      }
       if (solicTabela) {
         solicTabela.addEventListener("click", function (e) {
           var ok = e.target.closest(".solic-ok");
