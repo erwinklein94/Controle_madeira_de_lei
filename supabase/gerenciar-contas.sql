@@ -25,3 +25,13 @@ alter table public.registros
 alter table public.registros
   add constraint registros_created_by_fkey
   foreign key (created_by) references auth.users (id) on delete set null;
+
+-- ---------------------------------------------------------------------
+-- Permissões do service_role (usado pelas Edge Functions).
+-- Neste projeto os papéis não ganham grants automáticos; sem isto as
+-- funções create-account/manage-account falham com "permission denied".
+-- ---------------------------------------------------------------------
+grant usage on schema public to service_role;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+alter default privileges in schema public grant all on tables to service_role;
