@@ -18,6 +18,7 @@
 
   var ContasUI = (function () {
     var admTabela, admCount, fornTabela, fornCount, orfSection, orfTabela, refreshBtn, wired = false;
+    var form, formMsg, papelEl, nomeEl, fornEl, fornField, emailEl, senhaEl;
 
     function grab() {
       admTabela = document.getElementById("contas-admin-tabela");
@@ -27,6 +28,21 @@
       orfSection = document.getElementById("contas-orfas");
       orfTabela = document.getElementById("contas-orfas-tabela");
       refreshBtn = document.getElementById("contas-refresh");
+      form = document.getElementById("conta-form");
+      formMsg = document.getElementById("conta-msg");
+      papelEl = document.getElementById("conta-papel");
+      nomeEl = document.getElementById("conta-nome");
+      fornEl = document.getElementById("conta-fornecedor");
+      fornField = document.getElementById("conta-fornecedor-field");
+      emailEl = document.getElementById("conta-email");
+      senhaEl = document.getElementById("conta-senha");
+    }
+
+    function showFormMsg(text, ok) {
+      if (!formMsg) return;
+      formMsg.textContent = text || "";
+      formMsg.classList.toggle("is-ok", ok === true);
+      formMsg.classList.toggle("is-error", ok === false);
     }
 
     function vazio(texto) {
@@ -78,10 +94,56 @@
       });
     }
 
+    function criarConta() {
+      var role = papelEl.value;
+      var body = {
+        email: emailEl.value.trim(),
+        password: senhaEl.value,
+        role: role,
+        nome: nomeEl.value.trim(),
+        fornecedor: role === "fornecedor" ? fornEl.value.trim() : null
+      };
+      if (!body.email || !body.password) { showFormMsg("Informe e-mail e senha.", false); return; }
+      if (body.password.length < 6) { showFormMsg("A senha precisa ter pelo menos 6 caracteres.", false); return; }
+      if (role === "fornecedor" && !body.fornecedor) { showFormMsg("Informe o nome do fornecedor.", false); return; }
+
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      showFormMsg("Criando conta…");
+      sb.functions.invoke("create-account", { body: body }).then(function (res) {
+        btn.disabled = false;
+        if (res.error) {
+          // Tenta ler a mensagem detalhada devolvida pela função.
+          var ctx = res.error.context;
+          if (ctx && typeof ctx.json === "function") {
+            ctx.json().then(function (b) {
+              showFormMsg("Erro: " + (b && b.error ? b.error : res.error.message), false);
+            }).catch(function () { showFormMsg("Erro: " + res.error.message, false); });
+          } else {
+            showFormMsg("Erro: " + res.error.message, false);
+          }
+          return;
+        }
+        form.reset();
+        syncFornField();
+        showFormMsg("Conta criada!", true);
+        render();
+      });
+    }
+
+    function syncFornField() {
+      if (fornField) fornField.hidden = papelEl.value !== "fornecedor";
+    }
+
     function wire() {
       if (wired) return;
       grab();
       if (refreshBtn) refreshBtn.addEventListener("click", render);
+      if (form) {
+        form.addEventListener("submit", function (e) { e.preventDefault(); criarConta(); });
+        papelEl.addEventListener("change", syncFornField);
+        syncFornField();
+      }
       wired = true;
     }
 

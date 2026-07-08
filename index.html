@@ -368,6 +368,46 @@
           </div>
         </header>
 
+        <section class="card form-card">
+          <div class="card__head">
+            <h2 class="card__title">Nova conta</h2>
+            <p class="card__hint">Crie o acesso e o papel em um passo. A senha pode ser trocada depois pelo painel do Supabase.</p>
+          </div>
+          <div class="card__body">
+            <form id="conta-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="conta-papel">Papel</label>
+                  <select id="conta-papel">
+                    <option value="fornecedor">Fornecedor</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="conta-nome">Nome</label>
+                  <input id="conta-nome" type="text" />
+                </div>
+                <div class="field" id="conta-fornecedor-field">
+                  <label for="conta-fornecedor">Fornecedor (igual ao usado nos registros)</label>
+                  <input id="conta-fornecedor" type="text" />
+                </div>
+                <div class="field">
+                  <label for="conta-email">E-mail</label>
+                  <input id="conta-email" type="email" autocomplete="off" required />
+                </div>
+                <div class="field">
+                  <label for="conta-senha">Senha (mín. 6 caracteres)</label>
+                  <input id="conta-senha" type="text" autocomplete="off" required />
+                </div>
+              </div>
+              <div class="form-foot">
+                <button class="btn btn--primary" type="submit">Criar conta</button>
+                <span id="conta-msg" class="form-msg" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </section>
+
         <section class="card">
           <div class="card__head">
             <div class="chart-head-flex">

@@ -250,7 +250,7 @@ body.sidebar-collapsed .main {
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field--wide { grid-column: span 2; }
 .field label { font-size: 12.5px; font-weight: 600; color: var(--txt-suave); }
-.field input {
+.field input, .field select {
   font-family: inherit;
   font-size: 14px;
   padding: 9px 11px;
@@ -260,7 +260,7 @@ body.sidebar-collapsed .main {
   color: var(--txt);
   transition: border-color var(--rumo-transicao), box-shadow var(--rumo-transicao);
 }
-.field input:focus {
+.field input:focus, .field select:focus {
   outline: none;
   border-color: var(--rumo-azul-claro);
   box-shadow: 0 0 0 3px rgba(50, 166, 230, 0.18);
