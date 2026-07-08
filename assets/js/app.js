@@ -837,6 +837,7 @@
     Chart.defaults.font.family = '"Cera Pro", Verdana, Geneva, Tahoma, sans-serif';
     Chart.defaults.font.size = 10;
     Chart.defaults.color = C.texto;
+    Chart.defaults.resizeDelay = 200; // amortece redimensionamentos em cascata
     defaultsSet = true;
   }
 

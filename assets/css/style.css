@@ -699,8 +699,10 @@ body.dashboard-mode .menu-toggle {
   display: none;
 }
 
-/* Com mais gráficos, o dashboard rola verticalmente em qualquer tela. */
-body.dashboard-mode { overflow: auto; }
+/* Com mais gráficos, o dashboard rola verticalmente em qualquer tela.
+   overflow-y: scroll (não auto) mantém a barra sempre presente e evita o
+   loop de redimensionamento dos gráficos quando ela aparece/some. */
+body.dashboard-mode { overflow-y: scroll; }
 
 @media (max-height: 720px) and (min-width: 1101px) {
   body.dashboard-mode .main {
@@ -739,7 +741,7 @@ body.dashboard-mode { overflow: auto; }
 
 @media (max-width: 1180px) {
   body.dashboard-mode {
-    overflow: auto;
+    overflow-y: scroll;
   }
   #view-dashboard .dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
