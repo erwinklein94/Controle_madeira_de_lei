@@ -67,6 +67,7 @@
         <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
+        <a class="nav__item" href="#contas" data-view="contas"><span class="nav__ico">◈</span> Contas</a>
       </nav>
     </aside>
 
@@ -354,6 +355,61 @@
           </div>
         </section>
       </section>
+
+      <!-- ============================ TELA: CONTAS (admin) ============================ -->
+      <section id="view-contas" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Administrador</div>
+            <h1>Contas do site</h1>
+          </div>
+          <div class="page-head__actions">
+            <button id="contas-refresh" class="btn btn--ghost" type="button">Atualizar</button>
+          </div>
+        </header>
+
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Administradores</h2>
+                <p class="card__hint" id="contas-admin-count">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="contas-admin-tabela"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Fornecedores</h2>
+                <p class="card__hint" id="contas-forn-count">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="contas-forn-tabela"></div>
+          </div>
+        </section>
+
+        <section class="card" id="contas-orfas" hidden>
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Contas sem perfil</h2>
+                <p class="card__hint">Estas contas existem no login mas não têm papel definido. Cadastre o perfil na tabela profiles do Supabase.</p>
+              </div>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="contas-orfas-tabela"></div>
+          </div>
+        </section>
+      </section>
     </main>
   </div>
 
@@ -386,6 +442,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/pendencias.js"></script>
+  <script src="assets/js/contas.js"></script>
 
   <script src="assets/js/app.js"></script>
   <script src="assets/js/auth.js"></script>

@@ -1126,7 +1126,8 @@
   var views = {
     registros: document.getElementById("view-registros"),
     dashboard: document.getElementById("view-dashboard"),
-    pendentes: document.getElementById("view-pendentes")
+    pendentes: document.getElementById("view-pendentes"),
+    contas: document.getElementById("view-contas")
   };
 
   function show(view) {
@@ -1146,6 +1147,7 @@
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
+    if (view === "contas" && window.ContasUI) window.ContasUI.render();
 
     window.scrollTo(0, 0);
   }

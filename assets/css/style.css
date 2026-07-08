@@ -885,7 +885,8 @@ body.role-fornecedor .sidebar,
 body.role-fornecedor .menu-toggle,
 body.role-fornecedor #view-registros,
 body.role-fornecedor #view-dashboard,
-body.role-fornecedor #view-pendentes { display: none; }
+body.role-fornecedor #view-pendentes,
+body.role-fornecedor #view-contas { display: none; }
 .chart-modal {
   position: fixed;
   inset: 0;
