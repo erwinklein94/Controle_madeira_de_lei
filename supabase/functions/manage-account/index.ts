@@ -32,10 +32,16 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
-    const { data: callerProfile } = await admin
-      .from("profiles").select("role").eq("id", userData.user.id).single();
+    const { data: callerProfile, error: callerErr } = await admin
+      .from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
+    if (callerErr) {
+      return json({ error: "Falha ao ler o perfil do solicitante: " + callerErr.message }, 500);
+    }
     if (!callerProfile || callerProfile.role !== "admin") {
-      return json({ error: "Apenas administradores podem gerenciar contas." }, 403);
+      return json({
+        error: "Apenas administradores podem gerenciar contas. (id " + userData.user.id +
+          ", perfil " + (callerProfile ? callerProfile.role : "não encontrado") + ")",
+      }, 403);
     }
 
     const { action, id, email, password, role, nome, fornecedor } = await req.json();

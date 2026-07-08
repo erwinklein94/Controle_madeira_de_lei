@@ -32,10 +32,16 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
-    const { data: profile } = await admin
-      .from("profiles").select("role").eq("id", userData.user.id).single();
+    const { data: profile, error: profErr } = await admin
+      .from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
+    if (profErr) {
+      return json({ error: "Falha ao ler o perfil do solicitante: " + profErr.message }, 500);
+    }
     if (!profile || profile.role !== "admin") {
-      return json({ error: "Apenas administradores podem criar contas." }, 403);
+      return json({
+        error: "Apenas administradores podem criar contas. (id " + userData.user.id +
+          ", perfil " + (profile ? profile.role : "não encontrado") + ")",
+      }, 403);
     }
 
     const { email, password, role, nome, fornecedor } = await req.json();
