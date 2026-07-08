@@ -838,6 +838,7 @@
     Chart.defaults.font.size = 10;
     Chart.defaults.color = C.texto;
     Chart.defaults.resizeDelay = 200; // amortece redimensionamentos em cascata
+    Chart.defaults.animation = false; // 10 gráficos animando juntos travavam a renderização
     defaultsSet = true;
   }
 
