@@ -370,8 +370,8 @@
 
         <section class="card form-card">
           <div class="card__head">
-            <h2 class="card__title">Nova conta</h2>
-            <p class="card__hint">Crie o acesso e o papel em um passo. A senha pode ser trocada depois pelo painel do Supabase.</p>
+            <h2 class="card__title" id="conta-form-title">Nova conta</h2>
+            <p class="card__hint">Crie o acesso e o papel em um passo. Para alterar uma conta, use o botão Editar na tabela.</p>
           </div>
           <div class="card__body">
             <form id="conta-form" novalidate>
@@ -401,7 +401,8 @@
                 </div>
               </div>
               <div class="form-foot">
-                <button class="btn btn--primary" type="submit">Criar conta</button>
+                <button id="conta-submit" class="btn btn--primary" type="submit">Criar conta</button>
+                <button id="conta-cancelar" class="btn btn--ghost" type="button" hidden>Cancelar edição</button>
                 <span id="conta-msg" class="form-msg" role="status" aria-live="polite"></span>
               </div>
             </form>
