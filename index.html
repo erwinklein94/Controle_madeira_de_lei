@@ -255,9 +255,49 @@
             <section class="card chart-card" data-modal-chart="historico">
               <div class="card__head">
                 <h2 class="card__title">Transportado acumulado</h2>
-                <p class="card__hint">Evolução do total entregue.</p>
+                <p class="card__hint">Evolução do total entregue + projeção no ritmo atual.</p>
               </div>
               <div class="card__body"><div class="chart-box"><canvas id="chart-historico"></canvas></div></div>
+            </section>
+
+            <section class="card chart-card" data-modal-chart="ritmo">
+              <div class="card__head">
+                <h2 class="card__title">Ritmo de transporte</h2>
+                <p class="card__hint">Volume transportado por semana.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="chart-ritmo"></canvas></div></div>
+            </section>
+
+            <section class="card chart-card" data-modal-chart="perda">
+              <div class="card__head">
+                <h2 class="card__title">Perda entre etapas</h2>
+                <p class="card__hint">Queda percentual em cada transição do funil.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="chart-perda"></canvas></div></div>
+            </section>
+
+            <section class="card chart-card" data-modal-chart="conclforn">
+              <div class="card__head">
+                <h2 class="card__title">Conclusão por fornecedor</h2>
+                <p class="card__hint">% do pedido já transportado.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="chart-conclforn"></canvas></div></div>
+            </section>
+
+            <section class="card chart-card" data-modal-chart="idade">
+              <div class="card__head">
+                <h2 class="card__title">Idade dos pedidos em aberto</h2>
+                <p class="card__hint">Dias desde o cadastro, pedidos não concluídos.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="chart-idade"></canvas></div></div>
+            </section>
+
+            <section class="card chart-card" data-modal-chart="fluxo">
+              <div class="card__head">
+                <h2 class="card__title">Fluxo de envios</h2>
+                <p class="card__hint">Envios dos fornecedores por status.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="chart-fluxo"></canvas></div></div>
             </section>
           </div>
         </div>

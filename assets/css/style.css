@@ -361,7 +361,7 @@ body.sidebar-collapsed .main {
    ===================================================================== */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 14px;
   margin-bottom: 22px;
 }
@@ -582,7 +582,7 @@ body.dashboard-mode .menu-toggle {
   font-size: 11px;
 }
 #view-dashboard .kpi-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -647,10 +647,10 @@ body.dashboard-mode .menu-toggle {
 }
 #view-dashboard .chart-box {
   position: relative;
-  height: clamp(145px, calc((100vh - 322px) / 2), 190px);
+  height: 200px;
 }
 #view-dashboard .chart-box--tall {
-  height: clamp(145px, calc((100vh - 322px) / 2), 190px);
+  height: 200px;
 }
 #view-dashboard .funnel {
   gap: 4px;
@@ -699,11 +699,8 @@ body.dashboard-mode .menu-toggle {
   display: none;
 }
 
-@media (min-width: 1101px) and (min-height: 700px) {
-  body.dashboard-mode {
-    overflow: hidden;
-  }
-}
+/* Com mais gráficos, o dashboard rola verticalmente em qualquer tela. */
+body.dashboard-mode { overflow: auto; }
 
 @media (max-height: 720px) and (min-width: 1101px) {
   body.dashboard-mode .main {
@@ -728,10 +725,6 @@ body.dashboard-mode .menu-toggle {
   }
   #view-dashboard .kpi__value {
     font-size: 17px;
-  }
-  #view-dashboard .chart-box,
-  #view-dashboard .chart-box--tall {
-    height: clamp(122px, calc((100vh - 285px) / 2), 176px);
   }
   #view-dashboard .funnel__row {
     grid-template-columns: 96px 1fr;

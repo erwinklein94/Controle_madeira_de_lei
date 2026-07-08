@@ -457,13 +457,14 @@
   var fmt = new Intl.NumberFormat("pt-BR");
   var fmtC = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
   var fmtDate = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+  var fmtDateAno = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
   var UNIT = Store.UNIT;
 
   var FUNNEL_TEXT = {
     volPedido: "#fff", volPronto: "#fff", volInspecionado: "#0c2c3f",
     volLiberado: "#fff", volTransportado: "#0c2c3f"
   };
-  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico"];
+  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-perda", "chart-conclforn", "chart-idade", "chart-fluxo"];
 
   var charts = {};
   var modalChart = null;
@@ -572,7 +573,12 @@
       fornecedor: { title: "Volume por fornecedor", hint: "Pedido x transportado, com saldo a transportar." },
       local: { title: "Distribuição por local", hint: "Participação no volume do pedido." },
       tendencia: { title: "Conclusão por Pedido", hint: "Volume, saldo a concluir e % de conclusão por pedido." },
-      historico: { title: "Transportado acumulado", hint: "Evolução do total entregue." }
+      historico: { title: "Transportado acumulado", hint: "Evolução do total entregue + projeção no ritmo atual." },
+      ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
+      perda: { title: "Perda entre etapas", hint: "Queda percentual em cada transição do funil." },
+      conclforn: { title: "Conclusão por fornecedor", hint: "% do pedido já transportado." },
+      idade: { title: "Idade dos pedidos em aberto", hint: "Dias desde o cadastro, pedidos não concluídos." },
+      fluxo: { title: "Fluxo de envios", hint: "Envios dos fornecedores por status." }
     };
     return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
   }
@@ -687,6 +693,7 @@
   function renderKpis(list) {
     var k = Store.kpis(list);
     var trend = Store.trendByOrder(list);
+    var eta = etaInfo(list);
     var concClass = k.conclusao >= 70 ? "kpi--ok" : k.conclusao < 40 ? "kpi--warn" : "";
 
     var cards = [
@@ -695,7 +702,14 @@
       kpiCard("Taxa de conclusão", pct(k.conclusao), "", trendBadgeHtml(trend), concClass),
       kpiCard("Em andamento", val(k.emAndamento), "", "ainda não transportado"),
       kpiCard("Maior gargalo", k.gargalo.drop > 0 ? "−" + pct(k.gargalo.drop) : "—", "", k.gargalo.label, "kpi--warn"),
-      kpiCard("Cobertura", String(k.fornecedores), "", k.locais + " locais · " + k.fiscais + " fiscais")
+      kpiCard("Cobertura", String(k.fornecedores), "", k.locais + " locais · " + k.fiscais + " fiscais"),
+      kpiCard(
+        "Previsão de término",
+        eta.restante <= 0 ? "Concluído" : (eta.dias === null ? "—" : fmtDateAno.format(eta.data)),
+        "",
+        eta.restante <= 0 ? "100% transportado" : (eta.dias === null ? "sem ritmo medido" : "em " + fmt.format(eta.dias) + " dias, ritmo atual"),
+        eta.restante <= 0 ? "kpi--ok" : ""
+      )
     ];
     els.kpi.innerHTML = cards.join("");
   }
@@ -864,6 +878,33 @@
     chartLocal(list);
     chartTendencia(list);
     chartHistorico(list);
+    mount("chart-ritmo", buildChartConfig("ritmo", list, false));
+    mount("chart-perda", buildChartConfig("perda", list, false));
+    mount("chart-conclforn", buildChartConfig("conclforn", list, false));
+    mount("chart-idade", buildChartConfig("idade", list, false));
+    loadFluxo();
+  }
+
+  /* Fluxo de envios (Supabase): busca os status e guarda em cache para o
+     gráfico e para o modal. Fora do ar -> mostra aviso no card. */
+  var fluxoCache = null;
+  function loadFluxo() {
+    var cv = document.getElementById("chart-fluxo");
+    if (!cv) return;
+    if (!window.sbClient) {
+      fluxoCache = null;
+      mount("chart-fluxo", buildChartConfig("fluxo", [], false));
+      return;
+    }
+    window.sbClient.from("pendencias").select("status, fornecedor").then(function (res) {
+      var rows = res.error ? [] : (res.data || []);
+      var forn = els.fForn ? els.fForn.value : "";
+      if (forn) rows = rows.filter(function (r) { return r.fornecedor === forn; });
+      var c = { enviada: 0, aceita: 0, recusada: 0 };
+      rows.forEach(function (r) { c[r.status || "enviada"] = (c[r.status || "enviada"] || 0) + 1; });
+      fluxoCache = c;
+      mount("chart-fluxo", buildChartConfig("fluxo", [], false));
+    });
   }
 
   function mount(id, config) {
@@ -896,6 +937,11 @@
     if (kind === "local") return localConfig(list, expanded);
     if (kind === "tendencia") return tendenciaConfig(list, expanded);
     if (kind === "historico") return historicoConfig(list, expanded);
+    if (kind === "ritmo") return ritmoConfig(list, expanded);
+    if (kind === "perda") return perdaConfig(list, expanded);
+    if (kind === "conclforn") return conclFornConfig(list, expanded);
+    if (kind === "idade") return idadeConfig(list, expanded);
+    if (kind === "fluxo") return fluxoConfig(expanded);
     return fornecedorConfig(list, expanded);
   }
 
@@ -1011,35 +1057,263 @@
 
   function historicoConfig(list, expanded) {
     var d = Store.cumulativeTransported(list);
+    var eta = etaInfo(list);
+    var labels = d.map(function (x) { return fmtDate.format(new Date(x.date)); });
+    var real = d.map(function (x) { return x.total; });
+
+    var datasets = [{
+      label: "Transportado acumulado", data: real,
+      borderColor: C.verde, backgroundColor: "rgba(30,159,127,0.14)",
+      fill: true, tension: 0.3, pointRadius: expanded ? 5 : 2, pointBackgroundColor: C.verde, borderWidth: expanded ? 3 : 2
+    }];
+
+    // Projeção: liga o último ponto real à meta (volume total do pedido) na data prevista.
+    var comProjecao = eta.dias > 0 && d.length > 0;
+    if (comProjecao) {
+      labels = labels.concat([fmtDate.format(eta.data)]);
+      var proj = labels.map(function () { return null; });
+      proj[d.length - 1] = real[real.length - 1];
+      proj[labels.length - 1] = eta.alvo;
+      datasets.push({
+        label: "Projeção (ritmo atual)", data: proj,
+        borderColor: C.laranja, borderDash: [6, 5], borderWidth: expanded ? 3 : 2,
+        pointRadius: expanded ? 5 : 3, pointStyle: "rectRot", pointBackgroundColor: C.laranja,
+        fill: false, tension: 0
+      });
+    }
+
+    var maxVals = real.concat(comProjecao ? [eta.alvo] : []);
     var scales = baseScales(expanded);
-    scales.y.suggestedMax = paddedMax(d.map(function (x) { return x.total; }), expanded ? 1.25 : 1.16);
+    scales.y.suggestedMax = paddedMax(maxVals, expanded ? 1.25 : 1.16);
 
     return {
       type: "line",
-      data: {
-        labels: d.map(function (x) { return fmtDate.format(new Date(x.date)); }),
-        datasets: [{
-          label: "Transportado acumulado", data: d.map(function (x) { return x.total; }),
-          borderColor: C.verde, backgroundColor: "rgba(30,159,127,0.14)",
-          fill: true, tension: 0.3, pointRadius: expanded ? 5 : 2, pointBackgroundColor: C.verde, borderWidth: expanded ? 3 : 2
-        }]
-      },
+      data: { labels: labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 32 : 16, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: scales,
         plugins: {
-          legend: { display: false },
+          legend: comProjecao ? legendConfig(expanded) : { display: false },
           tooltip: {
             callbacks: {
-              title: function (items) { return d[items[0].dataIndex].label + " · " + items[0].label; },
-              label: function (c) { return " Acumulado: " + withUnit(c.parsed.y); }
+              title: function (items) {
+                var i = items[0].dataIndex;
+                return (d[i] ? d[i].label + " · " : "Previsão · ") + items[0].label;
+              },
+              label: function (c) {
+                return " " + (c.datasetIndex === 0 ? "Acumulado: " : "Meta: ") + withUnit(c.parsed.y);
+              }
             }
           },
           datalabels: linePointLabels(function (v) { return fmtC.format(v); }, expanded)
         }
       },
       plugins: [ChartDataLabels]
+    };
+  }
+
+  /* Previsão de término: ritmo médio desde o primeiro registro. */
+  function etaInfo(list) {
+    var totalPedido = 0, totalTransp = 0, minData = null;
+    list.forEach(function (r) {
+      totalPedido += Number(r.volPedido) || 0;
+      totalTransp += Number(r.volTransportado) || 0;
+      var t = new Date(r.createdAt).getTime();
+      if (!isNaN(t) && (minData === null || t < minData)) minData = t;
+    });
+    var restante = totalPedido - totalTransp;
+    if (restante <= 0 && totalPedido > 0) return { restante: 0, dias: 0, alvo: totalPedido };
+    if (totalTransp <= 0 || minData === null) return { restante: restante, dias: null, alvo: totalPedido };
+    var diasCorridos = Math.max(1, (Date.now() - minData) / 86400000);
+    var taxa = totalTransp / diasCorridos;
+    var dias = Math.ceil(restante / taxa);
+    return { restante: restante, dias: dias, data: new Date(Date.now() + dias * 86400000), alvo: totalPedido };
+  }
+
+  /* Ritmo semanal: soma o transportado por semana (segunda-feira como início). */
+  function ritmoConfig(list, expanded) {
+    var SEMANA = 7 * 86400000;
+    var buckets = {};
+    list.forEach(function (r) {
+      var d = new Date(r.createdAt);
+      if (isNaN(d.getTime())) return;
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+      var k = x.getTime();
+      buckets[k] = (buckets[k] || 0) + (Number(r.volTransportado) || 0);
+    });
+    var keys = Object.keys(buckets).map(Number).sort(function (a, b) { return a - b; });
+    var labels = [], data = [];
+    for (var t = keys[0]; keys.length && t <= keys[keys.length - 1]; t += SEMANA) {
+      labels.push("sem. " + fmtDate.format(new Date(t)));
+      data.push(buckets[t] || 0);
+    }
+    var scales = colScales(expanded, function (v) { return fmtC.format(v); });
+    scales.y.suggestedMax = paddedMax(data, expanded ? 1.25 : 1.18);
+    return {
+      type: "bar",
+      data: { labels: labels, datasets: [{ label: "Transportado na semana", data: data, backgroundColor: C.verde, borderRadius: expanded ? 6 : 3 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: expanded ? 34 : 20, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: 0 } },
+        scales: scales,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return " Transportado: " + withUnit(c.parsed.y); } } },
+          datalabels: colTopLabels(expanded, function (v) { return fmtC.format(v); })
+        }
+      },
+      plugins: [ChartDataLabels]
+    };
+  }
+
+  /* Perda entre etapas: queda % em cada transição do funil. */
+  function perdaConfig(list, expanded) {
+    var t = Store.funnelTotals(list);
+    var labels = [], data = [];
+    for (var i = 1; i < t.length; i++) {
+      labels.push(t[i - 1].short + " → " + t[i].short);
+      var prev = t[i - 1].total;
+      var drop = prev > 0 ? Math.max(0, (1 - t[i].total / prev) * 100) : 0;
+      data.push(Math.round(drop * 10) / 10);
+    }
+    var scales = colScales(expanded, function (v) { return v + "%"; });
+    scales.y.max = 110;
+    return {
+      type: "bar",
+      data: { labels: labels, datasets: [{ label: "Perda", data: data, backgroundColor: C.laranja, borderRadius: expanded ? 6 : 3 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: expanded ? 34 : 20, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: 0 } },
+        scales: scales,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return " Perda: " + pct(c.parsed.y); } } },
+          datalabels: colTopLabels(expanded, function (v) { return pct(v); })
+        }
+      },
+      plugins: [ChartDataLabels]
+    };
+  }
+
+  /* % de conclusão por fornecedor (barras horizontais normalizadas). */
+  function conclFornConfig(list, expanded) {
+    var d = Store.pedidoVsTransportado(list, "fornecedor");
+    var pcts = d.map(function (x) {
+      return x.pedido > 0 ? Math.round(Math.min(100, (x.transportado / x.pedido) * 100) * 10) / 10 : 0;
+    });
+    var scales = baseScales(expanded);
+    scales.x.max = 118;
+    scales.x.ticks.callback = function (v) { return v <= 100 ? v + "%" : ""; };
+    scales.y.ticks.autoSkip = false;
+    return {
+      type: "bar",
+      data: { labels: d.map(function (x) { return x.label; }), datasets: [{ label: "% concluído", data: pcts, backgroundColor: C.verde, borderRadius: expanded ? 6 : 3 }] },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: expanded ? 70 : 40, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2 } },
+        scales: scales,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return " Concluído: " + pct(c.parsed.x); } } },
+          datalabels: {
+            anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
+            color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+            font: { size: expanded ? 12 : 9, weight: "700" },
+            formatter: function (v) { return pct(v); }
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    };
+  }
+
+  /* Idade dos pedidos em aberto (dias desde o cadastro). */
+  function idadeConfig(list, expanded) {
+    var agora = Date.now();
+    var abertos = list
+      .filter(function (r) { return (Number(r.volTransportado) || 0) < (Number(r.volPedido) || 0); })
+      .map(function (r) {
+        var t = new Date(r.createdAt).getTime();
+        return { pedido: r.pedido, dias: isNaN(t) ? 0 : Math.max(0, Math.floor((agora - t) / 86400000)) };
+      })
+      .sort(function (a, b) { return b.dias - a.dias; });
+    var scales = baseScales(expanded);
+    scales.x.suggestedMax = paddedMax(abertos.map(function (x) { return x.dias; }), expanded ? 1.3 : 1.22);
+    scales.y.ticks.autoSkip = false;
+    return {
+      type: "bar",
+      data: { labels: abertos.map(function (x) { return x.pedido; }), datasets: [{ label: "Dias em aberto", data: abertos.map(function (x) { return x.dias; }), backgroundColor: C.azul2, borderRadius: expanded ? 6 : 3 }] },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: expanded ? 70 : 40, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2 } },
+        scales: scales,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function (c) { return " Em aberto há " + fmt.format(c.parsed.x) + " dias"; } } },
+          datalabels: {
+            anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
+            color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+            font: { size: expanded ? 12 : 9, weight: "700" },
+            formatter: function (v) { return fmt.format(v) + "d"; }
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    };
+  }
+
+  /* Fluxo de envios dos fornecedores (status no Supabase). */
+  function fluxoConfig(expanded) {
+    var c = fluxoCache || { enviada: 0, aceita: 0, recusada: 0 };
+    return {
+      type: "doughnut",
+      data: {
+        labels: ["Aguardando", "Aceitas", "Recusadas"],
+        datasets: [{
+          data: [c.enviada, c.aceita, c.recusada],
+          backgroundColor: [C.azulClaro, C.verde, "#D84545"],
+          borderColor: "#ffffff", borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: "55%",
+        layout: { padding: expanded ? 18 : 6 },
+        plugins: {
+          legend: legendConfig(expanded),
+          tooltip: { callbacks: { label: function (c2) { return " " + c2.label + ": " + fmt.format(c2.parsed); } } },
+          datalabels: {
+            color: "#ffffff",
+            font: { size: expanded ? 14 : 11, weight: "700" },
+            formatter: function (v) { return v > 0 ? fmt.format(v) : ""; }
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    };
+  }
+
+  /* Escalas para colunas verticais (grade só no eixo Y). */
+  function colScales(expanded, yTick) {
+    var tickSize = expanded ? 12 : 10;
+    return {
+      x: { grid: { display: false }, ticks: { color: C.texto, font: { size: tickSize }, maxRotation: expanded ? 25 : 40, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
+      y: { beginAtZero: true, grid: { color: C.grid }, ticks: { color: C.texto, font: { size: tickSize }, callback: yTick } }
+    };
+  }
+
+  /* Rótulo no topo de colunas verticais. */
+  function colTopLabels(expanded, fmtFn) {
+    return {
+      display: function (ctx) { return Number(ctx.dataset.data[ctx.dataIndex]) > 0; },
+      anchor: "end", align: "top", offset: expanded ? 6 : 3, clamp: true, clip: false,
+      color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 4 : 2,
+      font: { size: expanded ? 11 : 9, weight: "700" },
+      formatter: fmtFn
     };
   }
 
