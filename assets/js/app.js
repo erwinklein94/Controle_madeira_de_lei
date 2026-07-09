@@ -11,7 +11,9 @@
 (function (global) {
   "use strict";
 
-  var STORAGE_KEY = "rumo-inspecao:registros:v3";
+  // Chaves antigas do localStorage: os dados que ainda estiverem nelas são
+  // importados para o Supabase uma única vez e as chaves são apagadas.
+  var LEGACY_KEYS = ["rumo-inspecao:registros:v3", "rumo-inspecao:registros:v2"];
   var UNIT = ""; // unidade exibida ao lado dos volumes; vazio para não mostrar letra após os números
 
   var STAGES = [
@@ -22,101 +24,143 @@
     { key: "volTransportado", label: "Transportado",            short: "Transportado",  color: "#7FE06C" }
   ];
 
-  var DEFAULT_RECORDS = [
-    {
-      id: "registro-pandolfi-4502028987",
-      fiscal: "Ivan Souza",
-      fornecedor: "Pandolfi",
-      local: "Enéias Marques",
-      pedido: "4502028987",
-      volPedido: 10500,
-      volPronto: 0,
-      volInspecionado: 0,
-      volLiberado: 0,
-      volTransportado: 8288,
-      createdAt: "2026-07-02T12:00:00.000Z"
-    },
-    {
-      id: "registro-pandolfi-4502028992",
-      fiscal: "Ivan Souza",
-      fornecedor: "Pandolfi",
-      local: "Enéias Marques",
-      pedido: "4502028992",
-      volPedido: 4000,
-      volPronto: 0,
-      volInspecionado: 0,
-      volLiberado: 0,
-      volTransportado: 4000,
-      createdAt: "2026-07-03T12:00:00.000Z"
-    },
-    {
-      id: "registro-pandolfi-4502040200",
-      fiscal: "Ivan Souza",
-      fornecedor: "Pandolfi",
-      local: "Enéias Marques",
-      pedido: "4502040200",
-      volPedido: 10000,
-      volPronto: 0,
-      volInspecionado: 0,
-      volLiberado: 672,
-      volTransportado: 172,
-      createdAt: "2026-07-04T12:00:00.000Z"
+  /* Os registros vivem na tabela "registros" do Supabase. O cache em memória
+     mantém a leitura síncrona (getAll) para tabela e gráficos; as escritas
+     vão ao banco e devolvem Promises. */
+  var cache = [];
+
+  function sb() { return global.sbClient; }
+
+  function fromDb(r) {
+    return {
+      id: r.id,
+      fiscal: r.fiscal || "",
+      fornecedor: r.fornecedor || "",
+      local: r.local || "",
+      pedido: r.pedido || "",
+      volPedido: num(r.vol_pedido),
+      volPronto: num(r.vol_pronto),
+      volInspecionado: num(r.vol_inspecionado),
+      volLiberado: num(r.vol_liberado),
+      volTransportado: num(r.vol_transportado),
+      createdAt: r.created_at
+    };
+  }
+
+  function toDb(rec) {
+    var row = {
+      fiscal: rec.fiscal || null,
+      fornecedor: rec.fornecedor,
+      local: rec.local || null,
+      pedido: String(rec.pedido == null ? "" : rec.pedido),
+      vol_pedido: num(rec.volPedido),
+      vol_pronto: num(rec.volPronto),
+      vol_inspecionado: num(rec.volInspecionado),
+      vol_liberado: num(rec.volLiberado),
+      vol_transportado: num(rec.volTransportado)
+    };
+    if (rec.createdAt) row.created_at = rec.createdAt;
+    return row;
+  }
+
+  var PATCH_MAP = {
+    fiscal: "fiscal", fornecedor: "fornecedor", local: "local", pedido: "pedido",
+    volPedido: "vol_pedido", volPronto: "vol_pronto", volInspecionado: "vol_inspecionado",
+    volLiberado: "vol_liberado", volTransportado: "vol_transportado"
+  };
+
+  function patchToDb(patch) {
+    var row = {};
+    Object.keys(PATCH_MAP).forEach(function (k) {
+      if (patch[k] !== undefined) row[PATCH_MAP[k]] = k.indexOf("vol") === 0 ? num(patch[k]) : patch[k];
+    });
+    return row;
+  }
+
+  /* Recarrega o cache a partir do banco (e importa o legado do navegador
+     uma única vez, quando o banco ainda está vazio). */
+  function refresh() {
+    if (!sb()) return Promise.resolve(cache);
+    return sb().from("registros")
+      .select("id, fiscal, fornecedor, local, pedido, vol_pedido, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at")
+      .order("created_at", { ascending: true })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        cache = (res.data || []).map(fromDb);
+        return migrateLegacy().then(function () { return cache; });
+      });
+  }
+
+  function migrateLegacy() {
+    // Só o admin importa (o fornecedor enxerga o banco parcialmente pelo RLS
+    // e poderia concluir errado que ele está vazio).
+    var prof = global.currentProfile;
+    if (!prof || prof.role !== "admin") return Promise.resolve();
+
+    var locais = [];
+    LEGACY_KEYS.forEach(function (key) {
+      try {
+        var raw = global.localStorage.getItem(key);
+        if (raw) {
+          var arr = JSON.parse(raw);
+          if (Array.isArray(arr)) locais = locais.concat(arr);
+        }
+      } catch (e) { /* dado corrompido: ignora */ }
+    });
+    if (!locais.length) return Promise.resolve();
+
+    if (cache.length) {
+      // O banco já tem dados: não importa de novo, apenas desativa o legado.
+      LEGACY_KEYS.forEach(function (k) { global.localStorage.removeItem(k); });
+      return Promise.resolve();
     }
-  ];
 
-  function cloneDefaultRecords() {
-    return DEFAULT_RECORDS.map(function (r) { return Object.assign({}, r); });
+    return sb().from("registros").insert(locais.map(toDb)).select("*").then(function (res) {
+      if (res.error) {
+        console.error("Falha ao importar registros locais para o Supabase:", res.error.message);
+        return;
+      }
+      cache = (res.data || []).map(fromDb);
+      LEGACY_KEYS.forEach(function (k) { global.localStorage.removeItem(k); });
+    });
   }
 
-  function load() {
-    try {
-      var raw = global.localStorage.getItem(STORAGE_KEY);
-      if (raw === null) return cloneDefaultRecords();
-      var list = JSON.parse(raw);
-      return Array.isArray(list) ? list : cloneDefaultRecords();
-    } catch (e) {
-      return cloneDefaultRecords();
-    }
-  }
-
-  function persist(list) {
-    global.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
-
-  function uid() {
-    return "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
-
-  function getAll() { return load(); }
+  function getAll() { return cache.slice(); }
 
   function add(record) {
-    var list = load();
-    record.id = record.id || uid();
-    record.createdAt = record.createdAt || new Date().toISOString();
-    list.push(record);
-    persist(list);
-    return record;
+    return sb().from("registros").insert(toDb(record)).select("*").single().then(function (res) {
+      if (res.error) throw res.error;
+      var rec = fromDb(res.data);
+      cache.push(rec);
+      return rec;
+    });
   }
 
   function update(id, patch) {
-    var updated = null;
-    var list = load().map(function (r) {
-      if (r.id !== id) return r;
-      updated = Object.assign({}, r, patch, { id: r.id, createdAt: r.createdAt || new Date().toISOString() });
-      return updated;
+    return sb().from("registros").update(patchToDb(patch)).eq("id", id).select("*").single().then(function (res) {
+      if (res.error) throw res.error;
+      var rec = fromDb(res.data);
+      cache = cache.map(function (r) { return r.id === id ? rec : r; });
+      return rec;
     });
-    persist(list);
-    return updated;
   }
 
   function remove(id) {
-    var list = load().filter(function (r) { return r.id !== id; });
-    persist(list);
-    return list;
+    return sb().from("registros").delete().eq("id", id).then(function (res) {
+      if (res.error) throw res.error;
+      cache = cache.filter(function (r) { return r.id !== id; });
+      return cache;
+    });
   }
 
-  function clear() { persist([]); }
-  function count() { return load().length; }
+  function clear() {
+    return sb().from("registros").delete().not("id", "is", null).then(function (res) {
+      if (res.error) throw res.error;
+      cache = [];
+    });
+  }
+
+  function count() { return cache.length; }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 
@@ -227,6 +271,7 @@
   global.Store = {
     STAGES: STAGES,
     UNIT: UNIT,
+    refresh: refresh,
     getAll: getAll,
     add: add,
     update: update,
@@ -261,7 +306,16 @@
   var btnSubmit = document.getElementById("btn-submit");
   var btnCancelEdit = document.getElementById("btn-cancelar-edicao");
 
+  /* Busca no banco e redesenha. */
   function render() {
+    Store.refresh().then(draw).catch(function (err) {
+      contador.textContent = "";
+      tabelaArea.innerHTML = '<p class="card__hint">Não foi possível carregar os registros (' + esc(err.message || err) + ").</p>";
+    });
+  }
+
+  /* Redesenha a partir do cache, sem ir ao banco. */
+  function draw() {
     var list = Store.getAll();
     contador.textContent = list.length
       ? list.length + (list.length === 1 ? " registro." : " registros.")
@@ -325,32 +379,46 @@
     var data = collectFormData();
     if (!data) return;
 
+    btnSubmit.disabled = true;
     if (editingId) {
-      Store.update(editingId, data);
-      showMsg("Registro atualizado.", true);
-      stopEditing(true);
+      Store.update(editingId, data).then(function () {
+        btnSubmit.disabled = false;
+        showMsg("Registro atualizado.", true);
+        stopEditing(true);
+        draw();
+      }).catch(function (err) {
+        btnSubmit.disabled = false;
+        showMsg("Erro ao salvar: " + (err.message || err), false);
+      });
     } else {
-      Store.add(data);
-      form.reset();
-      showMsg("Registro adicionado.", true);
-      document.getElementById("fiscal").focus();
+      Store.add(data).then(function () {
+        btnSubmit.disabled = false;
+        form.reset();
+        showMsg("Registro adicionado.", true);
+        document.getElementById("fiscal").focus();
+        draw();
+      }).catch(function (err) {
+        btnSubmit.disabled = false;
+        showMsg("Erro ao adicionar: " + (err.message || err), false);
+      });
     }
-
-    render();
   });
 
   document.getElementById("btn-limpar").addEventListener("click", function () {
     if (!Store.count()) return;
     if (!confirm("Remover todos os registros? Esta ação não pode ser desfeita.")) return;
-    Store.clear();
-    stopEditing(true);
-    render();
-    showMsg("Todos os registros foram removidos.", true);
+    Store.clear().then(function () {
+      stopEditing(true);
+      draw();
+      showMsg("Todos os registros foram removidos.", true);
+    }).catch(function (err) {
+      showMsg("Erro ao remover: " + (err.message || err), false);
+    });
   });
 
   btnCancelEdit.addEventListener("click", function () {
     stopEditing(true);
-    render();
+    draw();
     showMsg("Edição cancelada.", true);
   });
 
@@ -360,15 +428,17 @@
 
     if (edit) {
       startEditing(edit.getAttribute("data-id"));
-      render();
+      draw();
       return;
     }
 
     if (del) {
       var id = del.getAttribute("data-id");
+      if (!confirm("Excluir este registro?")) return;
       if (editingId === id) stopEditing(true);
-      Store.remove(id);
-      render();
+      Store.remove(id).then(draw).catch(function (err) {
+        showMsg("Erro ao excluir: " + (err.message || err), false);
+      });
     }
   });
 
@@ -648,23 +718,25 @@
     if (values.indexOf(previous) >= 0) sel.value = previous;
   }
 
-  /* Chamado toda vez que a aba Dashboard é aberta. */
+  /* Chamado toda vez que a aba Dashboard é aberta. Busca no banco antes. */
   function refresh() {
     setup();
-    var all = Store.getAll();
-    if (!all.length) {
-      els.empty.hidden = false;
-      els.content.hidden = true;
-      return;
-    }
-    els.empty.hidden = true;
-    els.content.hidden = false;
-    refreshModalTriggers();
-    resetSelect(els.fFiscal, Store.distinct(all, "fiscal"));
-    resetSelect(els.fForn, Store.distinct(all, "fornecedor"));
-    resetSelect(els.fLocal, Store.distinct(all, "local"));
-    resetSelect(els.fPedido, Store.distinct(all, "pedido"));
-    render();
+    Store.refresh().catch(function () { return null; }).then(function () {
+      var all = Store.getAll();
+      if (!all.length) {
+        els.empty.hidden = false;
+        els.content.hidden = true;
+        return;
+      }
+      els.empty.hidden = true;
+      els.content.hidden = false;
+      refreshModalTriggers();
+      resetSelect(els.fFiscal, Store.distinct(all, "fiscal"));
+      resetSelect(els.fForn, Store.distinct(all, "fornecedor"));
+      resetSelect(els.fLocal, Store.distinct(all, "local"));
+      resetSelect(els.fPedido, Store.distinct(all, "pedido"));
+      render();
+    });
   }
 
   function getFiltered() {
@@ -1431,6 +1503,9 @@
   window.addEventListener("hashchange", function () {
     show((location.hash || "#registros").slice(1));
   });
+
+  // Permite ao login redesenhar a tela atual depois que a sessão é resolvida.
+  window.RouterShow = show;
 
   // Estado inicial (respeita o hash da URL, se houver)
   show((location.hash || "#registros").slice(1));

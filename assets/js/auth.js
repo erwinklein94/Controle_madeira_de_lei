@@ -51,6 +51,11 @@
     if (fornNome) fornNome.textContent = profile.fornecedor || profile.nome || "";
 
     if (profile.role === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
+
+    // Recarrega a tela atual: os registros vêm do banco e dependem da sessão.
+    if (profile.role === "admin" && window.RouterShow) {
+      window.RouterShow((location.hash || "#registros").slice(1));
+    }
   }
 
   /* Resolve a sessão atual. Quando vem de um card (expectedRole/msgEl),

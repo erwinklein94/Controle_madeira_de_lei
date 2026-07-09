@@ -285,11 +285,14 @@
         volInspecionado: 0,
         volLiberado: 0,
         volTransportado: num(r.vol_transportado)
-      });
-      Data.updatePendencia(r.id, { status: "aceita" }).then(function (res) {
-        if (res.error) { window.alert("Registro criado, mas erro ao atualizar o status: " + res.error.message); }
-        render();
-        if (window.RegistrosUI) window.RegistrosUI.render();
+      }).then(function () {
+        return Data.updatePendencia(r.id, { status: "aceita" }).then(function (res) {
+          if (res.error) { window.alert("Registro criado, mas erro ao atualizar o status: " + res.error.message); }
+          render();
+          if (window.RegistrosUI) window.RegistrosUI.render();
+        });
+      }).catch(function (err) {
+        window.alert("Erro ao criar o registro: " + (err.message || err));
       });
     }
 
@@ -319,15 +322,20 @@
        aplica os novos valores também no registro para refletir no dashboard. */
     function sincronizaRegistro(s) {
       if (!window.Store) return;
-      var alvo = window.Store.getAll().filter(function (r) {
-        return r.fornecedor === s.fornecedor && String(r.pedido) === String(s.pedido);
-      })[0];
-      if (!alvo) return;
-      window.Store.update(alvo.id, {
-        volPedido: num(s.vol_pedido_novo),
-        volTransportado: num(s.vol_transportado_novo)
+      window.Store.refresh().then(function () {
+        var alvo = window.Store.getAll().filter(function (r) {
+          return r.fornecedor === s.fornecedor && String(r.pedido) === String(s.pedido);
+        })[0];
+        if (!alvo) return;
+        return window.Store.update(alvo.id, {
+          volPedido: num(s.vol_pedido_novo),
+          volTransportado: num(s.vol_transportado_novo)
+        }).then(function () {
+          if (window.RegistrosUI) window.RegistrosUI.render();
+        });
+      }).catch(function (err) {
+        window.alert("Solicitação aprovada, mas não foi possível sincronizar o registro: " + (err.message || err));
       });
-      if (window.RegistrosUI) window.RegistrosUI.render();
     }
 
     function recusar(s) {
