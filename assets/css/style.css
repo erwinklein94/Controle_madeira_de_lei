@@ -361,7 +361,7 @@ body.sidebar-collapsed .main {
    ===================================================================== */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 14px;
   margin-bottom: 22px;
 }
@@ -386,16 +386,6 @@ body.sidebar-collapsed .main {
 .kpi__unit { font-size: 14px; font-weight: 600; color: var(--rumo-texto-claro); margin-left: 3px; }
 .kpi__foot { margin-top: 6px; font-size: 12.5px; color: var(--txt-suave); }
 .kpi__foot strong { color: var(--rumo-azul); }
-
-/* selo de tendência */
-.trend-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12.5px; font-weight: 700;
-  padding: 2px 9px; border-radius: 999px;
-}
-.trend-badge--up { background: rgba(30, 159, 127, 0.14); color: #14785e; }
-.trend-badge--down { background: rgba(247, 131, 68, 0.16); color: #b85a23; }
-.trend-badge--flat { background: var(--rumo-cinza-100); color: var(--txt-suave); }
 
 /* =====================================================================
    Filtros do dashboard
@@ -582,7 +572,7 @@ body.dashboard-mode .menu-toggle {
   font-size: 11px;
 }
 #view-dashboard .kpi-grid {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -613,12 +603,6 @@ body.dashboard-mode .menu-toggle {
   min-height: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-#view-dashboard .trend-badge {
-  font-size: 10px;
-  padding: 1px 6px;
-  gap: 3px;
   white-space: nowrap;
 }
 #view-dashboard .dashboard-grid {

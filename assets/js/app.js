@@ -457,7 +457,6 @@
   var fmt = new Intl.NumberFormat("pt-BR");
   var fmtC = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
   var fmtDate = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
-  var fmtDateAno = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
   var UNIT = Store.UNIT;
 
   var FUNNEL_TEXT = {
@@ -692,24 +691,14 @@
 
   function renderKpis(list) {
     var k = Store.kpis(list);
-    var trend = Store.trendByOrder(list);
-    var eta = etaInfo(list);
     var concClass = k.conclusao >= 70 ? "kpi--ok" : k.conclusao < 40 ? "kpi--warn" : "";
 
     var cards = [
       kpiCard("Volume do pedido", val(k.totalPedido), "", k.registros + " registros"),
       kpiCard("Transportado", val(k.totalTransportado), "", pct(k.conclusao) + " do pedido", "kpi--ok"),
-      kpiCard("Taxa de conclusão", pct(k.conclusao), "", trendBadgeHtml(trend), concClass),
+      kpiCard("Taxa de conclusão", pct(k.conclusao), "", "do volume do pedido", concClass),
       kpiCard("Em andamento", val(k.emAndamento), "", "ainda não transportado"),
-      kpiCard("Maior gargalo", k.gargalo.drop > 0 ? "−" + pct(k.gargalo.drop) : "—", "", k.gargalo.label, "kpi--warn"),
-      kpiCard("Cobertura", String(k.fornecedores), "", k.locais + " locais · " + k.fiscais + " fiscais"),
-      kpiCard(
-        "Previsão de término",
-        eta.restante <= 0 ? "Concluído" : (eta.dias === null ? "—" : fmtDateAno.format(eta.data)),
-        "",
-        eta.restante <= 0 ? "100% transportado" : (eta.dias === null ? "sem ritmo medido" : "em " + fmt.format(eta.dias) + " dias, ritmo atual"),
-        eta.restante <= 0 ? "kpi--ok" : ""
-      )
+      kpiCard("Cobertura", String(k.fornecedores), "", k.locais + " locais · " + k.fiscais + " fiscais")
     ];
     els.kpi.innerHTML = cards.join("");
   }
@@ -819,16 +808,6 @@
         }
       }
     }
-  }
-
-  function trendBadgeHtml(trend) {
-    if (!trend.points.length) return "";
-    var d = trend.direction;
-    var cls = d === "subida" ? "trend-badge--up" : d === "descida" ? "trend-badge--down" : "trend-badge--flat";
-    var arrow = d === "subida" ? "↑" : d === "descida" ? "↓" : "→";
-    var label = d === "subida" ? "Em alta" : d === "descida" ? "Em queda" : "Estável";
-    var delta = (trend.delta > 0 ? "+" : "") + fmt.format(trend.delta) + " p.p.";
-    return '<span class="trend-badge ' + cls + '">' + arrow + " " + label + " · " + delta + "</span>";
   }
 
   /* ---- Gráficos (Chart.js) ---- */
