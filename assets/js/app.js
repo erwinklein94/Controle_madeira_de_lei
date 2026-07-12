@@ -305,6 +305,70 @@
   var formTitle = document.getElementById("form-title");
   var btnSubmit = document.getElementById("btn-submit");
   var btnCancelEdit = document.getElementById("btn-cancelar-edicao");
+  var rfFiscal = document.getElementById("rf-fiscal");
+  var rfForn = document.getElementById("rf-fornecedor");
+  var rfLocal = document.getElementById("rf-local");
+  var rfPedido = document.getElementById("rf-pedido");
+
+  /* ---------- filtros da tabela ---------- */
+  function getFiltered() {
+    var f1 = rfFiscal.value, f2 = rfForn.value, f3 = rfLocal.value, f4 = rfPedido.value;
+    return Store.getAll().filter(function (r) {
+      if (f1 && r.fiscal !== f1) return false;
+      if (f2 && r.fornecedor !== f2) return false;
+      if (f3 && r.local !== f3) return false;
+      if (f4 && String(r.pedido) !== f4) return false;
+      return true;
+    });
+  }
+
+  function fillFilter(sel, values) {
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">Todos</option>';
+    values.slice().sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).forEach(function (v) {
+      var o = document.createElement("option");
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    if (values.indexOf(prev) >= 0) sel.value = prev;
+  }
+
+  [rfFiscal, rfForn, rfLocal, rfPedido].forEach(function (s) { s.addEventListener("change", draw); });
+  document.getElementById("rf-limpar").addEventListener("click", function () {
+    rfFiscal.value = ""; rfForn.value = ""; rfLocal.value = ""; rfPedido.value = "";
+    draw();
+  });
+
+  /* ---------- exportação (CSV compatível com Excel pt-BR) ---------- */
+  document.getElementById("btn-exportar").addEventListener("click", function () {
+    var list = getFiltered();
+    if (!list.length) { showMsg("Nada para exportar com os filtros atuais.", false); return; }
+
+    function cel(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+    function numBr(v) { return String(Number(v) || 0).replace(".", ","); }
+
+    var header = ["Fiscal", "Fornecedor", "Local", "Pedido"]
+      .concat(STAGES.map(function (s) { return s.label; }))
+      .concat(["Data de cadastro"]);
+
+    var linhas = list.map(function (r) {
+      return [cel(r.fiscal), cel(r.fornecedor), cel(r.local), cel(r.pedido)]
+        .concat(STAGES.map(function (s) { return numBr(r[s.key]); }))
+        .concat([cel(r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "")])
+        .join(";");
+    });
+
+    var csv = String.fromCharCode(0xFEFF) + header.map(cel).join(";") + "\r\n" + linhas.join("\r\n");
+    var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "registros-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showMsg(list.length + (list.length === 1 ? " registro exportado." : " registros exportados."), true);
+  });
 
   /* Busca no banco (registros + padronização) e redesenha. */
   function render() {
@@ -328,17 +392,25 @@
 
   /* Redesenha a partir do cache, sem ir ao banco. */
   function draw() {
-    var list = Store.getAll();
-    contador.textContent = list.length
-      ? list.length + (list.length === 1 ? " registro." : " registros.")
+    var all = Store.getAll();
+    fillFilter(rfFiscal, Store.distinct(all, "fiscal"));
+    fillFilter(rfForn, Store.distinct(all, "fornecedor"));
+    fillFilter(rfLocal, Store.distinct(all, "local"));
+    fillFilter(rfPedido, Store.distinct(all, "pedido"));
+
+    var list = getFiltered();
+    contador.textContent = all.length
+      ? "Mostrando " + list.length + " de " + all.length + (all.length === 1 ? " registro." : " registros.")
       : "Nenhum registro.";
 
     if (!list.length) {
-      tabelaArea.innerHTML =
-        '<div class="empty">' +
+      tabelaArea.innerHTML = all.length
+        ? '<div class="empty"><div class="empty__title">Nenhum registro para os filtros atuais</div>' +
+          '<div class="empty__txt">Ajuste ou limpe os filtros acima.</div></div>'
+        : '<div class="empty">' +
           '<div class="empty__title">Nenhum registro ainda</div>' +
           '<div class="empty__txt">Adicione um registro no formulário acima para alimentar o dashboard.</div>' +
-        "</div>";
+          "</div>";
       return;
     }
 
@@ -547,7 +619,7 @@
     volPedido: "#fff", volPronto: "#fff", volInspecionado: "#0c2c3f",
     volLiberado: "#fff", volTransportado: "#0c2c3f"
   };
-  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-perda", "chart-conclforn", "chart-idade", "chart-fluxo"];
+  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-idade", "chart-fluxo"];
 
   var charts = {};
   var modalChart = null;
@@ -658,7 +730,6 @@
       tendencia: { title: "Conclusão por Pedido", hint: "Volume, saldo a concluir e % de conclusão por pedido." },
       historico: { title: "Transportado acumulado", hint: "Evolução do total entregue + projeção no ritmo atual." },
       ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
-      perda: { title: "Perda entre etapas", hint: "Queda percentual em cada transição do funil." },
       conclforn: { title: "Conclusão por fornecedor", hint: "% do pedido já transportado." },
       idade: { title: "Idade dos pedidos em aberto", hint: "Dias desde o cadastro, pedidos não concluídos." },
       fluxo: { title: "Fluxo de envios", hint: "Envios dos fornecedores por status." }
@@ -946,7 +1017,6 @@
     chartTendencia(list);
     chartHistorico(list);
     mount("chart-ritmo", buildChartConfig("ritmo", list, false));
-    mount("chart-perda", buildChartConfig("perda", list, false));
     mount("chart-conclforn", buildChartConfig("conclforn", list, false));
     mount("chart-idade", buildChartConfig("idade", list, false));
     loadFluxo();
@@ -1005,7 +1075,6 @@
     if (kind === "tendencia") return tendenciaConfig(list, expanded);
     if (kind === "historico") return historicoConfig(list, expanded);
     if (kind === "ritmo") return ritmoConfig(list, expanded);
-    if (kind === "perda") return perdaConfig(list, expanded);
     if (kind === "conclforn") return conclFornConfig(list, expanded);
     if (kind === "idade") return idadeConfig(list, expanded);
     if (kind === "fluxo") return fluxoConfig(expanded);
@@ -1229,35 +1298,6 @@
           legend: { display: false },
           tooltip: { callbacks: { label: function (c) { return " Transportado: " + withUnit(c.parsed.y); } } },
           datalabels: colTopLabels(expanded, function (v) { return fmtC.format(v); })
-        }
-      },
-      plugins: [ChartDataLabels]
-    };
-  }
-
-  /* Perda entre etapas: queda % em cada transição do funil. */
-  function perdaConfig(list, expanded) {
-    var t = Store.funnelTotals(list);
-    var labels = [], data = [];
-    for (var i = 1; i < t.length; i++) {
-      labels.push(t[i - 1].short + " → " + t[i].short);
-      var prev = t[i - 1].total;
-      var drop = prev > 0 ? Math.max(0, (1 - t[i].total / prev) * 100) : 0;
-      data.push(Math.round(drop * 10) / 10);
-    }
-    var scales = colScales(expanded, function (v) { return v + "%"; });
-    scales.y.max = 110;
-    return {
-      type: "bar",
-      data: { labels: labels, datasets: [{ label: "Perda", data: data, backgroundColor: C.laranja, borderRadius: expanded ? 6 : 3 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: expanded ? 34 : 20, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: 0 } },
-        scales: scales,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: function (c) { return " Perda: " + pct(c.parsed.y); } } },
-          datalabels: colTopLabels(expanded, function (v) { return pct(v); })
         }
       },
       plugins: [ChartDataLabels]

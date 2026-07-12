@@ -147,6 +147,28 @@
           </div>
         </section>
 
+        <!-- Filtros da tabela -->
+        <section class="card filters">
+          <div class="filters__field">
+            <label for="rf-fiscal">Fiscal</label>
+            <select id="rf-fiscal"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="rf-fornecedor">Fornecedor</label>
+            <select id="rf-fornecedor"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="rf-local">Local</label>
+            <select id="rf-local"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="rf-pedido">Pedido</label>
+            <select id="rf-pedido"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__spacer"></div>
+          <button id="rf-limpar" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
+        </section>
+
         <!-- Tabela -->
         <section class="card">
           <div class="card__head">
@@ -155,6 +177,7 @@
                 <h2 class="card__title">Registros cadastrados</h2>
                 <p class="card__hint" id="contador">Nenhum registro.</p>
               </div>
+              <button id="btn-exportar" class="btn btn--success btn--sm" type="button">Exportar Excel</button>
             </div>
           </div>
           <div class="card__body">
@@ -267,14 +290,6 @@
                 <p class="card__hint">Volume transportado por semana.</p>
               </div>
               <div class="card__body"><div class="chart-box"><canvas id="chart-ritmo"></canvas></div></div>
-            </section>
-
-            <section class="card chart-card" data-modal-chart="perda">
-              <div class="card__head">
-                <h2 class="card__title">Perda entre etapas</h2>
-                <p class="card__hint">Queda percentual em cada transição do funil.</p>
-              </div>
-              <div class="card__body"><div class="chart-box"><canvas id="chart-perda"></canvas></div></div>
             </section>
 
             <section class="card chart-card" data-modal-chart="conclforn">
