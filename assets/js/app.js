@@ -306,11 +306,23 @@
   var btnSubmit = document.getElementById("btn-submit");
   var btnCancelEdit = document.getElementById("btn-cancelar-edicao");
 
-  /* Busca no banco e redesenha. */
+  /* Busca no banco (registros + padronização) e redesenha. */
   function render() {
-    Store.refresh().then(draw).catch(function (err) {
+    var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
+    Promise.all([Store.refresh(), padroes]).then(function () {
+      fillFormSelects();
+      draw();
+    }).catch(function (err) {
       contador.textContent = "";
       tabelaArea.innerHTML = '<p class="card__hint">Não foi possível carregar os registros (' + esc(err.message || err) + ").</p>";
+    });
+  }
+
+  /* Preenche as listas padronizadas do formulário, preservando a seleção atual. */
+  function fillFormSelects() {
+    if (!window.Padroes) return;
+    ["fiscal", "fornecedor", "local", "pedido"].forEach(function (id) {
+      window.Padroes.fill(document.getElementById(id), id);
     });
   }
 
@@ -472,10 +484,12 @@
     var rec = Store.getAll().filter(function (r) { return r.id === id; })[0];
     if (!rec) return;
     editingId = id;
-    setVal("fiscal", rec.fiscal);
-    setVal("fornecedor", rec.fornecedor);
-    setVal("local", rec.local);
-    setVal("pedido", rec.pedido);
+    // Selects padronizados: garante que o valor do registro apareça mesmo fora do padrão.
+    ["fiscal", "fornecedor", "local", "pedido"].forEach(function (campo) {
+      var el = document.getElementById(campo);
+      if (window.Padroes) window.Padroes.fill(el, campo, rec[campo] || "");
+      else el.value = rec[campo] || "";
+    });
     STAGES.forEach(function (s) { setVal(s.key, rec[s.key]); });
     formTitle.textContent = "Editar registro";
     btnSubmit.textContent = "Salvar alterações";
@@ -1454,7 +1468,8 @@
     registros: document.getElementById("view-registros"),
     dashboard: document.getElementById("view-dashboard"),
     pendentes: document.getElementById("view-pendentes"),
-    contas: document.getElementById("view-contas")
+    contas: document.getElementById("view-contas"),
+    padronizacao: document.getElementById("view-padronizacao")
   };
 
   function show(view) {
@@ -1475,6 +1490,7 @@
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();
+    if (view === "padronizacao" && window.PadronizacaoUI) window.PadronizacaoUI.render();
 
     window.scrollTo(0, 0);
   }

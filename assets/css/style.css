@@ -865,7 +865,71 @@ body.role-fornecedor .menu-toggle,
 body.role-fornecedor #view-registros,
 body.role-fornecedor #view-dashboard,
 body.role-fornecedor #view-pendentes,
-body.role-fornecedor #view-contas { display: none; }
+body.role-fornecedor #view-contas,
+body.role-fornecedor #view-padronizacao { display: none; }
+
+/* =====================================================================
+   Padronização
+   ===================================================================== */
+.padroes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .padroes-grid { grid-template-columns: 1fr; }
+}
+.padrao-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.padrao-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rumo-azul);
+  background: var(--rumo-cinza-50);
+  border: 1px solid var(--rumo-cinza-200);
+  border-radius: 999px;
+  padding: 5px 6px 5px 12px;
+}
+.padrao-del {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--rumo-texto-claro);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-family: inherit;
+}
+.padrao-del:hover { color: var(--rumo-erro); background: #fff3f3; }
+.padrao-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.padrao-form input {
+  flex: 1 1 180px;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 11px;
+  border: 1px solid var(--borda);
+  border-radius: var(--rumo-raio-sm);
+  background: #fff;
+  color: var(--txt);
+}
+.padrao-form input:focus {
+  outline: none;
+  border-color: var(--rumo-azul-claro);
+  box-shadow: 0 0 0 3px rgba(50, 166, 230, 0.18);
+}
 .chart-modal {
   position: fixed;
   inset: 0;

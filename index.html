@@ -68,6 +68,7 @@
         <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
         <a class="nav__item" href="#contas" data-view="contas"><span class="nav__ico">◈</span> Contas</a>
+        <a class="nav__item" href="#padronizacao" data-view="padronizacao"><span class="nav__ico">☰</span> Padronização</a>
       </nav>
     </aside>
 
@@ -102,19 +103,19 @@
               <div class="form-grid">
                 <div class="field">
                   <label for="fiscal">Fiscal</label>
-                  <input id="fiscal" name="fiscal" type="text" required />
+                  <select id="fiscal" name="fiscal" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
                   <label for="fornecedor">Fornecedor</label>
-                  <input id="fornecedor" name="fornecedor" type="text" required />
+                  <select id="fornecedor" name="fornecedor" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
                   <label for="local">Local</label>
-                  <input id="local" name="local" type="text" required />
+                  <select id="local" name="local" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
                   <label for="pedido">Pedido</label>
-                  <input id="pedido" name="pedido" type="text" required />
+                  <select id="pedido" name="pedido" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
                   <label for="volPedido">Volume do pedido</label>
@@ -429,7 +430,7 @@
                 </div>
                 <div class="field" id="conta-fornecedor-field">
                   <label for="conta-fornecedor">Fornecedor (igual ao usado nos registros)</label>
-                  <input id="conta-fornecedor" type="text" />
+                  <select id="conta-fornecedor"><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
                   <label for="conta-email">E-mail</label>
@@ -491,6 +492,20 @@
           </div>
         </section>
       </section>
+
+      <!-- ===================== TELA: PADRONIZAÇÃO (admin) ===================== -->
+      <section id="view-padronizacao" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Administrador</div>
+            <h1>Padronização</h1>
+          </div>
+        </header>
+        <p class="card__hint" style="margin: -8px 0 14px;">
+          As opções abaixo alimentam as listas dos formulários de registro e de contas, evitando erros de digitação.
+        </p>
+        <div id="padroes-cards" class="padroes-grid"></div>
+      </section>
     </main>
   </div>
 
@@ -523,6 +538,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/pendencias.js"></script>
+  <script src="assets/js/padroes.js"></script>
   <script src="assets/js/contas.js"></script>
 
   <script src="assets/js/app.js"></script>

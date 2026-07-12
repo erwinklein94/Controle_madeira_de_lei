@@ -95,6 +95,12 @@
       if (!admTabela) return;
       if (!sb) { admTabela.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>'; return; }
 
+      if (window.Padroes) {
+        window.Padroes.load().then(function () {
+          window.Padroes.fill(fornEl, "fornecedor");
+        }).catch(function () { /* lista fica como está */ });
+      }
+
       sb.rpc("admin_list_accounts").then(function (res) {
         if (res.error) {
           admTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Confira se o SQL supabase/contas.sql foi executado.</p>";
@@ -122,7 +128,8 @@
       editingId = c.id;
       papelEl.value = c.role || "fornecedor";
       nomeEl.value = c.nome || "";
-      fornEl.value = c.fornecedor || "";
+      if (window.Padroes) window.Padroes.fill(fornEl, "fornecedor", c.fornecedor || "");
+      else fornEl.value = c.fornecedor || "";
       emailEl.value = c.email || "";
       senhaEl.value = "";
       syncFornField();
