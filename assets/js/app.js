@@ -608,6 +608,13 @@
     azul2: "#1F6FA5", laranja: "#F78344", amarelo: "#FBD300", cinza: "#BDCCD4",
     texto: "#4D626F", grid: "rgba(0,56,101,0.08)"
   };
+
+  // Cores de eixo/grade/legenda que acompanham o tema (datalabels ficam em
+  // pílulas brancas, então mantêm C.texto escuro sempre).
+  function isDark() { return document.documentElement.getAttribute("data-theme") === "dark"; }
+  function tickColor() { return isDark() ? "#a9bece" : C.texto; }
+  function gridColor() { return isDark() ? "rgba(255,255,255,0.10)" : C.grid; }
+  function legendInk() { return isDark() ? "#cdddea" : C.texto; }
   var DOUGHNUT = [C.azul, C.azulClaro, C.verde, C.verdeClaro, C.azul2, C.laranja, C.cinza, C.amarelo];
 
   var fmt = new Intl.NumberFormat("pt-BR");
@@ -969,10 +976,11 @@
 
   /* ---- Gráficos (Chart.js) ---- */
   function ensureDefaults() {
-    if (defaultsSet || typeof Chart === "undefined") return;
+    if (typeof Chart === "undefined") return;
+    Chart.defaults.color = legendInk(); // segue o tema mesmo após o 1º ajuste
+    if (defaultsSet) return;
     Chart.defaults.font.family = '"Cera Pro", Verdana, Geneva, Tahoma, sans-serif';
     Chart.defaults.font.size = 10;
-    Chart.defaults.color = C.texto;
     Chart.defaults.resizeDelay = 200; // amortece redimensionamentos em cascata
     Chart.defaults.animation = false; // 10 gráficos animando juntos travavam a renderização
     defaultsSet = true;
@@ -1054,8 +1062,8 @@
   function baseScales(expanded) {
     var tickSize = expanded ? 12 : 10;
     return {
-      x: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: tickSize } } },
-      y: { grid: { color: C.grid }, ticks: { color: C.texto, font: { size: tickSize } }, beginAtZero: true }
+      x: { grid: { color: gridColor() }, ticks: { color: tickColor(), font: { size: tickSize } } },
+      y: { grid: { color: gridColor() }, ticks: { color: tickColor(), font: { size: tickSize } }, beginAtZero: true }
     };
   }
 
@@ -1159,8 +1167,8 @@
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: expanded ? 36 : 22, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, maxRotation: expanded ? 25 : 40, minRotation: 0, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
-          y: { stacked: true, beginAtZero: true, suggestedMax: max, grid: { color: C.grid }, ticks: { color: C.texto, font: { size: expanded ? 12 : 10 }, callback: function (v) { return fmtC.format(v); } } }
+          x: { stacked: true, grid: { display: false }, ticks: { color: tickColor(), font: { size: expanded ? 12 : 10 }, maxRotation: expanded ? 25 : 40, minRotation: 0, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
+          y: { stacked: true, beginAtZero: true, suggestedMax: max, grid: { color: gridColor() }, ticks: { color: tickColor(), font: { size: expanded ? 12 : 10 }, callback: function (v) { return fmtC.format(v); } } }
         },
         plugins: {
           legend: legendConfig(expanded),
@@ -1408,8 +1416,8 @@
   function colScales(expanded, yTick) {
     var tickSize = expanded ? 12 : 10;
     return {
-      x: { grid: { display: false }, ticks: { color: C.texto, font: { size: tickSize }, maxRotation: expanded ? 25 : 40, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
-      y: { beginAtZero: true, grid: { color: C.grid }, ticks: { color: C.texto, font: { size: tickSize }, callback: yTick } }
+      x: { grid: { display: false }, ticks: { color: tickColor(), font: { size: tickSize }, maxRotation: expanded ? 25 : 40, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
+      y: { beginAtZero: true, grid: { color: gridColor() }, ticks: { color: tickColor(), font: { size: tickSize }, callback: yTick } }
     };
   }
 
@@ -1473,7 +1481,13 @@
   function withUnit(n) { return fmt.format(Math.round(Number(n) || 0)) + (UNIT ? " " + UNIT : ""); }
   function tipVal(c) { return " " + c.dataset.label + ": " + withUnit(c.parsed.x != null ? c.parsed.x : c.parsed.y); }
 
-  window.DashboardUI = { refresh: refresh };
+  function onThemeChange() {
+    ensureDefaults(); // atualiza a cor da legenda
+    // Redesenha os gráficos (eixos/grade) só se o dashboard estiver aberto.
+    if (document.body.classList.contains("dashboard-mode")) refresh();
+  }
+
+  window.DashboardUI = { refresh: refresh, onThemeChange: onThemeChange };
 })();
 
 /* =====================================================================

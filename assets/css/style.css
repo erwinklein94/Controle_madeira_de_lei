@@ -50,6 +50,75 @@
   --sidebar-larg:  248px;
 }
 
+/* =====================================================================
+   TEMA ESCURO — fundos azul-noite da Rumo, texto claro; os acentos da
+   marca (azul-claro, verdes) e a sidebar azul permanecem os mesmos.
+   ===================================================================== */
+:root[data-theme="dark"] {
+  --bg:            #001321;
+  --surface:       #04263f;
+  --borda:         #0e3a5b;
+  --txt:           #e9f1f7;
+  --rumo-texto:       #a4b8c6;   /* alimenta --txt-suave */
+  --rumo-texto-claro: #8aa0b0;
+
+  /* Ramp de cinzas -> tons de navy (fills, hovers, bordas sutis). */
+  --rumo-cinza-50:  #06304e;
+  --rumo-cinza-100: #0b3557;
+  --rumo-cinza-200: #0e3a5b;
+  --rumo-cinza-300: #144569;
+
+  --rumo-sombra:        0 4px 18px rgba(0, 0, 0, 0.38);
+  --rumo-sombra-hover:  0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+/* Elementos que usam o azul escuro como TEXTO precisam clarear no escuro. */
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] .card__title,
+:root[data-theme="dark"] .empty__title,
+:root[data-theme="dark"] .kpi__value,
+:root[data-theme="dark"] .kpi__foot strong,
+:root[data-theme="dark"] .filters__count strong,
+:root[data-theme="dark"] .tabela thead th,
+:root[data-theme="dark"] .tabela tfoot td,
+:root[data-theme="dark"] .tabela .cell-pedido,
+:root[data-theme="dark"] .user-chip,
+:root[data-theme="dark"] .padrao-chip { color: #e6eff6; }
+
+/* Botão fantasma: texto claro sobre superfície escura. */
+:root[data-theme="dark"] .btn--ghost { color: var(--txt); }
+:root[data-theme="dark"] .btn--ghost:hover { color: #fff; border-color: var(--rumo-azul-claro); }
+
+/* Campos de formulário com fundo escuro. */
+:root[data-theme="dark"] .field input,
+:root[data-theme="dark"] .field select,
+:root[data-theme="dark"] .filters select,
+:root[data-theme="dark"] .filters input,
+:root[data-theme="dark"] .padrao-form input {
+  background: #062a45;
+  color: var(--txt);
+  border-color: var(--borda);
+}
+
+/* Realces claros pontuais (hover de linha, destaques em vermelho). */
+:root[data-theme="dark"] .tabela tbody tr:hover { background: rgba(255, 255, 255, 0.05); }
+:root[data-theme="dark"] .btn--danger:hover,
+:root[data-theme="dark"] .tabela .row-del:hover,
+:root[data-theme="dark"] .padrao-del:hover {
+  background: rgba(216, 69, 69, 0.20);
+  border-color: rgba(216, 69, 69, 0.5);
+}
+
+/* A tela de login é sempre sobre o gradiente azul: mantém cards claros. */
+:root[data-theme="dark"] .auth__card { background: #ffffff; }
+:root[data-theme="dark"] .auth__card-title { color: var(--rumo-azul); }
+:root[data-theme="dark"] .auth__card .field label { color: #4d626f; }
+:root[data-theme="dark"] .auth__card .field input {
+  background: #ffffff; color: #16303f; border-color: #d7e0e5;
+}
+
 /* SPA: troca de telas dentro da mesma página */
 [hidden] { display: none !important; }
 
@@ -162,6 +231,23 @@ body.sidebar-collapsed .main {
   background: var(--rumo-verde-claro);
 }
 .nav__ico { width: 20px; text-align: center; opacity: 0.95; }
+
+/* Divisória entre grupos do menu */
+.nav__sep {
+  height: 1px;
+  margin: 8px 12px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Botão de tema — mesmo visual dos itens, mas é um <button> */
+.nav__theme {
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+}
+.nav__theme:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
 
 .sidebar__foot {
   margin-top: auto;

@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Inspeção e Transporte · Rumo</title>
+  <script>
+    // Aplica o tema salvo antes de pintar a tela (padrão: claro).
+    (function () {
+      try {
+        var t = localStorage.getItem("rumo-tema");
+        if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body class="sidebar-collapsed auth-loading">
@@ -64,11 +73,17 @@
       </div>
       <div class="sidebar__rule"></div>
       <nav class="nav">
-        <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
+        <div class="nav__sep"></div>
+        <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
+        <div class="nav__sep"></div>
         <a class="nav__item" href="#contas" data-view="contas"><span class="nav__ico">◈</span> Contas</a>
         <a class="nav__item" href="#padronizacao" data-view="padronizacao"><span class="nav__ico">☰</span> Padronização</a>
+        <div class="nav__sep"></div>
+        <button id="btn-tema" class="nav__item nav__theme" type="button">
+          <span class="nav__ico" id="tema-ico">☀</span> <span id="tema-txt">Tema claro</span>
+        </button>
       </nav>
     </aside>
 
@@ -557,6 +572,7 @@
   <script src="assets/js/contas.js"></script>
 
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/tema.js"></script>
   <script src="assets/js/auth.js"></script>
 </body>
 </html>
