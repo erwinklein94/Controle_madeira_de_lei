@@ -1,7 +1,9 @@
 /* =====================================================================
-   COMENTÁRIOS — mural da equipe (Supabase).
-   Todos os usuários logados leem os comentários; a exclusão é restrita
-   ao autor tanto na interface quanto no banco (RLS em comentarios).
+   COMENTÁRIOS — mural admin + comentários na área do fornecedor.
+   Regras (espelhadas no RLS da tabela comentarios):
+   - admin lê tudo e pode excluir qualquer comentário;
+   - fornecedor só lê/cria comentários do próprio fornecedor;
+   - o autor pode excluir o próprio comentário.
    ===================================================================== */
 (function () {
   "use strict";
@@ -11,15 +13,62 @@
     day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
   });
 
-  var wired = false;
-  var els = {};
-  var userId = null;
-
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+
+  function dataHora(iso) {
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? "—" : fmtDataHora.format(d);
+  }
+
+  function isAdmin() {
+    return !!(window.currentProfile && window.currentProfile.role === "admin");
+  }
+
+  /* Card de um comentário. showForn: mostra a etiqueta do fornecedor. */
+  function comentarioHtml(c, userId, showForn) {
+    var podeExcluir = (userId && c.autor_id === userId) || isAdmin();
+    var tagAutor = c.autor_role === "fornecedor"
+      ? '<span class="comentario__tag comentario__tag--autor">Fornecedor</span>'
+      : "";
+    return (
+      '<article class="comentario">' +
+        '<div class="comentario__head">' +
+          '<span class="comentario__autor">' + esc(c.autor_nome || "Usuário") + "</span>" +
+          tagAutor +
+          '<span class="comentario__data">' + dataHora(c.created_at) + "</span>" +
+          (showForn ? '<span class="comentario__tag">' + esc(c.fornecedor) + "</span>" : "") +
+          '<span class="comentario__tag comentario__tag--pedido">Pedido ' + esc(c.pedido) + "</span>" +
+          (podeExcluir
+            ? '<button class="btn btn--ghost btn--sm coment-del" data-id="' + c.id + '" type="button" title="Excluir comentário">Excluir</button>'
+            : "") +
+        "</div>" +
+        '<p class="comentario__texto">' + esc(c.texto) + "</p>" +
+      "</article>"
+    );
+  }
+
+  function listarComentarios() {
+    return Promise.all([
+      sb.auth.getUser(),
+      sb.from("comentarios")
+        .select("id, autor_id, autor_nome, autor_role, fornecedor, pedido, texto, created_at")
+        .order("created_at", { ascending: false })
+    ]).then(function (out) {
+      var userId = out[0].data && out[0].data.user ? out[0].data.user.id : null;
+      return { userId: userId, res: out[1] };
+    });
+  }
+
+  /* ================== PÁGINA DO ADMIN (menu Comentários) ================== */
+  (function () {
+
+  var wired = false;
+  var els = {};
+  var userId = null;
 
   function grab() {
     els = {
@@ -87,14 +136,9 @@
   }
 
   function listar() {
-    Promise.all([
-      sb.auth.getUser(),
-      sb.from("comentarios")
-        .select("id, autor_id, autor_nome, fornecedor, pedido, texto, created_at")
-        .order("created_at", { ascending: false })
-    ]).then(function (out) {
-      userId = out[0].data && out[0].data.user ? out[0].data.user.id : null;
-      var res = out[1];
+    listarComentarios().then(function (out) {
+      userId = out.userId;
+      var res = out.res;
       if (res.error) {
         els.count.textContent = "";
         els.lista.innerHTML = '<p class="card__hint">Não foi possível carregar os comentários (' + esc(res.error.message) + ").</p>";
@@ -107,7 +151,7 @@
   function draw(lista) {
     els.count.textContent = lista.length
       ? lista.length + (lista.length === 1 ? " comentário. " : " comentários. ") +
-        "Apenas o autor de um comentário pode excluí-lo."
+        "O autor pode excluir o próprio comentário; administradores podem excluir qualquer um."
       : "Nenhum comentário ainda.";
 
     if (!lista.length) {
@@ -118,21 +162,7 @@
     }
 
     els.lista.innerHTML = lista.map(function (c) {
-      var meu = userId && c.autor_id === userId;
-      return (
-        '<article class="comentario">' +
-          '<div class="comentario__head">' +
-            '<span class="comentario__autor">' + esc(c.autor_nome || "Usuário") + "</span>" +
-            '<span class="comentario__data">' + dataHora(c.created_at) + "</span>" +
-            '<span class="comentario__tag">' + esc(c.fornecedor) + "</span>" +
-            '<span class="comentario__tag comentario__tag--pedido">Pedido ' + esc(c.pedido) + "</span>" +
-            (meu
-              ? '<button class="btn btn--ghost btn--sm coment-del" data-id="' + c.id + '" type="button" title="Excluir meu comentário">Excluir</button>'
-              : "") +
-          "</div>" +
-          '<p class="comentario__texto">' + esc(c.texto) + "</p>" +
-        "</article>"
-      );
+      return comentarioHtml(c, userId, true);
     }).join("");
   }
 
@@ -149,6 +179,7 @@
     btn.disabled = true;
     sb.from("comentarios").insert({
       autor_nome: prof.nome || prof.fornecedor || null,
+      autor_role: prof.role || null,
       fornecedor: forn,
       pedido: ped,
       texto: texto
@@ -171,10 +202,142 @@
     });
   }
 
-  function dataHora(iso) {
-    var d = new Date(iso);
-    return isNaN(d.getTime()) ? "—" : fmtDataHora.format(d);
+  window.ComentariosUI = { render: render };
+  })();
+
+  /* ============== ÁREA DO FORNECEDOR (comentários dos pedidos) ============== */
+  (function () {
+
+  var wired = false;
+  var els = {};
+  var userId = null;
+
+  function grab() {
+    els = {
+      form: document.getElementById("forncom-form"),
+      pedido: document.getElementById("forncom-pedido"),
+      texto: document.getElementById("forncom-texto"),
+      msg: document.getElementById("forncom-msg"),
+      lista: document.getElementById("forncom-lista"),
+      count: document.getElementById("forncom-count")
+    };
   }
 
-  window.ComentariosUI = { render: render };
+  function setup() {
+    if (wired) return;
+    grab();
+    els.form.addEventListener("submit", onSubmit);
+    els.lista.addEventListener("click", onListClick);
+    wired = true;
+  }
+
+  function showMsg(text, ok) {
+    els.msg.textContent = text || "";
+    els.msg.className = "form-msg" + (ok === true ? " is-ok" : ok === false ? " is-error" : "");
+  }
+
+  /* Chamado no login do fornecedor (auth.js). */
+  function render() {
+    setup();
+    if (!sb) {
+      els.lista.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>';
+      return;
+    }
+    fillPedidos();
+    listar();
+  }
+
+  /* Pedidos do PRÓPRIO fornecedor: registros + envios dele. O RLS já
+     devolve só as linhas do fornecedor logado nas duas tabelas. */
+  function fillPedidos() {
+    Promise.all([
+      sb.from("registros").select("pedido"),
+      sb.from("pendencias").select("pedido")
+    ]).then(function (out) {
+      var seen = {};
+      out.forEach(function (res) {
+        (res.data || []).forEach(function (r) { if (r.pedido) seen[r.pedido] = true; });
+      });
+      var prev = els.pedido.value;
+      els.pedido.innerHTML = '<option value="">Selecione…</option>';
+      Object.keys(seen).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).forEach(function (p) {
+        var o = document.createElement("option");
+        o.value = p; o.textContent = p;
+        els.pedido.appendChild(o);
+      });
+      if (seen[prev]) els.pedido.value = prev;
+    });
+  }
+
+  function listar() {
+    listarComentarios().then(function (out) {
+      userId = out.userId;
+      var res = out.res;
+      if (res.error) {
+        els.count.textContent = "";
+        els.lista.innerHTML = '<p class="card__hint">Não foi possível carregar os comentários (' + esc(res.error.message) + ").</p>";
+        return;
+      }
+      draw(res.data || []);
+    });
+  }
+
+  function draw(lista) {
+    els.count.textContent = lista.length
+      ? lista.length + (lista.length === 1 ? " comentário" : " comentários") + " sobre os seus pedidos."
+      : "Nenhum comentário ainda.";
+
+    if (!lista.length) {
+      els.lista.innerHTML =
+        '<div class="empty"><div class="empty__title">Nenhum comentário ainda</div>' +
+        '<div class="empty__txt">Use o formulário acima para deixar um comentário para a equipe Rumo.</div></div>';
+      return;
+    }
+
+    // showForn = false: o fornecedor só vê os próprios comentários, a
+    // etiqueta do fornecedor seria redundante.
+    els.lista.innerHTML = lista.map(function (c) {
+      return comentarioHtml(c, userId, false);
+    }).join("");
+  }
+
+  function onSubmit(e) {
+    e.preventDefault();
+    showMsg("");
+
+    var prof = window.currentProfile || {};
+    var ped = els.pedido.value, texto = els.texto.value.trim();
+    if (!prof.fornecedor) { showMsg("Seu perfil não tem fornecedor definido. Fale com o administrador.", false); return; }
+    if (!ped) { showMsg("Escolha o pedido do comentário.", false); return; }
+    if (!texto) { showMsg("Escreva o comentário antes de publicar.", false); return; }
+
+    var btn = els.form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    sb.from("comentarios").insert({
+      autor_nome: prof.nome || prof.fornecedor || null,
+      autor_role: prof.role || "fornecedor",
+      fornecedor: prof.fornecedor,
+      pedido: ped,
+      texto: texto
+    }).then(function (res) {
+      btn.disabled = false;
+      if (res.error) { showMsg("Erro ao publicar: " + res.error.message, false); return; }
+      els.texto.value = "";
+      showMsg("Comentário publicado.", true);
+      listar();
+    });
+  }
+
+  function onListClick(e) {
+    var del = e.target.closest(".coment-del");
+    if (!del) return;
+    if (!confirm("Excluir este comentário? Esta ação não pode ser desfeita.")) return;
+    sb.from("comentarios").delete().eq("id", del.getAttribute("data-id")).then(function (res) {
+      if (res.error) { showMsg("Erro ao excluir: " + res.error.message, false); return; }
+      listar();
+    });
+  }
+
+  window.FornComentariosUI = { render: render };
+  })();
 })();

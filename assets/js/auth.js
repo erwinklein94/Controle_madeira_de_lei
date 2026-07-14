@@ -51,6 +51,7 @@
     if (fornNome) fornNome.textContent = profile.fornecedor || profile.nome || "";
 
     if (profile.role === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
+    if (profile.role === "fornecedor" && window.FornComentariosUI) window.FornComentariosUI.render();
 
     // Recarrega a tela atual: os registros vêm do banco e dependem da sessão.
     if (profile.role === "admin" && window.RouterShow) {

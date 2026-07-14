@@ -475,6 +475,49 @@
             <div id="forn-tabela"></div>
           </div>
         </section>
+
+        <section class="card form-card">
+          <div class="card__head">
+            <h2 class="card__title">Novo comentário</h2>
+            <p class="card__hint">
+              Escolha um dos seus pedidos e escreva a mensagem para a equipe Rumo.
+              <strong>Apenas você ou um administrador podem excluir um comentário seu.</strong>
+            </p>
+          </div>
+          <div class="card__body">
+            <form id="forncom-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="forncom-pedido">Pedido</label>
+                  <select id="forncom-pedido" required><option value="">Selecione…</option></select>
+                </div>
+                <div class="field field--wide coment-field-texto">
+                  <label for="forncom-texto">Comentário</label>
+                  <textarea id="forncom-texto" rows="3" maxlength="2000" required
+                    placeholder="Escreva aqui o comentário para a equipe Rumo…"></textarea>
+                </div>
+              </div>
+              <div class="form-foot">
+                <button class="btn btn--success" type="submit">Publicar comentário</button>
+                <span id="forncom-msg" class="form-msg" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Comentários dos seus pedidos</h2>
+                <p class="card__hint" id="forncom-count">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="forncom-lista"></div>
+          </div>
+        </section>
       </section>
 
       <!-- ===================== TELA: INFORMAÇÕES PENDENTES (admin) ===================== -->
@@ -630,7 +673,8 @@
             <h2 class="card__title">Novo comentário</h2>
             <p class="card__hint">
               Indique o fornecedor e o pedido a que o comentário se refere e escreva a mensagem.
-              Todos os usuários podem ler os comentários; <strong>apenas quem criou um comentário pode excluí-lo</strong>.
+              Os fornecedores também comentam por aqui (cada um só vê os comentários dos próprios pedidos).
+              <strong>Quem criou um comentário pode excluí-lo, e administradores podem excluir qualquer comentário.</strong>
             </p>
           </div>
           <div class="card__body">

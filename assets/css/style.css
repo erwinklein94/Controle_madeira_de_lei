@@ -1009,6 +1009,7 @@ body.role-fornecedor #view-padronizacao { display: none; }
   color: var(--rumo-azul);
 }
 .comentario__tag--pedido { background: rgba(30, 159, 127, 0.14); color: var(--rumo-verde); }
+.comentario__tag--autor { background: rgba(247, 131, 68, 0.16); color: #c05a1f; }
 .comentario__head .coment-del { margin-left: auto; }
 .comentario__texto {
   margin: 0;
