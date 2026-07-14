@@ -80,6 +80,7 @@
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
         <div class="nav__sep"></div>
         <a class="nav__item" href="#contas" data-view="contas"><span class="nav__ico">◈</span> Contas</a>
+        <a class="nav__item" href="#comentarios" data-view="comentarios"><span class="nav__ico">✎</span> Comentários</a>
         <a class="nav__item" href="#padronizacao" data-view="padronizacao"><span class="nav__ico">☰</span> Padronização</a>
         <div class="nav__sep"></div>
         <button id="btn-tema" class="nav__item nav__theme" type="button">
@@ -357,6 +358,10 @@
             <label for="fd-pedido">Pedido</label>
             <select id="fd-pedido"><option value="">Todos</option></select>
           </div>
+          <div class="filters__field">
+            <label for="fd-semana">Semana</label>
+            <select id="fd-semana"><option value="">Todas</option></select>
+          </div>
           <div class="filters__spacer"></div>
           <button id="fd-limpar" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
           <div class="filters__count" id="fd-count"></div>
@@ -608,6 +613,66 @@
         </section>
       </section>
 
+      <!-- ===================== TELA: COMENTÁRIOS ===================== -->
+      <section id="view-comentarios" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Equipe</div>
+            <h1>Comentários</h1>
+          </div>
+          <div class="page-head__actions">
+            <button id="coment-refresh" class="btn btn--ghost" type="button">Atualizar</button>
+          </div>
+        </header>
+
+        <section class="card form-card">
+          <div class="card__head">
+            <h2 class="card__title">Novo comentário</h2>
+            <p class="card__hint">
+              Indique o fornecedor e o pedido a que o comentário se refere e escreva a mensagem.
+              Todos os usuários podem ler os comentários; <strong>apenas quem criou um comentário pode excluí-lo</strong>.
+            </p>
+          </div>
+          <div class="card__body">
+            <form id="coment-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="coment-fornecedor">Fornecedor</label>
+                  <select id="coment-fornecedor" required><option value="">Selecione…</option></select>
+                </div>
+                <div class="field">
+                  <label for="coment-pedido">Pedido</label>
+                  <select id="coment-pedido" required><option value="">Selecione…</option></select>
+                </div>
+                <div class="field field--wide coment-field-texto">
+                  <label for="coment-texto">Comentário</label>
+                  <textarea id="coment-texto" rows="3" maxlength="2000" required
+                    placeholder="Escreva aqui o comentário para a equipe…"></textarea>
+                </div>
+              </div>
+              <div class="form-foot">
+                <button class="btn btn--primary" type="submit">Publicar comentário</button>
+                <span id="coment-msg" class="form-msg" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div>
+                <h2 class="card__title">Comentários da equipe</h2>
+                <p class="card__hint" id="coment-count">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="coment-lista"></div>
+          </div>
+        </section>
+      </section>
+
       <!-- ===================== TELA: PADRONIZAÇÃO (admin) ===================== -->
       <section id="view-padronizacao" class="view" hidden>
         <header class="page-head">
@@ -655,6 +720,7 @@
   <script src="assets/js/pendencias.js"></script>
   <script src="assets/js/padroes.js"></script>
   <script src="assets/js/contas.js"></script>
+  <script src="assets/js/comentarios.js"></script>
 
   <script src="assets/js/app.js"></script>
   <script src="assets/js/tema.js"></script>

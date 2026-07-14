@@ -1491,6 +1491,7 @@
     els = {
       forn: document.getElementById("fd-fornecedor"),
       pedido: document.getElementById("fd-pedido"),
+      semana: document.getElementById("fd-semana"),
       limpar: document.getElementById("fd-limpar"),
       count: document.getElementById("fd-count"),
       empty: document.getElementById("fd-empty"),
@@ -1506,8 +1507,9 @@
     grab();
     els.forn.addEventListener("change", function () { fillPedidos(); draw(); });
     els.pedido.addEventListener("change", draw);
+    els.semana.addEventListener("change", draw);
     els.limpar.addEventListener("click", function () {
-      els.forn.value = ""; els.pedido.value = "";
+      els.forn.value = ""; els.pedido.value = ""; els.semana.value = "";
       fillPedidos();
       draw();
     });
@@ -1520,8 +1522,36 @@
     Store.refresh().catch(function () { return null; }).then(function () {
       fillSelect(els.forn, Store.distinct(Store.getAll(), "fornecedor"));
       fillPedidos();
+      fillSemanas();
       draw();
     });
+  }
+
+  /* Segunda-feira da semana do registro (mesma convenção dos gráficos semanais). */
+  function weekStart(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return x.getTime();
+  }
+
+  function fillSemanas() {
+    var fmtSem = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+    var seen = {};
+    Store.getAll().forEach(function (r) {
+      var w = weekStart(r.createdAt);
+      if (w !== null) seen[w] = true;
+    });
+    var prev = els.semana.value;
+    els.semana.innerHTML = '<option value="">Todas</option>';
+    Object.keys(seen).map(Number).sort(function (a, b) { return b - a; }).forEach(function (w) {
+      var o = document.createElement("option");
+      o.value = String(w);
+      o.textContent = "sem. " + fmtSem.format(new Date(w));
+      els.semana.appendChild(o);
+    });
+    if (seen[prev]) els.semana.value = prev;
   }
 
   function fillSelect(sel, values) {
@@ -1544,9 +1574,11 @@
 
   function getFiltered() {
     var forn = els.forn.value, ped = els.pedido.value;
+    var sem = els.semana.value ? Number(els.semana.value) : null;
     return Store.getAll().filter(function (r) {
       if (forn && r.fornecedor !== forn) return false;
       if (ped && String(r.pedido) !== ped) return false;
+      if (sem !== null && weekStart(r.createdAt) !== sem) return false;
       return true;
     });
   }
@@ -1714,6 +1746,7 @@
     fornecedores: document.getElementById("view-fornecedores"),
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
+    comentarios: document.getElementById("view-comentarios"),
     padronizacao: document.getElementById("view-padronizacao")
   };
 
@@ -1736,6 +1769,7 @@
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();
+    if (view === "comentarios" && window.ComentariosUI) window.ComentariosUI.render();
     if (view === "padronizacao" && window.PadronizacaoUI) window.PadronizacaoUI.render();
 
     window.scrollTo(0, 0);
