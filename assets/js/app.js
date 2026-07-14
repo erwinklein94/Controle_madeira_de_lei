@@ -647,6 +647,7 @@
       fForn: document.getElementById("f-fornecedor"),
       fLocal: document.getElementById("f-local"),
       fPedido: document.getElementById("f-pedido"),
+      fSemana: document.getElementById("f-semana"),
       fLimpar: document.getElementById("f-limpar")
     };
 
@@ -663,9 +664,9 @@
   function setup() {
     if (wired) return;
     grab();
-    [els.fFiscal, els.fForn, els.fLocal, els.fPedido].forEach(function (s) { s.addEventListener("change", render); });
+    [els.fFiscal, els.fForn, els.fLocal, els.fPedido, els.fSemana].forEach(function (s) { s.addEventListener("change", render); });
     els.fLimpar.addEventListener("click", function () {
-      els.fFiscal.value = ""; els.fForn.value = ""; els.fLocal.value = ""; els.fPedido.value = "";
+      els.fFiscal.value = ""; els.fForn.value = ""; els.fLocal.value = ""; els.fPedido.value = ""; els.fSemana.value = "";
       render();
     });
     var resizeTimer;
@@ -811,6 +812,33 @@
     if (values.indexOf(previous) >= 0) sel.value = previous;
   }
 
+  /* Segunda-feira da semana do registro (mesma convenção dos gráficos semanais). */
+  function weekStart(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return x.getTime();
+  }
+
+  function resetSemanas(list) {
+    var fmtSem = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+    var seen = {};
+    list.forEach(function (r) {
+      var w = weekStart(r.createdAt);
+      if (w !== null) seen[w] = true;
+    });
+    var previous = els.fSemana.value;
+    els.fSemana.innerHTML = '<option value="">Todas</option>';
+    Object.keys(seen).map(Number).sort(function (a, b) { return b - a; }).forEach(function (w) {
+      var o = document.createElement("option");
+      o.value = String(w);
+      o.textContent = "sem. " + fmtSem.format(new Date(w));
+      els.fSemana.appendChild(o);
+    });
+    if (seen[previous]) els.fSemana.value = previous;
+  }
+
   /* Chamado toda vez que a aba Dashboard é aberta. Busca no banco antes. */
   function refresh() {
     setup();
@@ -828,6 +856,7 @@
       resetSelect(els.fForn, Store.distinct(all, "fornecedor"));
       resetSelect(els.fLocal, Store.distinct(all, "local"));
       resetSelect(els.fPedido, Store.distinct(all, "pedido"));
+      resetSemanas(all);
       render();
     });
   }
@@ -836,11 +865,13 @@
     var all = Store.getAll();
     var fis = els.fFiscal.value, forn = els.fForn.value, loc = els.fLocal.value;
     var ped = els.fPedido.value;
+    var sem = els.fSemana.value ? Number(els.fSemana.value) : null;
     return all.filter(function (r) {
       if (fis && r.fiscal !== fis) return false;
       if (forn && r.fornecedor !== forn) return false;
       if (loc && r.local !== loc) return false;
       if (ped && String(r.pedido) !== ped) return false;
+      if (sem !== null && weekStart(r.createdAt) !== sem) return false;
       return true;
     });
   }
@@ -1259,11 +1290,8 @@
     var SEMANA = 7 * 86400000;
     var buckets = {};
     list.forEach(function (r) {
-      var d = new Date(r.createdAt);
-      if (isNaN(d.getTime())) return;
-      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-      var k = x.getTime();
+      var k = weekStart(r.createdAt);
+      if (k === null) return;
       buckets[k] = (buckets[k] || 0) + (Number(r.volTransportado) || 0);
     });
     var keys = Object.keys(buckets).map(Number).sort(function (a, b) { return a - b; });
@@ -1331,11 +1359,8 @@
     var groups = {};
     var min = null, max = null;
     list.forEach(function (r) {
-      var d = new Date(r.createdAt);
-      if (isNaN(d.getTime())) return;
-      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
-      var k = x.getTime();
+      var k = weekStart(r.createdAt);
+      if (k === null) return;
       if (min === null || k < min) min = k;
       if (max === null || k > max) max = k;
       var g = r[field] || "—";
