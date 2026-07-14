@@ -43,7 +43,8 @@
       volInspecionado: num(r.vol_inspecionado),
       volLiberado: num(r.vol_liberado),
       volTransportado: num(r.vol_transportado),
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      updatedAt: r.updated_at || r.created_at
     };
   }
 
@@ -82,7 +83,7 @@
   function refresh() {
     if (!sb()) return Promise.resolve(cache);
     return sb().from("registros")
-      .select("id, fiscal, fornecedor, local, pedido, vol_pedido, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at")
+      .select("id, fiscal, fornecedor, local, pedido, vol_pedido, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
       .order("created_at", { ascending: true })
       .then(function (res) {
         if (res.error) throw res.error;
@@ -1454,11 +1455,229 @@
 
   function onThemeChange() {
     ensureDefaults(); // atualiza a cor da legenda
-    // Redesenha os gráficos (eixos/grade) só se o dashboard estiver aberto.
+    // Redesenha os gráficos (eixos/grade) só da tela que estiver aberta.
     if (document.body.classList.contains("dashboard-mode")) refresh();
+    var fd = document.getElementById("view-fornecedores");
+    if (fd && !fd.hidden && window.FornecedoresUI) window.FornecedoresUI.render();
   }
 
-  window.DashboardUI = { refresh: refresh, onThemeChange: onThemeChange };
+  window.DashboardUI = {
+    refresh: refresh,
+    onThemeChange: onThemeChange,
+    // Reutilizados pela página Detalhes do fornecedor.
+    buildChartConfig: buildChartConfig,
+    ensureDefaults: ensureDefaults,
+    chartsAvailable: chartsAvailable
+  };
+})();
+
+/* =====================================================================
+   (3B) DETALHES DO FORNECEDOR — visão detalhada por fornecedor/pedido
+   Reutiliza os construtores de gráfico do Dashboard (DashboardUI).
+   ===================================================================== */
+(function () {
+  "use strict";
+
+  var fmt = new Intl.NumberFormat("pt-BR");
+  var fmtDataHora = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+  var STAGES = Store.STAGES;
+  var charts = {};
+  var wired = false;
+  var els = {};
+
+  function grab() {
+    els = {
+      forn: document.getElementById("fd-fornecedor"),
+      pedido: document.getElementById("fd-pedido"),
+      limpar: document.getElementById("fd-limpar"),
+      count: document.getElementById("fd-count"),
+      empty: document.getElementById("fd-empty"),
+      content: document.getElementById("fd-content"),
+      kpi: document.getElementById("fd-kpi"),
+      regCount: document.getElementById("fd-reg-count"),
+      tabela: document.getElementById("fd-tabela")
+    };
+  }
+
+  function setup() {
+    if (wired) return;
+    grab();
+    els.forn.addEventListener("change", function () { fillPedidos(); draw(); });
+    els.pedido.addEventListener("change", draw);
+    els.limpar.addEventListener("click", function () {
+      els.forn.value = ""; els.pedido.value = "";
+      fillPedidos();
+      draw();
+    });
+    wired = true;
+  }
+
+  /* Chamado toda vez que a aba é aberta. Busca no banco antes. */
+  function render() {
+    setup();
+    Store.refresh().catch(function () { return null; }).then(function () {
+      fillSelect(els.forn, Store.distinct(Store.getAll(), "fornecedor"));
+      fillPedidos();
+      draw();
+    });
+  }
+
+  function fillSelect(sel, values) {
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">Todos</option>';
+    values.slice().sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).forEach(function (v) {
+      var o = document.createElement("option");
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    if (values.indexOf(prev) >= 0) sel.value = prev;
+  }
+
+  /* A lista de pedidos acompanha o fornecedor escolhido. */
+  function fillPedidos() {
+    var forn = els.forn.value;
+    var base = Store.getAll().filter(function (r) { return !forn || r.fornecedor === forn; });
+    fillSelect(els.pedido, Store.distinct(base, "pedido"));
+  }
+
+  function getFiltered() {
+    var forn = els.forn.value, ped = els.pedido.value;
+    return Store.getAll().filter(function (r) {
+      if (forn && r.fornecedor !== forn) return false;
+      if (ped && String(r.pedido) !== ped) return false;
+      return true;
+    });
+  }
+
+  function draw() {
+    var all = Store.getAll();
+    if (!all.length) {
+      els.empty.hidden = false;
+      els.content.hidden = true;
+      els.count.innerHTML = "";
+      return;
+    }
+    els.empty.hidden = true;
+    els.content.hidden = false;
+
+    var list = getFiltered();
+    els.count.innerHTML = "Mostrando <strong>" + list.length + "</strong> de " + all.length + " registros";
+    renderKpis(list);
+    renderCharts(list);
+    renderTabela(list);
+  }
+
+  function renderKpis(list) {
+    var k = Store.kpis(list);
+    var pedidos = Store.distinct(list, "pedido").length;
+    var concClass = k.conclusao >= 70 ? "kpi--ok" : k.conclusao < 40 ? "kpi--warn" : "";
+    els.kpi.innerHTML = [
+      kpiCard("Volume do pedido", fmt.format(Math.round(k.totalPedido)), k.registros + " registros"),
+      kpiCard("Transportado", fmt.format(Math.round(k.totalTransportado)), pct(k.conclusao) + " do pedido", "kpi--ok"),
+      kpiCard("Taxa de conclusão", pct(k.conclusao), "do volume do pedido", concClass),
+      kpiCard("Saldo a transportar", fmt.format(Math.round(k.emAndamento)), "ainda não transportado"),
+      kpiCard("Pedidos", String(pedidos), k.fornecedores + (k.fornecedores === 1 ? " fornecedor" : " fornecedores"))
+    ].join("");
+  }
+
+  function kpiCard(label, value, foot, extra) {
+    return (
+      '<div class="kpi ' + (extra || "") + '">' +
+        '<div class="kpi__label">' + label + "</div>" +
+        '<div class="kpi__value">' + value + "</div>" +
+        '<div class="kpi__foot">' + foot + "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderCharts(list) {
+    var D = window.DashboardUI;
+    if (!D || !D.chartsAvailable()) return;
+    D.ensureDefaults();
+    mount("fd-chart-conclusao", D.buildChartConfig("tendencia", list, true));
+    mount("fd-chart-entregas", D.buildChartConfig("entregasped", list, true));
+    mount("fd-chart-historico", D.buildChartConfig("historico", list, true));
+  }
+
+  function mount(id, config) {
+    var cv = document.getElementById(id);
+    if (!cv) return;
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(cv, config);
+  }
+
+  function renderTabela(list) {
+    var sorted = list.slice().sort(function (a, b) {
+      return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+    });
+
+    els.regCount.textContent = sorted.length
+      ? sorted.length + (sorted.length === 1 ? " registro, do" : " registros, do") + " mais recente ao mais antigo."
+      : "Nenhum registro para os filtros atuais.";
+
+    if (!sorted.length) {
+      els.tabela.innerHTML =
+        '<div class="empty"><div class="empty__title">Nenhum registro para os filtros atuais</div>' +
+        '<div class="empty__txt">Ajuste ou limpe os filtros acima.</div></div>';
+      return;
+    }
+
+    var head =
+      "<thead><tr>" +
+      '<th class="col-text">Modificado em</th>' +
+      '<th class="col-text">Cadastrado em</th>' +
+      '<th class="col-text">Fiscal</th>' +
+      '<th class="col-text">Fornecedor</th>' +
+      '<th class="col-text">Local</th>' +
+      '<th class="col-text">Pedido</th>' +
+      STAGES.map(function (s) { return "<th>" + s.label + "</th>"; }).join("") +
+      "</tr></thead>";
+
+    var rows = sorted.map(function (r) {
+      var cells = STAGES.map(function (s) {
+        return "<td>" + fmt.format(Number(r[s.key]) || 0) + "</td>";
+      }).join("");
+      return (
+        "<tr>" +
+        '<td class="col-text">' + dataHora(r.updatedAt || r.createdAt) + "</td>" +
+        '<td class="col-text">' + dataHora(r.createdAt) + "</td>" +
+        '<td class="col-text">' + esc(r.fiscal) + "</td>" +
+        '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
+        '<td class="col-text">' + esc(r.local) + "</td>" +
+        '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
+        cells +
+        "</tr>"
+      );
+    }).join("");
+
+    var foot =
+      "<tfoot><tr>" +
+      '<td class="col-text">Total</td><td></td><td></td><td></td><td></td><td></td>' +
+      STAGES.map(function (s) {
+        var t = sorted.reduce(function (a, r) { return a + (Number(r[s.key]) || 0); }, 0);
+        return "<td>" + fmt.format(t) + "</td>";
+      }).join("") +
+      "</tr></tfoot>";
+
+    els.tabela.innerHTML =
+      '<div class="table-wrap"><table class="tabela">' + head + "<tbody>" + rows + "</tbody>" + foot + "</table></div>";
+  }
+
+  function dataHora(iso) {
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? "—" : fmtDataHora.format(d);
+  }
+
+  function pct(n) { return (Math.round(n * 10) / 10).toString().replace(".", ",") + "%"; }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  window.FornecedoresUI = { render: render };
 })();
 
 /* =====================================================================
@@ -1492,6 +1711,7 @@
   var views = {
     registros: document.getElementById("view-registros"),
     dashboard: document.getElementById("view-dashboard"),
+    fornecedores: document.getElementById("view-fornecedores"),
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     padronizacao: document.getElementById("view-padronizacao")
@@ -1512,6 +1732,7 @@
     document.body.classList.toggle("dashboard-mode", view === "dashboard");
 
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
+    if (view === "fornecedores" && window.FornecedoresUI) window.FornecedoresUI.render();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();

@@ -74,6 +74,7 @@
       <div class="sidebar__rule"></div>
       <nav class="nav">
         <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
+        <a class="nav__item" href="#fornecedores" data-view="fornecedores"><span class="nav__ico">◪</span> Detalhes do fornecedor</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
@@ -331,6 +332,90 @@
               <div class="card__body"><div class="chart-box"><canvas id="chart-entregasforn"></canvas></div></div>
             </section>
           </div>
+        </div>
+      </section>
+
+      <!-- ============== TELA: DETALHES DO FORNECEDOR (admin) ============== -->
+      <section id="view-fornecedores" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Fornecedores</div>
+            <h1>Detalhes do fornecedor</h1>
+          </div>
+          <div class="page-head__actions">
+            <a class="btn btn--ghost" href="#dashboard" data-view="dashboard">Ver dashboard</a>
+          </div>
+        </header>
+
+        <!-- Filtros -->
+        <section class="card filters">
+          <div class="filters__field">
+            <label for="fd-fornecedor">Fornecedor</label>
+            <select id="fd-fornecedor"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="fd-pedido">Pedido</label>
+            <select id="fd-pedido"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__spacer"></div>
+          <button id="fd-limpar" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
+          <div class="filters__count" id="fd-count"></div>
+        </section>
+
+        <!-- Estado vazio -->
+        <div id="fd-empty" class="card" hidden>
+          <div class="empty">
+            <div class="empty__title">Sem dados para exibir</div>
+            <div class="empty__txt">Cadastre registros na tela de Registros.</div>
+            <a class="btn btn--success" href="#registros" data-view="registros">Ir para Registros</a>
+          </div>
+        </div>
+
+        <div id="fd-content">
+          <!-- KPIs -->
+          <div class="kpi-grid" id="fd-kpi"></div>
+
+          <!-- Gráficos -->
+          <div class="detalhe-grid">
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Conclusão por pedido</h2>
+                <p class="card__hint">Volume concluído, saldo e % de conclusão por pedido.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="fd-chart-conclusao"></canvas></div></div>
+            </section>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Entregas semanais por pedido</h2>
+                <p class="card__hint">Dormentes entregues por semana, por pedido.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="fd-chart-entregas"></canvas></div></div>
+            </section>
+
+            <section class="card">
+              <div class="card__head">
+                <h2 class="card__title">Transportado acumulado</h2>
+                <p class="card__hint">Evolução do total entregue + projeção no ritmo atual.</p>
+              </div>
+              <div class="card__body"><div class="chart-box"><canvas id="fd-chart-historico"></canvas></div></div>
+            </section>
+          </div>
+
+          <!-- Registros -->
+          <section class="card">
+            <div class="card__head">
+              <div class="chart-head-flex">
+                <div>
+                  <h2 class="card__title">Registros por data de modificação</h2>
+                  <p class="card__hint" id="fd-reg-count">—</p>
+                </div>
+              </div>
+            </div>
+            <div class="card__body">
+              <div id="fd-tabela"></div>
+            </div>
+          </section>
         </div>
       </section>
 

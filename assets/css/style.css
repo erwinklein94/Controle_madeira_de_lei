@@ -950,9 +950,26 @@ body.role-fornecedor .sidebar,
 body.role-fornecedor .menu-toggle,
 body.role-fornecedor #view-registros,
 body.role-fornecedor #view-dashboard,
+body.role-fornecedor #view-fornecedores,
 body.role-fornecedor #view-pendentes,
 body.role-fornecedor #view-contas,
 body.role-fornecedor #view-padronizacao { display: none; }
+
+/* =====================================================================
+   Detalhes do fornecedor — grade dos gráficos antes dos registros
+   ===================================================================== */
+.detalhe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+@media (max-width: 1400px) {
+  .detalhe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1000px) {
+  .detalhe-grid { grid-template-columns: 1fr; }
+}
 
 /* =====================================================================
    Padronização
