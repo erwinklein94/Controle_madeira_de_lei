@@ -626,7 +626,7 @@
     volPedido: "#fff", volPronto: "#fff", volInspecionado: "#0c2c3f",
     volLiberado: "#fff", volTransportado: "#0c2c3f"
   };
-  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-idade", "chart-fluxo"];
+  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-entregasped", "chart-entregasforn"];
 
   var charts = {};
   var modalChart = null;
@@ -738,8 +738,8 @@
       historico: { title: "Transportado acumulado", hint: "Evolução do total entregue + projeção no ritmo atual." },
       ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
       conclforn: { title: "Conclusão por fornecedor", hint: "% do pedido já transportado." },
-      idade: { title: "Idade dos pedidos em aberto", hint: "Dias desde o cadastro, pedidos não concluídos." },
-      fluxo: { title: "Fluxo de envios", hint: "Envios dos fornecedores por status." }
+      entregasped: { title: "Entregas semanais por pedido", hint: "Dormentes entregues por semana, por pedido." },
+      entregasforn: { title: "Entregas semanais por fornecedor", hint: "Dormentes entregues por semana, por fornecedor." }
     };
     return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
   }
@@ -1026,30 +1026,8 @@
     chartHistorico(list);
     mount("chart-ritmo", buildChartConfig("ritmo", list, false));
     mount("chart-conclforn", buildChartConfig("conclforn", list, false));
-    mount("chart-idade", buildChartConfig("idade", list, false));
-    loadFluxo();
-  }
-
-  /* Fluxo de envios (Supabase): busca os status e guarda em cache para o
-     gráfico e para o modal. Fora do ar -> mostra aviso no card. */
-  var fluxoCache = null;
-  function loadFluxo() {
-    var cv = document.getElementById("chart-fluxo");
-    if (!cv) return;
-    if (!window.sbClient) {
-      fluxoCache = null;
-      mount("chart-fluxo", buildChartConfig("fluxo", [], false));
-      return;
-    }
-    window.sbClient.from("pendencias").select("status, fornecedor").then(function (res) {
-      var rows = res.error ? [] : (res.data || []);
-      var forn = els.fForn ? els.fForn.value : "";
-      if (forn) rows = rows.filter(function (r) { return r.fornecedor === forn; });
-      var c = { enviada: 0, aceita: 0, recusada: 0 };
-      rows.forEach(function (r) { c[r.status || "enviada"] = (c[r.status || "enviada"] || 0) + 1; });
-      fluxoCache = c;
-      mount("chart-fluxo", buildChartConfig("fluxo", [], false));
-    });
+    mount("chart-entregasped", buildChartConfig("entregasped", list, false));
+    mount("chart-entregasforn", buildChartConfig("entregasforn", list, false));
   }
 
   function mount(id, config) {
@@ -1084,8 +1062,8 @@
     if (kind === "historico") return historicoConfig(list, expanded);
     if (kind === "ritmo") return ritmoConfig(list, expanded);
     if (kind === "conclforn") return conclFornConfig(list, expanded);
-    if (kind === "idade") return idadeConfig(list, expanded);
-    if (kind === "fluxo") return fluxoConfig(expanded);
+    if (kind === "entregasped") return entregasSemanaisConfig(list, "pedido", expanded);
+    if (kind === "entregasforn") return entregasSemanaisConfig(list, "fornecedor", expanded);
     return fornecedorConfig(list, expanded);
   }
 
@@ -1345,70 +1323,63 @@
     };
   }
 
-  /* Idade dos pedidos em aberto (dias desde o cadastro). */
-  function idadeConfig(list, expanded) {
-    var agora = Date.now();
-    var abertos = list
-      .filter(function (r) { return (Number(r.volTransportado) || 0) < (Number(r.volPedido) || 0); })
-      .map(function (r) {
-        var t = new Date(r.createdAt).getTime();
-        return { pedido: r.pedido, dias: isNaN(t) ? 0 : Math.max(0, Math.floor((agora - t) / 86400000)) };
-      })
-      .sort(function (a, b) { return b.dias - a.dias; });
-    var scales = baseScales(expanded);
-    scales.x.suggestedMax = paddedMax(abertos.map(function (x) { return x.dias; }), expanded ? 1.3 : 1.22);
-    scales.y.ticks.autoSkip = false;
+  /* Entregas por semana (volTransportado, semana pela data de cadastro),
+     uma série por valor do campo (fornecedor ou pedido). */
+  function weeklyDeliveredSeries(list, field) {
+    var SEMANA = 7 * 86400000;
+    var groups = {};
+    var min = null, max = null;
+    list.forEach(function (r) {
+      var d = new Date(r.createdAt);
+      if (isNaN(d.getTime())) return;
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+      var k = x.getTime();
+      if (min === null || k < min) min = k;
+      if (max === null || k > max) max = k;
+      var g = r[field] || "—";
+      if (!groups[g]) groups[g] = {};
+      groups[g][k] = (groups[g][k] || 0) + (Number(r.volTransportado) || 0);
+    });
+    var weeks = [];
+    if (min !== null) for (var t = min; t <= max; t += SEMANA) weeks.push(t);
+    var names = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
     return {
-      type: "bar",
-      data: { labels: abertos.map(function (x) { return x.pedido; }), datasets: [{ label: "Dias em aberto", data: abertos.map(function (x) { return x.dias; }), backgroundColor: C.azul2, borderRadius: expanded ? 6 : 3 }] },
-      options: {
-        indexAxis: "y",
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: expanded ? 70 : 40, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2 } },
-        scales: scales,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: function (c) { return " Em aberto há " + fmt.format(c.parsed.x) + " dias"; } } },
-          datalabels: {
-            anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
-            color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
-            font: { size: expanded ? 12 : 9, weight: "700" },
-            formatter: function (v) { return fmt.format(v) + "d"; }
-          }
-        }
-      },
-      plugins: [ChartDataLabels]
+      labels: weeks.map(function (t) { return "sem. " + fmtDate.format(new Date(t)); }),
+      series: names.map(function (name) {
+        return { name: name, data: weeks.map(function (t) { return groups[name][t] || 0; }) };
+      })
     };
   }
 
-  /* Fluxo de envios dos fornecedores (status no Supabase). */
-  function fluxoConfig(expanded) {
-    var c = fluxoCache || { enviada: 0, aceita: 0, recusada: 0 };
+  /* Evolução semanal dos dormentes entregues, uma linha por fornecedor/pedido. */
+  function entregasSemanaisConfig(list, field, expanded) {
+    var d = weeklyDeliveredSeries(list, field);
+    var all = [];
+    var datasets = d.series.map(function (s, i) {
+      var cor = DOUGHNUT[i % DOUGHNUT.length];
+      all = all.concat(s.data);
+      return {
+        label: s.name, data: s.data,
+        borderColor: cor, backgroundColor: cor,
+        fill: false, tension: 0.3,
+        pointRadius: expanded ? 4 : 2, borderWidth: expanded ? 3 : 2
+      };
+    });
+    var scales = colScales(expanded, function (v) { return fmtC.format(v); });
+    scales.y.suggestedMax = paddedMax(all, expanded ? 1.25 : 1.18);
     return {
-      type: "doughnut",
-      data: {
-        labels: ["Aguardando", "Aceitas", "Recusadas"],
-        datasets: [{
-          data: [c.enviada, c.aceita, c.recusada],
-          backgroundColor: [C.azulClaro, C.verde, "#D84545"],
-          borderColor: "#ffffff", borderWidth: 2
-        }]
-      },
+      type: "line",
+      data: { labels: d.labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        cutout: "55%",
-        layout: { padding: expanded ? 18 : 6 },
+        layout: { padding: { top: expanded ? 20 : 8, right: expanded ? 16 : 8, left: expanded ? 8 : 2, bottom: 0 } },
+        scales: scales,
         plugins: {
           legend: legendConfig(expanded),
-          tooltip: { callbacks: { label: function (c2) { return " " + c2.label + ": " + fmt.format(c2.parsed); } } },
-          datalabels: {
-            color: "#ffffff",
-            font: { size: expanded ? 14 : 11, weight: "700" },
-            formatter: function (v) { return v > 0 ? fmt.format(v) : ""; }
-          }
+          tooltip: { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + withUnit(c.parsed.y); } } }
         }
-      },
-      plugins: [ChartDataLabels]
+      }
     };
   }
 
