@@ -722,12 +722,28 @@ body.dashboard-mode .menu-toggle {
 #view-dashboard .chart-box--tall {
   height: 200px;
 }
+/* O funil ocupa toda a altura do card: as linhas dividem o espaço por
+   igual e as barras crescem junto (limitadas por min/max). */
+#view-dashboard .funnel-card {
+  display: flex;
+  flex-direction: column;
+}
+#view-dashboard .funnel-card .card__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
 #view-dashboard .funnel {
   gap: 4px;
+  flex: 1;
+  min-height: 0;
+  justify-content: space-between;
 }
 #view-dashboard .funnel__row {
   grid-template-columns: 112px 1fr;
   gap: 8px;
+  flex: 1 1 0;
+  min-height: 0;
 }
 #view-dashboard .funnel__name {
   font-size: 10.5px;
@@ -741,7 +757,9 @@ body.dashboard-mode .menu-toggle {
   text-overflow: ellipsis;
 }
 #view-dashboard .funnel__track {
-  height: 25px;
+  height: 100%;
+  min-height: 25px;
+  max-height: 44px;
   border-radius: 6px;
 }
 #view-dashboard .funnel__bar {
@@ -802,7 +820,7 @@ body.dashboard-mode { overflow-y: scroll; }
     grid-template-columns: 96px 1fr;
   }
   #view-dashboard .funnel__track {
-    height: 22px;
+    min-height: 22px;
   }
   #view-dashboard .funnel__bar {
     font-size: 9.5px;
