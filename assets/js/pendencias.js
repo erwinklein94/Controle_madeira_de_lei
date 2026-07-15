@@ -314,11 +314,13 @@
       // Vira registro oficial (tabela de Registros -> dashboard) e sai das pendências.
       if (!window.Store) { window.alert("Não foi possível acessar os registros. Recarregue a página."); return; }
       window.Store.add({
+        dataRef: r.data_ref || null,
         fiscal: "",
         fornecedor: r.fornecedor,
         local: "",
         pedido: r.pedido,
-        volPedido: num(r.valor_fabricar),
+        volPedido: 0,
+        volFabricar: num(r.valor_fabricar),
         volPronto: num(r.vol_fabricado),
         volInspecionado: 0,
         volLiberado: num(r.vol_estoque),
@@ -368,7 +370,7 @@
         })[0];
         if (!alvo) return;
         return window.Store.update(alvo.id, {
-          volPedido: num(s.valor_fabricar_novo),
+          volFabricar: num(s.valor_fabricar_novo),
           volPronto: num(s.vol_fabricado_novo),
           volLiberado: num(s.vol_estoque_novo),
           volTransportado: num(s.vol_transportado_novo)
