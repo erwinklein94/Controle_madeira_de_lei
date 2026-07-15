@@ -28,12 +28,13 @@
     return !!(window.currentProfile && window.currentProfile.role === "admin");
   }
 
-  /* Card de um comentário. showForn: mostra a etiqueta do fornecedor. */
-  function comentarioHtml(c, userId, showForn) {
+  /* Card de um comentário. showForn: mostra a etiqueta do fornecedor.
+     showAutorTag: etiqueta com o papel do autor (para listas mistas). */
+  function comentarioHtml(c, userId, showForn, showAutorTag) {
     var podeExcluir = (userId && c.autor_id === userId) || isAdmin();
-    var tagAutor = c.autor_role === "fornecedor"
+    var tagAutor = !showAutorTag ? "" : (c.autor_role === "fornecedor"
       ? '<span class="comentario__tag comentario__tag--autor">Fornecedor</span>'
-      : "";
+      : '<span class="comentario__tag">Equipe Rumo</span>');
     return (
       '<article class="comentario">' +
         '<div class="comentario__head">' +
@@ -77,8 +78,10 @@
       pedido: document.getElementById("coment-pedido"),
       texto: document.getElementById("coment-texto"),
       msg: document.getElementById("coment-msg"),
-      lista: document.getElementById("coment-lista"),
-      count: document.getElementById("coment-count"),
+      listaEquipe: document.getElementById("coment-lista-equipe"),
+      countEquipe: document.getElementById("coment-count-equipe"),
+      listaForn: document.getElementById("coment-lista-forn"),
+      countForn: document.getElementById("coment-count-forn"),
       refresh: document.getElementById("coment-refresh")
     };
   }
@@ -89,7 +92,8 @@
     els.forn.addEventListener("change", fillPedidos);
     els.form.addEventListener("submit", onSubmit);
     els.refresh.addEventListener("click", render);
-    els.lista.addEventListener("click", onListClick);
+    els.listaEquipe.addEventListener("click", onListClick);
+    els.listaForn.addEventListener("click", onListClick);
     wired = true;
   }
 
@@ -102,7 +106,8 @@
   function render() {
     setup();
     if (!sb) {
-      els.lista.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>';
+      els.listaEquipe.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>';
+      els.listaForn.innerHTML = "";
       return;
     }
     // Selects de fornecedor/pedido vêm dos registros cadastrados.
@@ -140,8 +145,10 @@
       userId = out.userId;
       var res = out.res;
       if (res.error) {
-        els.count.textContent = "";
-        els.lista.innerHTML = '<p class="card__hint">Não foi possível carregar os comentários (' + esc(res.error.message) + ").</p>";
+        els.countEquipe.textContent = "";
+        els.countForn.textContent = "";
+        els.listaEquipe.innerHTML = '<p class="card__hint">Não foi possível carregar os comentários (' + esc(res.error.message) + ").</p>";
+        els.listaForn.innerHTML = "";
         return;
       }
       draw(res.data || []);
@@ -149,20 +156,29 @@
   }
 
   function draw(lista) {
-    els.count.textContent = lista.length
+    var equipe = lista.filter(function (c) { return c.autor_role !== "fornecedor"; });
+    var forn = lista.filter(function (c) { return c.autor_role === "fornecedor"; });
+    drawGrupo(els.listaEquipe, els.countEquipe, equipe,
+      "Use o formulário acima para deixar o primeiro comentário para a equipe.");
+    drawGrupo(els.listaForn, els.countForn, forn,
+      "Os comentários que os fornecedores fizerem na área deles aparecem aqui.");
+  }
+
+  function drawGrupo(listaEl, countEl, lista, textoVazio) {
+    countEl.textContent = lista.length
       ? lista.length + (lista.length === 1 ? " comentário. " : " comentários. ") +
         "O autor pode excluir o próprio comentário; administradores podem excluir qualquer um."
       : "Nenhum comentário ainda.";
 
     if (!lista.length) {
-      els.lista.innerHTML =
+      listaEl.innerHTML =
         '<div class="empty"><div class="empty__title">Nenhum comentário ainda</div>' +
-        '<div class="empty__txt">Use o formulário acima para deixar o primeiro comentário para a equipe.</div></div>';
+        '<div class="empty__txt">' + textoVazio + "</div></div>";
       return;
     }
 
-    els.lista.innerHTML = lista.map(function (c) {
-      return comentarioHtml(c, userId, true);
+    listaEl.innerHTML = lista.map(function (c) {
+      return comentarioHtml(c, userId, true, false);
     }).join("");
   }
 
@@ -294,10 +310,10 @@
       return;
     }
 
-    // showForn = false: o fornecedor só vê os próprios comentários, a
-    // etiqueta do fornecedor seria redundante.
+    // showForn = false (só há um fornecedor aqui); a etiqueta do autor
+    // distingue os comentários dele dos da equipe Rumo.
     els.lista.innerHTML = lista.map(function (c) {
-      return comentarioHtml(c, userId, false);
+      return comentarioHtml(c, userId, false, true);
     }).join("");
   }
 
