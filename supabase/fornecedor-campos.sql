@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Novos campos do formulário do fornecedor:
---   Data | Pedido | Valor a ser Fabricado | Volume Fabricado |
+--   Data | Pedido | Volume a ser Fabricado | Volume Fabricado |
 --   Volume em estoque para entrega | Volume Transportado
 -- Rode no painel do Supabase: SQL Editor -> New query -> cole -> Run
 -- Projeto: rgafzmmnpjlrxfjkabsl
@@ -19,7 +19,7 @@ alter table public.solicitacoes
   add column if not exists vol_estoque_novo numeric not null default 0;
 
 -- Aproveita os envios antigos: o "Volume do pedido" de antes vira o
--- "Valor a ser Fabricado", e a data do envio vira a Data.
+-- "Volume a ser Fabricado", e a data do envio vira a Data.
 update public.pendencias
   set valor_fabricar = vol_pedido
   where valor_fabricar = 0 and vol_pedido <> 0;

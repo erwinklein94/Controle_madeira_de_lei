@@ -17,11 +17,12 @@
   var UNIT = ""; // unidade exibida ao lado dos volumes; vazio para não mostrar letra após os números
 
   var STAGES = [
-    { key: "volPedido",       label: "Volume do pedido",        short: "Pedido",        color: "#003865" },
-    { key: "volPronto",       label: "Pronto p/ inspeção",      short: "Pronto",        color: "#1F6FA5" },
-    { key: "volInspecionado", label: "Inspecionado",            short: "Inspecionado",  color: "#32A6E6" },
-    { key: "volLiberado",     label: "Liberado p/ transporte",  short: "Liberado",      color: "#1E9F7F" },
-    { key: "volTransportado", label: "Transportado",            short: "Transportado",  color: "#7FE06C" }
+    { key: "volPedido",       label: "Volume do Pedido",               short: "Pedido",       color: "#003865" },
+    { key: "volFabricar",     label: "Volume a ser Fabricado",         short: "A fabricar",   color: "#15507B" },
+    { key: "volPronto",       label: "Volume Fabricado",               short: "Fabricado",    color: "#1F6FA5" },
+    { key: "volInspecionado", label: "Volume Inspecionado",            short: "Inspecionado", color: "#32A6E6" },
+    { key: "volLiberado",     label: "Volume em Estoque p/ Entrega",   short: "Estoque",      color: "#1E9F7F" },
+    { key: "volTransportado", label: "Volume Transportado",            short: "Transportado", color: "#7FE06C" }
   ];
 
   /* Os registros vivem na tabela "registros" do Supabase. O cache em memória
@@ -34,11 +35,13 @@
   function fromDb(r) {
     return {
       id: r.id,
+      dataRef: r.data_ref || "",
       fiscal: r.fiscal || "",
       fornecedor: r.fornecedor || "",
       local: r.local || "",
       pedido: r.pedido || "",
       volPedido: num(r.vol_pedido),
+      volFabricar: num(r.vol_fabricar),
       volPronto: num(r.vol_pronto),
       volInspecionado: num(r.vol_inspecionado),
       volLiberado: num(r.vol_liberado),
@@ -50,11 +53,13 @@
 
   function toDb(rec) {
     var row = {
+      data_ref: rec.dataRef || null,
       fiscal: rec.fiscal || null,
       fornecedor: rec.fornecedor,
       local: rec.local || null,
       pedido: String(rec.pedido == null ? "" : rec.pedido),
       vol_pedido: num(rec.volPedido),
+      vol_fabricar: num(rec.volFabricar),
       vol_pronto: num(rec.volPronto),
       vol_inspecionado: num(rec.volInspecionado),
       vol_liberado: num(rec.volLiberado),
@@ -65,9 +70,10 @@
   }
 
   var PATCH_MAP = {
+    dataRef: "data_ref",
     fiscal: "fiscal", fornecedor: "fornecedor", local: "local", pedido: "pedido",
-    volPedido: "vol_pedido", volPronto: "vol_pronto", volInspecionado: "vol_inspecionado",
-    volLiberado: "vol_liberado", volTransportado: "vol_transportado"
+    volPedido: "vol_pedido", volFabricar: "vol_fabricar", volPronto: "vol_pronto",
+    volInspecionado: "vol_inspecionado", volLiberado: "vol_liberado", volTransportado: "vol_transportado"
   };
 
   function patchToDb(patch) {
@@ -83,7 +89,7 @@
   function refresh() {
     if (!sb()) return Promise.resolve(cache);
     return sb().from("registros")
-      .select("id, fiscal, fornecedor, local, pedido, vol_pedido, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
+      .select("id, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
       .order("created_at", { ascending: true })
       .then(function (res) {
         if (res.error) throw res.error;
@@ -348,12 +354,12 @@
     function cel(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
     function numBr(v) { return String(Number(v) || 0).replace(".", ","); }
 
-    var header = ["Fiscal", "Fornecedor", "Local", "Pedido"]
+    var header = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido"]
       .concat(STAGES.map(function (s) { return s.label; }))
       .concat(["Data de cadastro"]);
 
     var linhas = list.map(function (r) {
-      return [cel(r.fiscal), cel(r.fornecedor), cel(r.local), cel(r.pedido)]
+      return [cel(fmtDataBr(r.dataRef)), cel(r.fiscal), cel(r.fornecedor), cel(r.local), cel(r.pedido)]
         .concat(STAGES.map(function (s) { return numBr(r[s.key]); }))
         .concat([cel(r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "")])
         .join(";");
@@ -417,6 +423,7 @@
 
     var head =
       "<thead><tr>" +
+      '<th class="col-text">Data</th>' +
       '<th class="col-text">Fiscal</th>' +
       '<th class="col-text">Fornecedor</th>' +
       '<th class="col-text">Local</th>' +
@@ -431,6 +438,7 @@
       }).join("");
       return (
         '<tr class="' + (r.id === editingId ? "is-editing" : "") + '">' +
+        '<td class="col-text">' + fmtDataBr(r.dataRef) + "</td>" +
         '<td class="col-text">' + esc(r.fiscal) + "</td>" +
         '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
         '<td class="col-text">' + esc(r.local) + "</td>" +
@@ -446,7 +454,7 @@
 
     var foot =
       "<tfoot><tr>" +
-      '<td class="col-text">Total</td><td></td><td></td><td></td>' +
+      '<td class="col-text">Total</td><td></td><td></td><td></td><td></td>' +
       STAGES.map(function (s) {
         var t = list.reduce(function (a, r) { return a + (Number(r[s.key]) || 0); }, 0);
         return "<td>" + fmt.format(t) + "</td>";
@@ -479,6 +487,7 @@
       Store.add(data).then(function () {
         btnSubmit.disabled = false;
         form.reset();
+        setDataPadrao();
         showMsg("Registro adicionado.", true);
         document.getElementById("fiscal").focus();
         draw();
@@ -529,18 +538,19 @@
 
   function collectFormData() {
     var data = {
+      dataRef: val("dataRef"),
       fiscal: val("fiscal"),
       fornecedor: val("fornecedor"),
       local: val("local"),
       pedido: val("pedido")
     };
 
-    if (!data.fiscal || !data.fornecedor || !data.local || !data.pedido) {
-      showMsg("Preencha Fiscal, Fornecedor, Local e Pedido.", false);
+    if (!data.dataRef || !data.fiscal || !data.fornecedor || !data.local || !data.pedido) {
+      showMsg("Preencha Data, Fiscal, Fornecedor, Local e Pedido.", false);
       return null;
     }
 
-    var nums = ["volPedido", "volPronto", "volInspecionado", "volLiberado", "volTransportado"];
+    var nums = ["volPedido", "volFabricar", "volPronto", "volInspecionado", "volLiberado", "volTransportado"];
     for (var i = 0; i < nums.length; i++) {
       var el = document.getElementById(nums[i]);
       var n = parseFloat(el.value);
@@ -563,6 +573,7 @@
       if (window.Padroes) window.Padroes.fill(el, campo, rec[campo] || "");
       else el.value = rec[campo] || "";
     });
+    setVal("dataRef", rec.dataRef ? String(rec.dataRef).slice(0, 10) : "");
     STAGES.forEach(function (s) { setVal(s.key, rec[s.key]); });
     formTitle.textContent = "Editar registro";
     btnSubmit.textContent = "Salvar alterações";
@@ -577,7 +588,22 @@
     formTitle.textContent = "Novo registro";
     btnSubmit.textContent = "Adicionar registro";
     btnCancelEdit.hidden = true;
-    if (resetForm) form.reset();
+    if (resetForm) { form.reset(); setDataPadrao(); }
+  }
+
+  /* Data de hoje como sugestão no campo Data. */
+  function setDataPadrao() {
+    var el = document.getElementById("dataRef");
+    if (!el || el.value) return;
+    var d = new Date();
+    el.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  /* data_ref "aaaa-mm-dd" -> "dd/mm/aaaa" (sem criar Date, evita fuso). */
+  function fmtDataBr(d) {
+    if (!d) return "—";
+    var p = String(d).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : d;
   }
 
   function val(id) { return document.getElementById(id).value.trim(); }
@@ -594,6 +620,7 @@
   }
 
   window.RegistrosUI = { render: render };
+  setDataPadrao();
   render();
 })();
 

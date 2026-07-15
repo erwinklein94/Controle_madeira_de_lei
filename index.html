@@ -119,6 +119,10 @@
             <form id="form-registro" novalidate>
               <div class="form-grid">
                 <div class="field">
+                  <label for="dataRef">Data</label>
+                  <input id="dataRef" name="dataRef" type="date" required />
+                </div>
+                <div class="field">
                   <label for="fiscal">Fiscal</label>
                   <select id="fiscal" name="fiscal" required><option value="">Selecione…</option></select>
                 </div>
@@ -135,23 +139,27 @@
                   <select id="pedido" name="pedido" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
-                  <label for="volPedido">Volume do pedido</label>
+                  <label for="volPedido">Volume do Pedido</label>
                   <input id="volPedido" name="volPedido" type="number" min="0" step="any" required />
                 </div>
                 <div class="field">
-                  <label for="volPronto">Volume pronto p/ inspeção</label>
+                  <label for="volFabricar">Volume a ser Fabricado</label>
+                  <input id="volFabricar" name="volFabricar" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="volPronto">Volume Fabricado</label>
                   <input id="volPronto" name="volPronto" type="number" min="0" step="any" required />
                 </div>
                 <div class="field">
-                  <label for="volInspecionado">Volume inspecionado</label>
+                  <label for="volInspecionado">Volume Inspecionado</label>
                   <input id="volInspecionado" name="volInspecionado" type="number" min="0" step="any" required />
                 </div>
                 <div class="field">
-                  <label for="volLiberado">Volume liberado p/ transporte</label>
+                  <label for="volLiberado">Volume em Estoque para Entrega</label>
                   <input id="volLiberado" name="volLiberado" type="number" min="0" step="any" required />
                 </div>
                 <div class="field">
-                  <label for="volTransportado">Volume transportado</label>
+                  <label for="volTransportado">Volume Transportado</label>
                   <input id="volTransportado" name="volTransportado" type="number" min="0" step="any" required />
                 </div>
               </div>
@@ -454,7 +462,7 @@
                   <input id="forn-pedido" type="text" required />
                 </div>
                 <div class="field">
-                  <label for="forn-valorfab">Valor a ser Fabricado</label>
+                  <label for="forn-valorfab">Volume a ser Fabricado</label>
                   <input id="forn-valorfab" type="number" min="0" step="any" required />
                 </div>
                 <div class="field">

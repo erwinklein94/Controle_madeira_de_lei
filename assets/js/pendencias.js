@@ -105,7 +105,7 @@
         }
         var head = "<thead><tr>" +
           '<th class="col-text">Data</th><th class="col-text">Pedido</th>' +
-          "<th>Valor a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
+          "<th>Volume a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
           "<th>Status</th><th>Ações</th></tr></thead>";
         var rows = linhas.map(function (r) {
           var st = r.status || "enviada";
@@ -136,7 +136,7 @@
     }
 
     function pedirAlteracao(r) {
-      var nvf = window.prompt("Novo Valor a ser Fabricado para o pedido " + r.pedido + " (atual: " + num(r.valor_fabricar) + "):", r.valor_fabricar);
+      var nvf = window.prompt("Novo Volume a ser Fabricado para o pedido " + r.pedido + " (atual: " + num(r.valor_fabricar) + "):", r.valor_fabricar);
       if (nvf === null) return;
       var nfb = window.prompt("Novo Volume Fabricado (atual: " + num(r.vol_fabricado) + "):", r.vol_fabricado);
       if (nfb === null) return;
@@ -243,7 +243,7 @@
         }
         var head = "<thead><tr>" +
           '<th class="col-text">Fornecedor</th><th class="col-text">Data</th><th class="col-text">Pedido</th>' +
-          "<th>Valor a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
+          "<th>Volume a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
           "<th>Ações</th></tr></thead>";
         var rows = list.map(function (r) {
           return "<tr>" +
@@ -282,7 +282,7 @@
         }
         var head = "<thead><tr>" +
           '<th class="col-text">Fornecedor</th><th class="col-text">Pedido</th>' +
-          "<th>Valor a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
+          "<th>Volume a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
           '<th class="col-text">Observação</th><th>Ações</th></tr></thead>';
         var rows = solicitacoes.map(function (s) {
           return "<tr>" +
