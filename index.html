@@ -446,15 +446,27 @@
             <form id="forn-form" novalidate>
               <div class="form-grid">
                 <div class="field">
+                  <label for="forn-data">Data</label>
+                  <input id="forn-data" type="date" required />
+                </div>
+                <div class="field">
                   <label for="forn-pedido">Pedido</label>
                   <input id="forn-pedido" type="text" required />
                 </div>
                 <div class="field">
-                  <label for="forn-volpedido">Volume do pedido</label>
-                  <input id="forn-volpedido" type="number" min="0" step="any" required />
+                  <label for="forn-valorfab">Valor a ser Fabricado</label>
+                  <input id="forn-valorfab" type="number" min="0" step="any" required />
                 </div>
                 <div class="field">
-                  <label for="forn-transportado">Transportado</label>
+                  <label for="forn-fabricado">Volume Fabricado</label>
+                  <input id="forn-fabricado" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="forn-estoque">Volume em estoque para entrega</label>
+                  <input id="forn-estoque" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="forn-transportado">Volume Transportado</label>
                   <input id="forn-transportado" type="number" min="0" step="any" required />
                 </div>
               </div>

@@ -26,7 +26,7 @@
   var Data = {
     listPendencias: function (somenteEnviadas) {
       var q = sb.from("pendencias")
-        .select("id, fornecedor, pedido, vol_pedido, vol_transportado, status, created_at")
+        .select("id, fornecedor, pedido, data_ref, valor_fabricar, vol_fabricado, vol_estoque, vol_transportado, status, created_at")
         .order("created_at", { ascending: false });
       return somenteEnviadas ? q.eq("status", "enviada") : q;
     },
@@ -36,7 +36,7 @@
 
     listSolicitacoesPendentes: function () {
       return sb.from("solicitacoes")
-        .select("id, pendencia_id, fornecedor, pedido, vol_pedido_novo, vol_transportado_novo, mensagem, created_at")
+        .select("id, pendencia_id, fornecedor, pedido, valor_fabricar_novo, vol_fabricado_novo, vol_estoque_novo, vol_transportado_novo, mensagem, created_at")
         .eq("status", "pendente")
         .order("created_at", { ascending: false });
     },
@@ -45,8 +45,16 @@
   };
 
   /* ---------- UI do FORNECEDOR ---------- */
+  /* data_ref vem como "aaaa-mm-dd"; exibe como dd/mm/aaaa sem fuso. */
+  function fmtData(d) {
+    if (!d) return "—";
+    var p = String(d).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : d;
+  }
+
   var FornecedorUI = (function () {
-    var form, msg, tabela, count, pedidoEl, volEl, transpEl, wired = false;
+    var form, msg, tabela, count, wired = false;
+    var dataEl, pedidoEl, valorFabEl, fabricadoEl, estoqueEl, transpEl;
     var linhas = [];        // pendências atuais
     var solicitados = {};   // pendencia_id -> true (já tem pedido pendente)
 
@@ -55,9 +63,17 @@
       msg = document.getElementById("forn-msg");
       tabela = document.getElementById("forn-tabela");
       count = document.getElementById("forn-count");
+      dataEl = document.getElementById("forn-data");
       pedidoEl = document.getElementById("forn-pedido");
-      volEl = document.getElementById("forn-volpedido");
+      valorFabEl = document.getElementById("forn-valorfab");
+      fabricadoEl = document.getElementById("forn-fabricado");
+      estoqueEl = document.getElementById("forn-estoque");
       transpEl = document.getElementById("forn-transportado");
+    }
+
+    function hoje() {
+      var d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     }
 
     function showMsg(text, ok) {
@@ -88,8 +104,9 @@
           return;
         }
         var head = "<thead><tr>" +
-          '<th class="col-text">Pedido</th><th>Volume do pedido</th><th>Transportado</th><th>Status</th><th>Ações</th>' +
-          "</tr></thead>";
+          '<th class="col-text">Data</th><th class="col-text">Pedido</th>' +
+          "<th>Valor a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
+          "<th>Status</th><th>Ações</th></tr></thead>";
         var rows = linhas.map(function (r) {
           var st = r.status || "enviada";
           var tag = st === "aceita"
@@ -104,8 +121,11 @@
               : '<button class="btn btn--ghost btn--sm row-request" data-id="' + r.id + '" type="button">Solicitar alteração</button>';
           }
           return "<tr>" +
+            '<td class="col-text">' + fmtData(r.data_ref) + "</td>" +
             '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_pedido)) + "</td>" +
+            "<td>" + fmt.format(num(r.valor_fabricar)) + "</td>" +
+            "<td>" + fmt.format(num(r.vol_fabricado)) + "</td>" +
+            "<td>" + fmt.format(num(r.vol_estoque)) + "</td>" +
             "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
             "<td>" + tag + "</td>" +
             '<td><div class="row-actions">' + acao + "</div></td>" +
@@ -116,9 +136,13 @@
     }
 
     function pedirAlteracao(r) {
-      var nv = window.prompt("Novo Volume do pedido para o pedido " + r.pedido + " (atual: " + num(r.vol_pedido) + "):", r.vol_pedido);
-      if (nv === null) return;
-      var nt = window.prompt("Novo Transportado (atual: " + num(r.vol_transportado) + "):", r.vol_transportado);
+      var nvf = window.prompt("Novo Valor a ser Fabricado para o pedido " + r.pedido + " (atual: " + num(r.valor_fabricar) + "):", r.valor_fabricar);
+      if (nvf === null) return;
+      var nfb = window.prompt("Novo Volume Fabricado (atual: " + num(r.vol_fabricado) + "):", r.vol_fabricado);
+      if (nfb === null) return;
+      var nes = window.prompt("Novo Volume em estoque para entrega (atual: " + num(r.vol_estoque) + "):", r.vol_estoque);
+      if (nes === null) return;
+      var nt = window.prompt("Novo Volume Transportado (atual: " + num(r.vol_transportado) + "):", r.vol_transportado);
       if (nt === null) return;
       var obs = window.prompt("Observação para o administrador (opcional):", "");
 
@@ -126,7 +150,9 @@
         pendencia_id: r.id,
         fornecedor: r.fornecedor,
         pedido: r.pedido,
-        vol_pedido_novo: num(nv),
+        valor_fabricar_novo: num(nvf),
+        vol_fabricado_novo: num(nfb),
+        vol_estoque_novo: num(nes),
         vol_transportado_novo: num(nt),
         mensagem: obs ? obs : null
       };
@@ -141,6 +167,7 @@
       if (wired) return;
       grab();
       if (!form) return;
+      if (dataEl && !dataEl.value) dataEl.value = hoje();
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
@@ -148,11 +175,15 @@
         if (!prof || !prof.fornecedor) { showMsg("Perfil de fornecedor incompleto. Fale com o administrador.", false); return; }
         var pedido = pedidoEl.value.trim();
         if (!pedido) { showMsg("Informe o pedido.", false); return; }
+        if (!dataEl.value) { showMsg("Informe a data.", false); return; }
 
         var rec = {
           fornecedor: prof.fornecedor,
           pedido: pedido,
-          vol_pedido: num(volEl.value),
+          data_ref: dataEl.value,
+          valor_fabricar: num(valorFabEl.value),
+          vol_fabricado: num(fabricadoEl.value),
+          vol_estoque: num(estoqueEl.value),
           vol_transportado: num(transpEl.value)
         };
         var btn = form.querySelector('button[type="submit"]');
@@ -161,6 +192,7 @@
           btn.disabled = false;
           if (res.error) { showMsg("Erro ao enviar: " + res.error.message, false); return; }
           form.reset();
+          dataEl.value = hoje();
           showMsg("Enviado!", true);
           render();
         });
@@ -210,13 +242,17 @@
           return;
         }
         var head = "<thead><tr>" +
-          '<th class="col-text">Fornecedor</th><th class="col-text">Pedido</th>' +
-          '<th>Volume do pedido</th><th>Transportado</th><th>Ações</th></tr></thead>';
+          '<th class="col-text">Fornecedor</th><th class="col-text">Data</th><th class="col-text">Pedido</th>' +
+          "<th>Valor a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
+          "<th>Ações</th></tr></thead>";
         var rows = list.map(function (r) {
           return "<tr>" +
             '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
+            '<td class="col-text">' + fmtData(r.data_ref) + "</td>" +
             '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_pedido)) + "</td>" +
+            "<td>" + fmt.format(num(r.valor_fabricar)) + "</td>" +
+            "<td>" + fmt.format(num(r.vol_fabricado)) + "</td>" +
+            "<td>" + fmt.format(num(r.vol_estoque)) + "</td>" +
             "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
             '<td><div class="row-actions">' +
               '<button class="btn btn--success btn--sm pend-ok" data-id="' + r.id + '" type="button">Aceitar</button>' +
@@ -246,13 +282,15 @@
         }
         var head = "<thead><tr>" +
           '<th class="col-text">Fornecedor</th><th class="col-text">Pedido</th>' +
-          "<th>Volume solicitado</th><th>Transportado solicitado</th>" +
+          "<th>Valor a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
           '<th class="col-text">Observação</th><th>Ações</th></tr></thead>';
         var rows = solicitacoes.map(function (s) {
           return "<tr>" +
             '<td class="col-text">' + esc(s.fornecedor) + "</td>" +
             '<td class="col-text cell-pedido">' + esc(s.pedido) + "</td>" +
-            "<td>" + fmt.format(num(s.vol_pedido_novo)) + "</td>" +
+            "<td>" + fmt.format(num(s.valor_fabricar_novo)) + "</td>" +
+            "<td>" + fmt.format(num(s.vol_fabricado_novo)) + "</td>" +
+            "<td>" + fmt.format(num(s.vol_estoque_novo)) + "</td>" +
             "<td>" + fmt.format(num(s.vol_transportado_novo)) + "</td>" +
             '<td class="col-text">' + esc(s.mensagem || "—") + "</td>" +
             '<td><div class="row-actions">' +
@@ -280,10 +318,10 @@
         fornecedor: r.fornecedor,
         local: "",
         pedido: r.pedido,
-        volPedido: num(r.vol_pedido),
-        volPronto: 0,
+        volPedido: num(r.valor_fabricar),
+        volPronto: num(r.vol_fabricado),
         volInspecionado: 0,
-        volLiberado: 0,
+        volLiberado: num(r.vol_estoque),
         volTransportado: num(r.vol_transportado)
       }).then(function () {
         return Data.updatePendencia(r.id, { status: "aceita" }).then(function (res) {
@@ -306,7 +344,9 @@
     function aprovar(s) {
       // Aplica os valores propostos na pendência e marca a solicitação como aprovada.
       Data.updatePendencia(s.pendencia_id, {
-        vol_pedido: num(s.vol_pedido_novo),
+        valor_fabricar: num(s.valor_fabricar_novo),
+        vol_fabricado: num(s.vol_fabricado_novo),
+        vol_estoque: num(s.vol_estoque_novo),
         vol_transportado: num(s.vol_transportado_novo)
       }).then(function (res) {
         if (res.error) { window.alert("Erro ao aplicar alteração: " + res.error.message); return; }
@@ -328,7 +368,9 @@
         })[0];
         if (!alvo) return;
         return window.Store.update(alvo.id, {
-          volPedido: num(s.vol_pedido_novo),
+          volPedido: num(s.valor_fabricar_novo),
+          volPronto: num(s.vol_fabricado_novo),
+          volLiberado: num(s.vol_estoque_novo),
           volTransportado: num(s.vol_transportado_novo)
         }).then(function () {
           if (window.RegistrosUI) window.RegistrosUI.render();
