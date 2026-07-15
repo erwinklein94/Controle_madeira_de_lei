@@ -945,13 +945,7 @@
       );
     }).join("");
 
-    var k = Store.kpis(list);
-    var note =
-      '<div class="funnel__note">' +
-      "Maior perda entre estágios: <strong>" + k.gargalo.label + "</strong> " +
-      '<b>(−' + pct(k.gargalo.drop) + ")</b></div>";
-
-    container.innerHTML = rows + note;
+    container.innerHTML = rows;
   }
 
   /* Mantém o rótulo (valor + %) dentro da barra quando há espaço; quando a

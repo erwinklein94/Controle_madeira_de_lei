@@ -851,13 +851,6 @@ body.dashboard-mode { overflow-y: scroll; }
   outline: 3px solid var(--rumo-azul-claro);
   outline-offset: 3px;
 }
-.funnel__note {
-  margin-top: 14px;
-  font-size: 12.5px;
-  color: var(--rumo-texto);
-}
-.funnel__note b { color: var(--rumo-laranja); }
-
 body.modal-open { overflow: hidden; }
 
 /* =====================================================================
@@ -1226,11 +1219,6 @@ body.role-fornecedor #view-padronizacao { display: none; }
 .chart-modal__funnel .funnel__value--out {
   font-size: 17px;
 }
-.chart-modal__funnel .funnel__note {
-  font-size: 15px;
-  margin-top: 8px;
-}
-
 @media (max-width: 760px) {
   .chart-modal { padding: 12px; }
   .chart-modal__panel { width: 100%; height: 90vh; border-radius: 14px; }
@@ -1246,10 +1234,4 @@ body.role-fornecedor #view-padronizacao { display: none; }
   .chart-modal__funnel .funnel__bar { min-width: 62px; font-size: 11px; padding: 0 8px; }
   .chart-modal__funnel .funnel__value .pct { font-size: 10px; margin-left: 4px; }
   .chart-modal__funnel .funnel__value--out { font-size: 11px; }
-}
-
-#view-dashboard .funnel__note {
-  margin-top: 5px;
-  font-size: 10px;
-  line-height: 1.15;
 }
