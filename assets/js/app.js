@@ -160,13 +160,6 @@
     });
   }
 
-  function clear() {
-    return sb().from("registros").delete().not("id", "is", null).then(function (res) {
-      if (res.error) throw res.error;
-      cache = [];
-    });
-  }
-
   function count() { return cache.length; }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
@@ -208,6 +201,19 @@
       .sort(function (a, b) { return b.pedido - a.pedido; });
   }
 
+  /* Data de referência do registro: o campo Data (data_ref) preenchido
+     pelo usuário; cai para a data de cadastro nos registros sem ela.
+     Datas "aaaa-mm-dd" são interpretadas no fuso local (sem deslocar 1 dia). */
+  function refDate(r) {
+    var s = r && r.dataRef ? String(r.dataRef).slice(0, 10) : "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      var p = s.split("-");
+      return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+    var d = new Date(r ? r.createdAt : NaN);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   function trendByOrder(list) {
     var points = list
       .slice()
@@ -222,11 +228,11 @@
   }
 
   function cumulativeTransported(list) {
-    var sorted = list.slice().sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); });
+    var sorted = list.slice().sort(function (a, b) { return refDate(a) - refDate(b); });
     var acc = 0;
     return sorted.map(function (r) {
       acc += num(r.volTransportado);
-      return { date: r.createdAt, total: acc, label: r.pedido };
+      return { date: refDate(r), total: acc, label: r.pedido };
     });
   }
 
@@ -283,7 +289,7 @@
     add: add,
     update: update,
     remove: remove,
-    clear: clear,
+    refDate: refDate,
     count: count,
     funnelTotals: funnelTotals,
     groupSum: groupSum,
@@ -496,18 +502,6 @@
         showMsg("Erro ao adicionar: " + (err.message || err), false);
       });
     }
-  });
-
-  document.getElementById("btn-limpar").addEventListener("click", function () {
-    if (!Store.count()) return;
-    if (!confirm("Remover todos os registros? Esta ação não pode ser desfeita.")) return;
-    Store.clear().then(function () {
-      stopEditing(true);
-      draw();
-      showMsg("Todos os registros foram removidos.", true);
-    }).catch(function (err) {
-      showMsg("Erro ao remover: " + (err.message || err), false);
-    });
   });
 
   btnCancelEdit.addEventListener("click", function () {
@@ -852,7 +846,7 @@
     var fmtSem = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
     var seen = {};
     list.forEach(function (r) {
-      var w = weekStart(r.createdAt);
+      var w = weekStart(Store.refDate(r));
       if (w !== null) seen[w] = true;
     });
     var previous = els.fSemana.value;
@@ -898,7 +892,7 @@
       if (forn && r.fornecedor !== forn) return false;
       if (loc && r.local !== loc) return false;
       if (ped && String(r.pedido) !== ped) return false;
-      if (sem !== null && weekStart(r.createdAt) !== sem) return false;
+      if (sem !== null && weekStart(Store.refDate(r)) !== sem) return false;
       return true;
     });
   }
@@ -1294,7 +1288,8 @@
     list.forEach(function (r) {
       totalPedido += Number(r.volPedido) || 0;
       totalTransp += Number(r.volTransportado) || 0;
-      var t = new Date(r.createdAt).getTime();
+      var d = Store.refDate(r);
+      var t = d ? d.getTime() : NaN;
       if (!isNaN(t) && (minData === null || t < minData)) minData = t;
     });
     var restante = totalPedido - totalTransp;
@@ -1306,12 +1301,13 @@
     return { restante: restante, dias: dias, data: new Date(Date.now() + dias * 86400000), alvo: totalPedido };
   }
 
-  /* Ritmo semanal: soma o transportado por semana (segunda-feira como início). */
+  /* Ritmo semanal: soma o transportado por semana (segunda-feira como início),
+     usando o campo Data do registro. */
   function ritmoConfig(list, expanded) {
     var SEMANA = 7 * 86400000;
     var buckets = {};
     list.forEach(function (r) {
-      var k = weekStart(r.createdAt);
+      var k = weekStart(Store.refDate(r));
       if (k === null) return;
       buckets[k] = (buckets[k] || 0) + (Number(r.volTransportado) || 0);
     });
@@ -1373,14 +1369,14 @@
     };
   }
 
-  /* Entregas por semana (volTransportado, semana pela data de cadastro),
+  /* Entregas por semana (volTransportado, semana pelo campo Data),
      uma série por valor do campo (fornecedor ou pedido). */
   function weeklyDeliveredSeries(list, field) {
     var SEMANA = 7 * 86400000;
     var groups = {};
     var min = null, max = null;
     list.forEach(function (r) {
-      var k = weekStart(r.createdAt);
+      var k = weekStart(Store.refDate(r));
       if (k === null) return;
       if (min === null || k < min) min = k;
       if (max === null || k > max) max = k;
@@ -1586,7 +1582,7 @@
     var fmtSem = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
     var seen = {};
     Store.getAll().forEach(function (r) {
-      var w = weekStart(r.createdAt);
+      var w = weekStart(Store.refDate(r));
       if (w !== null) seen[w] = true;
     });
     var prev = els.semana.value;
@@ -1624,7 +1620,7 @@
     return Store.getAll().filter(function (r) {
       if (forn && r.fornecedor !== forn) return false;
       if (ped && String(r.pedido) !== ped) return false;
-      if (sem !== null && weekStart(r.createdAt) !== sem) return false;
+      if (sem !== null && weekStart(Store.refDate(r)) !== sem) return false;
       return true;
     });
   }
@@ -1704,6 +1700,7 @@
 
     var head =
       "<thead><tr>" +
+      '<th class="col-text">Data</th>' +
       '<th class="col-text">Modificado em</th>' +
       '<th class="col-text">Cadastrado em</th>' +
       '<th class="col-text">Fiscal</th>' +
@@ -1719,6 +1716,7 @@
       }).join("");
       return (
         "<tr>" +
+        '<td class="col-text">' + dataRefBr(r.dataRef) + "</td>" +
         '<td class="col-text">' + dataHora(r.updatedAt || r.createdAt) + "</td>" +
         '<td class="col-text">' + dataHora(r.createdAt) + "</td>" +
         '<td class="col-text">' + esc(r.fiscal) + "</td>" +
@@ -1732,7 +1730,7 @@
 
     var foot =
       "<tfoot><tr>" +
-      '<td class="col-text">Total</td><td></td><td></td><td></td><td></td><td></td>' +
+      '<td class="col-text">Total</td><td></td><td></td><td></td><td></td><td></td><td></td>' +
       STAGES.map(function (s) {
         var t = sorted.reduce(function (a, r) { return a + (Number(r[s.key]) || 0); }, 0);
         return "<td>" + fmt.format(t) + "</td>";
@@ -1746,6 +1744,13 @@
   function dataHora(iso) {
     var d = new Date(iso);
     return isNaN(d.getTime()) ? "—" : fmtDataHora.format(d);
+  }
+
+  /* Campo Data ("aaaa-mm-dd") -> "dd/mm/aaaa" sem criar Date (evita fuso). */
+  function dataRefBr(d) {
+    if (!d) return "—";
+    var p = String(d).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : d;
   }
 
   function pct(n) { return (Math.round(n * 10) / 10).toString().replace(".", ",") + "%"; }
