@@ -17,12 +17,13 @@
   var UNIT = ""; // unidade exibida ao lado dos volumes; vazio para não mostrar letra após os números
 
   var STAGES = [
-    { key: "volPedido",       label: "Volume do Pedido",               short: "Pedido",       color: "#003865" },
-    { key: "volFabricar",     label: "Volume a ser Fabricado",         short: "A fabricar",   color: "#15507B" },
-    { key: "volPronto",       label: "Volume Fabricado",               short: "Fabricado",    color: "#1F6FA5" },
-    { key: "volInspecionado", label: "Volume Inspecionado",            short: "Inspecionado", color: "#32A6E6" },
-    { key: "volLiberado",     label: "Volume em Estoque p/ Entrega",   short: "Estoque",      color: "#1E9F7F" },
-    { key: "volTransportado", label: "Volume Transportado",            short: "Transportado", color: "#7FE06C" }
+    { key: "volPedido",       label: "Volume do Pedido",                    short: "Pedido",            color: "#003865" },
+    { key: "volFabricar",     label: "Volume a ser Fabricado",              short: "A fabricar",        color: "#15507B" },
+    { key: "volPronto",       label: "Volume Fabricado",                    short: "Fabricado",         color: "#1F6FA5" },
+    { key: "volProntoInsp",   label: "Volume pronto a ser Inspecionado",    short: "Pronto p/ insp.",   color: "#2A8BC6" },
+    { key: "volInspecionado", label: "Volume Inspecionado",                 short: "Inspecionado",      color: "#32A6E6" },
+    { key: "volLiberado",     label: "Volume em Estoque p/ Entrega",        short: "Estoque",           color: "#1E9F7F" },
+    { key: "volTransportado", label: "Volume Transportado",                 short: "Transportado",      color: "#7FE06C" }
   ];
 
   /* Os registros vivem na tabela "registros" do Supabase. O cache em memória
@@ -43,6 +44,7 @@
       volPedido: num(r.vol_pedido),
       volFabricar: num(r.vol_fabricar),
       volPronto: num(r.vol_pronto),
+      volProntoInsp: num(r.vol_pronto_insp),
       volInspecionado: num(r.vol_inspecionado),
       volLiberado: num(r.vol_liberado),
       volTransportado: num(r.vol_transportado),
@@ -61,6 +63,7 @@
       vol_pedido: num(rec.volPedido),
       vol_fabricar: num(rec.volFabricar),
       vol_pronto: num(rec.volPronto),
+      vol_pronto_insp: num(rec.volProntoInsp),
       vol_inspecionado: num(rec.volInspecionado),
       vol_liberado: num(rec.volLiberado),
       vol_transportado: num(rec.volTransportado)
@@ -73,7 +76,8 @@
     dataRef: "data_ref",
     fiscal: "fiscal", fornecedor: "fornecedor", local: "local", pedido: "pedido",
     volPedido: "vol_pedido", volFabricar: "vol_fabricar", volPronto: "vol_pronto",
-    volInspecionado: "vol_inspecionado", volLiberado: "vol_liberado", volTransportado: "vol_transportado"
+    volProntoInsp: "vol_pronto_insp", volInspecionado: "vol_inspecionado",
+    volLiberado: "vol_liberado", volTransportado: "vol_transportado"
   };
 
   function patchToDb(patch) {
@@ -89,7 +93,7 @@
   function refresh() {
     if (!sb()) return Promise.resolve(cache);
     return sb().from("registros")
-      .select("id, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
+      .select("id, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
       .order("created_at", { ascending: true })
       .then(function (res) {
         if (res.error) throw res.error;
@@ -544,7 +548,7 @@
       return null;
     }
 
-    var nums = ["volPedido", "volFabricar", "volPronto", "volInspecionado", "volLiberado", "volTransportado"];
+    var nums = ["volPedido", "volFabricar", "volPronto", "volProntoInsp", "volInspecionado", "volLiberado", "volTransportado"];
     for (var i = 0; i < nums.length; i++) {
       var el = document.getElementById(nums[i]);
       var n = parseFloat(el.value);

@@ -322,6 +322,7 @@
         volPedido: 0,
         volFabricar: num(r.valor_fabricar),
         volPronto: num(r.vol_fabricado),
+        volProntoInsp: 0,
         volInspecionado: 0,
         volLiberado: num(r.vol_estoque),
         volTransportado: num(r.vol_transportado)
