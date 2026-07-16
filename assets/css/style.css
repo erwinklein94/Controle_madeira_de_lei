@@ -727,6 +727,8 @@ body.dashboard-mode .menu-toggle {
 #view-dashboard .funnel-card {
   display: flex;
   flex-direction: column;
+  /* Com 7 etapas, o funil ocupa duas linhas do grid para os dados caberem. */
+  grid-row: span 2;
 }
 #view-dashboard .funnel-card .card__body {
   flex: 1;
@@ -758,8 +760,8 @@ body.dashboard-mode .menu-toggle {
 }
 #view-dashboard .funnel__track {
   height: 100%;
-  min-height: 25px;
-  max-height: 44px;
+  min-height: 22px;
+  max-height: 48px;
   border-radius: 6px;
 }
 #view-dashboard .funnel__bar {
@@ -1206,22 +1208,31 @@ body.role-fornecedor #view-padronizacao { display: none; }
   margin: 0;
 }
 .chart-modal__funnel {
+  /* As linhas dividem a altura disponível do modal: com qualquer número de
+     etapas o funil cabe inteiro, sem cortar as últimas barras. */
   height: 100%;
-  justify-content: center;
-  gap: 18px;
+  min-height: 0;
+  justify-content: space-between;
+  gap: 10px;
 }
 .chart-modal__funnel .funnel__row {
   grid-template-columns: 230px 1fr;
   gap: 20px;
+  flex: 1 1 0;
+  min-height: 0;
 }
 .chart-modal__funnel .funnel__name {
   font-size: 17px;
+  line-height: 1.15;
 }
 .chart-modal__funnel .funnel__name small {
   font-size: 13px;
+  line-height: 1.1;
 }
 .chart-modal__funnel .funnel__track {
-  height: 58px;
+  height: 100%;
+  min-height: 26px;
+  max-height: 58px;
   border-radius: 12px;
 }
 .chart-modal__funnel .funnel__bar {
@@ -1248,7 +1259,7 @@ body.role-fornecedor #view-padronizacao { display: none; }
   .chart-modal__funnel .funnel__row { grid-template-columns: 118px 1fr; gap: 10px; }
   .chart-modal__funnel .funnel__name { font-size: 12px; }
   .chart-modal__funnel .funnel__name small { font-size: 10px; }
-  .chart-modal__funnel .funnel__track { height: 36px; }
+  .chart-modal__funnel .funnel__track { min-height: 20px; max-height: 36px; }
   .chart-modal__funnel .funnel__bar { min-width: 62px; font-size: 11px; padding: 0 8px; }
   .chart-modal__funnel .funnel__value .pct { font-size: 10px; margin-left: 4px; }
   .chart-modal__funnel .funnel__value--out { font-size: 11px; }
