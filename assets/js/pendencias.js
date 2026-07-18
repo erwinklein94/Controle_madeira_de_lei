@@ -54,7 +54,7 @@
 
   var FornecedorUI = (function () {
     var form, msg, tabela, count, wired = false;
-    var dataEl, pedidoEl, valorFabEl, fabricadoEl, estoqueEl, transpEl;
+    var dataEl, pedidoEl, pedidoDetalhesEl, valorFabEl, fabricadoEl, estoqueEl, transpEl;
     var linhas = [];        // pendências atuais
     var solicitados = {};   // pendencia_id -> true (já tem pedido pendente)
 
@@ -65,6 +65,7 @@
       count = document.getElementById("forn-count");
       dataEl = document.getElementById("forn-data");
       pedidoEl = document.getElementById("forn-pedido");
+      pedidoDetalhesEl = document.getElementById("forn-pedido-detalhes");
       valorFabEl = document.getElementById("forn-valorfab");
       fabricadoEl = document.getElementById("forn-fabricado");
       estoqueEl = document.getElementById("forn-estoque");
@@ -83,11 +84,29 @@
       msg.classList.toggle("is-error", ok === false);
     }
 
+    function drawPedidoDetails() {
+      if (!pedidoDetalhesEl) return;
+      var details = window.Padroes && window.Padroes.pedido(pedidoEl.value);
+      pedidoDetalhesEl.hidden = !details;
+      pedidoDetalhesEl.innerHTML = details
+        ? '<span><strong>Fornecedor</strong>' + esc(details.fornecedor) + '</span><span><strong>Local</strong>' + esc(details.local) + '</span><span><strong>Quantidade do pedido</strong>' + fmt.format(details.quantidade) + ' dormentes</span>'
+        : "";
+    }
+
+    function fillPedidoOptions() {
+      if (!pedidoEl || !window.Padroes) return;
+      var profile = window.currentProfile || {};
+      window.Padroes.fillPedidos(pedidoEl, pedidoEl.value, profile.fornecedor || null, true);
+      drawPedidoDetails();
+    }
+
     function render() {
       if (!tabela) grab();
       if (!tabela || !guardSb(tabela)) return;
-      Promise.all([Data.listPendencias(), Data.listSolicitacoesPendentes()]).then(function (out) {
+      var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
+      Promise.all([Data.listPendencias(), Data.listSolicitacoesPendentes(), padroes]).then(function (out) {
         var pend = out[0], sol = out[1];
+        fillPedidoOptions();
         if (pend.error) {
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(pend.error.message) + ").</p>";
           return;
@@ -168,6 +187,7 @@
       grab();
       if (!form) return;
       if (dataEl && !dataEl.value) dataEl.value = hoje();
+      if (pedidoEl) pedidoEl.addEventListener("change", drawPedidoDetails);
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
@@ -193,6 +213,7 @@
           if (res.error) { showMsg("Erro ao enviar: " + res.error.message, false); return; }
           form.reset();
           dataEl.value = hoje();
+          fillPedidoOptions();
           showMsg("Enviado!", true);
           render();
         });

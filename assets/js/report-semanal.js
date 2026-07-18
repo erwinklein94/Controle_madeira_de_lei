@@ -120,7 +120,7 @@
             '<div class="report-form-grid report-form-grid--plan">' +
               '<div class="field"><label>Fornecedor</label><select name="fornecedor" required>' + options("fornecedor") + "</select></div>" +
               '<div class="field"><label>Local</label><select name="local" required>' + options("local") + "</select></div>" +
-              '<div class="field"><label>Pedido</label><select name="pedido">' + options("pedido") + "</select></div>" +
+              '<div class="field"><label>Pedido</label><select name="pedido">' + options("pedido") + '</select><small class="pedido-auto-hint">Preenchimento automático ao selecionar.</small></div>' +
               '<div class="field"><label>Expectativa a inspecionar</label><input name="expectativa_inspecionado" type="number" min="0" step="any" required></div>' +
               '<div class="field"><label>Expectativa a entregar</label><input name="expectativa_entregue" type="number" min="0" step="any" required></div>' +
               '<div class="field field--wide"><label>Observações</label><input name="observacoes" type="text" maxlength="500" placeholder="Orientações ou contexto da semana"></div>' +
@@ -146,7 +146,7 @@
               '<div class="field"><label>Fiscal</label><input value="' + attr(fiscal) + '" disabled></div>' +
               '<div class="field"><label>Fornecedor</label><select name="fornecedor" required>' + options("fornecedor") + "</select></div>" +
               '<div class="field"><label>Local</label><select name="local" required>' + options("local") + "</select></div>" +
-              '<div class="field"><label>Pedido</label><select name="pedido" required>' + options("pedido") + "</select></div>" +
+              '<div class="field"><label>Pedido</label><select name="pedido" required>' + options("pedido") + '</select><small class="pedido-auto-hint">Preenchimento automático ao selecionar.</small></div>' +
               numberField("vol_pedido", "Volume do Pedido") +
               numberField("vol_fabricar", "Volume a ser Fabricado") +
               numberField("vol_pronto", "Volume Fabricado") +
@@ -165,6 +165,29 @@
 
   function numberField(name, label) {
     return '<div class="field"><label>' + label + '</label><input name="' + name + '" type="number" min="0" step="any" value="0" required></div>';
+  }
+
+  function applyPedidoDetails(form) {
+    if (!form || !window.Padroes) return;
+    var details = window.Padroes.pedido(form.elements.pedido.value);
+    var hint = form.querySelector(".pedido-auto-hint");
+    if (!details) {
+      form.elements.fornecedor.value = "";
+      form.elements.local.value = "";
+      if (form.elements.vol_pedido) form.elements.vol_pedido.value = 0;
+      if (hint) {
+        hint.textContent = form.elements.pedido.value ? "Detalhes pendentes na Padronização." : "Preenchimento automático ao selecionar.";
+        hint.classList.remove("is-filled");
+      }
+      return;
+    }
+    form.elements.fornecedor.value = details.fornecedor;
+    form.elements.local.value = details.local;
+    if (form.elements.vol_pedido) form.elements.vol_pedido.value = details.quantidade;
+    if (hint) {
+      hint.textContent = details.fornecedor + " · " + details.local + " · " + fmt.format(details.quantidade) + " dormentes";
+      hint.classList.add("is-filled");
+    }
   }
 
   function renderShell() {
@@ -544,6 +567,10 @@
       clearHistoryFilters(historyForm);
     });
     root.addEventListener("change", function (e) {
+      if (e.target.matches('.report-plan-form select[name="pedido"], .report-entry-form select[name="pedido"]')) {
+        applyPedidoDetails(e.target.closest("form"));
+        return;
+      }
       if (!e.target.matches(".report-week-input")) return;
       var card = e.target.closest(".report-fiscal");
       var fiscal = card.getAttribute("data-fiscal");

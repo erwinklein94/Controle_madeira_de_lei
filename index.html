@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=historico-filtros-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=pedidos-detalhes-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -136,6 +136,7 @@
                 <div class="field">
                   <label for="pedido">Pedido</label>
                   <select id="pedido" name="pedido" required><option value="">Selecione…</option></select>
+                  <small id="pedido-auto-hint" class="pedido-auto-hint">Selecione um pedido para preencher fornecedor, local e volume automaticamente.</small>
                 </div>
                 <div class="field">
                   <label for="volPedido">Volume do Pedido</label>
@@ -527,8 +528,9 @@
                 </div>
                 <div class="field">
                   <label for="forn-pedido">Pedido</label>
-                  <input id="forn-pedido" type="text" required />
+                  <select id="forn-pedido" required><option value="">Selecione…</option></select>
                 </div>
+                <div id="forn-pedido-detalhes" class="pedido-auto-details field--wide" hidden></div>
                 <div class="field">
                   <label for="forn-valorfab">Volume a ser Fabricado</label>
                   <input id="forn-valorfab" type="number" min="0" step="any" required />
@@ -907,9 +909,9 @@
           </div>
         </header>
         <p class="card__hint" style="margin: -8px 0 14px;">
-          As opções abaixo alimentam as listas dos formulários de registro e de contas, evitando erros de digitação.
+          Cadastre os detalhes de cada pedido e mantenha as listas usadas nos formulários do site. Editor, Coordenador e Analista podem editar; Fiscal/Inspetor possui somente leitura.
         </p>
-        <div id="padroes-cards" class="padroes-grid"></div>
+        <div id="padroes-cards"></div>
       </section>
     </main>
   </div>
@@ -943,14 +945,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/access-control.js"></script>
-  <script src="assets/js/pendencias.js"></script>
-  <script src="assets/js/padroes.js"></script>
+  <script src="assets/js/pendencias.js?v=pedidos-detalhes-1"></script>
+  <script src="assets/js/padroes.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/contas.js"></script>
-  <script src="assets/js/comentarios.js"></script>
-  <script src="assets/js/report-semanal.js?v=historico-filtros-1"></script>
+  <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
+  <script src="assets/js/report-semanal.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/auditoria.js"></script>
 
-  <script src="assets/js/app.js"></script>
+  <script src="assets/js/app.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/tema.js"></script>
   <script src="assets/js/auth.js?v=95d62d7"></script>
 </body>

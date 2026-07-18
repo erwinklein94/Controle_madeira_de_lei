@@ -326,10 +326,36 @@
   var rfForn = document.getElementById("rf-fornecedor");
   var rfLocal = document.getElementById("rf-local");
   var rfPedido = document.getElementById("rf-pedido");
+  var pedidoInput = document.getElementById("pedido");
+  var pedidoAutoHint = document.getElementById("pedido-auto-hint");
 
   function canEditRecords() {
     return !!(window.AccessControl && window.AccessControl.canEditRecords());
   }
+
+  function applyPedidoDetails() {
+    if (!pedidoInput || !window.Padroes) return;
+    var details = window.Padroes.pedido(pedidoInput.value);
+    if (!details) {
+      document.getElementById("fornecedor").value = "";
+      document.getElementById("local").value = "";
+      document.getElementById("volPedido").value = "";
+      if (pedidoAutoHint) pedidoAutoHint.classList.remove("is-filled");
+      if (pedidoAutoHint) pedidoAutoHint.textContent = pedidoInput.value
+        ? "Este pedido ainda não possui fornecedor, local e quantidade cadastrados na Padronização."
+        : "Selecione um pedido para preencher fornecedor, local e volume automaticamente.";
+      return;
+    }
+    document.getElementById("fornecedor").value = details.fornecedor;
+    document.getElementById("local").value = details.local;
+    document.getElementById("volPedido").value = details.quantidade;
+    if (pedidoAutoHint) {
+      pedidoAutoHint.textContent = details.fornecedor + " · " + details.local + " · " + fmt.format(details.quantidade) + " dormentes";
+      pedidoAutoHint.classList.add("is-filled");
+    }
+  }
+
+  if (pedidoInput) pedidoInput.addEventListener("change", applyPedidoDetails);
 
   /* ---------- filtros da tabela ---------- */
   function getFiltered() {
@@ -503,6 +529,7 @@
         btnSubmit.disabled = false;
         form.reset();
         setDataPadrao();
+        applyPedidoDetails();
         showMsg("Registro adicionado.", true);
         document.getElementById("fiscal").focus();
         draw();
@@ -592,7 +619,7 @@
     formTitle.textContent = "Novo registro";
     btnSubmit.textContent = "Adicionar registro";
     btnCancelEdit.hidden = true;
-    if (resetForm) { form.reset(); setDataPadrao(); }
+    if (resetForm) { form.reset(); setDataPadrao(); applyPedidoDetails(); }
   }
 
   /* Data de hoje como sugestão no campo Data. */
