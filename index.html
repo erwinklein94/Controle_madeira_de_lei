@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/style.css?v=historico-filtros-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -458,6 +458,44 @@
           <div>
             <strong>Comece pelo roteiro da semana.</strong>
             <p>Informe onde cada fiscal estará, o fornecedor, o local e as expectativas de inspeção e entrega. Depois, registre as atividades diariamente e envie cada lançamento concluído para a página Registros.</p>
+          </div>
+        </section>
+
+        <section class="card report-history" aria-labelledby="report-history-title">
+          <div class="card__head report-history__head">
+            <div>
+              <div class="page-head__eyebrow">Consulta geral</div>
+              <h2 id="report-history-title" class="card__title">Histórico de atividades</h2>
+              <p class="card__hint">Visualize os lançamentos de todas as semanas por período ou fornecedor. Estes filtros não alteram nenhum registro.</p>
+            </div>
+            <span class="report-readonly-badge">Somente visualização</span>
+          </div>
+          <div class="card__body">
+            <form id="report-history-filters" class="report-history-filters">
+              <div class="field">
+                <label for="report-history-start">Data inicial</label>
+                <input id="report-history-start" name="start" type="date" />
+              </div>
+              <div class="field">
+                <label for="report-history-end">Data final</label>
+                <input id="report-history-end" name="end" type="date" />
+              </div>
+              <div class="field">
+                <label for="report-history-supplier">Fornecedor</label>
+                <select id="report-history-supplier" name="supplier">
+                  <option value="">Todos os fornecedores</option>
+                </select>
+              </div>
+              <div class="report-history-actions">
+                <button class="btn btn--primary" type="submit">Aplicar filtros</button>
+                <button id="report-history-clear" class="btn btn--ghost" type="button">Limpar</button>
+              </div>
+            </form>
+            <div id="report-history-msg" class="form-msg" role="status" aria-live="polite"></div>
+            <div id="report-history-summary" class="report-history-summary"></div>
+            <div id="report-history-table" class="report-history-table">
+              <div class="report-empty">Carregando histórico…</div>
+            </div>
           </div>
         </section>
 
@@ -909,7 +947,7 @@
   <script src="assets/js/padroes.js"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js"></script>
-  <script src="assets/js/report-semanal.js"></script>
+  <script src="assets/js/report-semanal.js?v=historico-filtros-1"></script>
   <script src="assets/js/auditoria.js"></script>
 
   <script src="assets/js/app.js"></script>
