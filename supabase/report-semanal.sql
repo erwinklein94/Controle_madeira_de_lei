@@ -83,10 +83,10 @@ create policy report_planejamentos_admin_all
   with check ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'));
 
 drop policy if exists report_planejamentos_fiscal_own on public.report_semanal_planejamentos;
-create policy report_planejamentos_fiscal_own on public.report_semanal_planejamentos
-  for all to authenticated
-  using (public.current_role_name() = 'fiscal' and fiscal = public.current_fiscal())
-  with check (public.current_role_name() = 'fiscal' and fiscal = public.current_fiscal());
+drop policy if exists report_planejamentos_fiscal_select on public.report_semanal_planejamentos;
+create policy report_planejamentos_fiscal_select on public.report_semanal_planejamentos
+  for select to authenticated
+  using ((select public.current_role_name()) = 'fiscal' and fiscal = (select public.current_fiscal()));
 
 drop policy if exists report_registros_admin_all on public.report_semanal_registros;
 create policy report_registros_admin_all

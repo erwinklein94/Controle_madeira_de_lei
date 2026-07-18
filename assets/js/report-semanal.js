@@ -15,6 +15,9 @@
   var DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
   function sb() { return window.sbClient; }
+  function canManagePlans() {
+    return !!(window.AccessControl && window.AccessControl.isFull(window.currentProfile && window.currentProfile.role));
+  }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -106,6 +109,7 @@
   function fiscalCard(fiscal) {
     var fiscalKey = key(fiscal);
     var week = state[fiscal].week;
+    var editablePlans = canManagePlans();
     return (
       '<article class="report-fiscal" data-fiscal="' + attr(fiscal) + '" data-fiscal-key="' + fiscalKey + '">' +
         '<header class="report-fiscal__head">' +
@@ -115,8 +119,8 @@
         '<div class="report-fiscal-msg form-msg" role="status" aria-live="polite"></div>' +
         '<section class="report-planning">' +
           '<div class="report-section-head"><div><h3>Roteiro e expectativa da semana</h3><p>Onde o fiscal estará e o volume previsto para inspeção e entrega.</p></div>' +
-          '<button class="btn btn--ghost btn--sm report-toggle-plan" type="button">Adicionar destino</button></div>' +
-          '<form class="report-plan-form" hidden>' +
+          (editablePlans ? '<button class="btn btn--ghost btn--sm report-toggle-plan" type="button">Adicionar destino</button>' : '<span class="report-readonly-badge">Somente leitura</span>') + '</div>' +
+          (editablePlans ? '<form class="report-plan-form" hidden>' +
             '<div class="report-form-grid report-form-grid--plan">' +
               '<div class="field"><label>Fornecedor</label><select name="fornecedor" required>' + options("fornecedor") + "</select></div>" +
               '<div class="field"><label>Local</label><select name="local" required>' + options("local") + "</select></div>" +
@@ -126,7 +130,7 @@
               '<div class="field field--wide"><label>Observações</label><input name="observacoes" type="text" maxlength="500" placeholder="Orientações ou contexto da semana"></div>' +
             "</div>" +
             '<div class="form-foot"><button class="btn btn--primary btn--sm" type="submit">Salvar destino</button><button class="btn btn--ghost btn--sm report-cancel-plan" type="button">Cancelar</button></div>' +
-          "</form>" +
+          "</form>" : "") +
           '<div class="report-plan-list"></div>' +
         "</section>" +
         '<section class="report-dashboard">' +
@@ -382,6 +386,7 @@
 
   function drawPlans(card, fiscal) {
     var plans = state[fiscal].plans;
+    var editablePlans = canManagePlans();
     var target = card.querySelector(".report-plan-list");
     if (!plans.length) {
       target.innerHTML = empty("Nenhum destino e nenhuma expectativa cadastrados para esta semana.");
@@ -394,7 +399,7 @@
           '<div><small>Inspecionar</small><strong>' + fmt.format(num(p.expectativa_inspecionado)) + "</strong></div>" +
           '<div><small>Entregar</small><strong>' + fmt.format(num(p.expectativa_entregue)) + "</strong></div>" +
           (p.observacoes ? '<p class="report-destination__note">' + esc(p.observacoes) + "</p>" : "") +
-          '<button class="report-plan-delete" data-id="' + p.id + '" type="button" aria-label="Excluir destino">×</button>' +
+          (editablePlans ? '<button class="report-plan-delete" data-id="' + p.id + '" type="button" aria-label="Excluir destino">×</button>' : "") +
         "</article>"
       );
     }).join("") + "</div>";
@@ -583,8 +588,8 @@
       var card = e.target.closest(".report-fiscal");
       if (!card) return;
       var fiscal = card.getAttribute("data-fiscal");
-      if (e.target.closest(".report-toggle-plan")) card.querySelector(".report-plan-form").hidden = false;
-      if (e.target.closest(".report-cancel-plan")) card.querySelector(".report-plan-form").hidden = true;
+      if (canManagePlans() && e.target.closest(".report-toggle-plan")) card.querySelector(".report-plan-form").hidden = false;
+      if (canManagePlans() && e.target.closest(".report-cancel-plan")) card.querySelector(".report-plan-form").hidden = true;
       if (e.target.closest(".report-toggle-entry")) {
         var form = card.querySelector(".report-entry-form");
         form.hidden = false;
@@ -592,7 +597,7 @@
       }
       if (e.target.closest(".report-cancel-entry")) card.querySelector(".report-entry-form").hidden = true;
       var del = e.target.closest(".report-plan-delete");
-      if (del && window.confirm("Excluir este destino e suas expectativas da semana?")) {
+      if (canManagePlans() && del && window.confirm("Excluir este destino e suas expectativas da semana?")) {
         deletePlan(fiscal, del.getAttribute("data-id")).catch(function (err) { message(fiscal, "Erro ao excluir: " + (err.message || err), true); });
       }
       var send = e.target.closest(".report-send");
@@ -604,6 +609,7 @@
       var fiscal = card.getAttribute("data-fiscal");
       if (e.target.matches(".report-plan-form")) {
         e.preventDefault();
+        if (!canManagePlans()) return;
         savePlan(fiscal, e.target).catch(function (err) { message(fiscal, "Erro ao salvar destino: " + (err.message || err), true); });
       }
       if (e.target.matches(".report-entry-form")) {

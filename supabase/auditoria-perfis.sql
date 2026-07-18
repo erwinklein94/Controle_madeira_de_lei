@@ -221,15 +221,16 @@ create policy comentarios_delete on public.comentarios for delete to authenticat
   autor_id = (select auth.uid()) or (select public.has_full_access())
 );
 
--- Report Semanal: acesso completo ve tudo; Fiscal trabalha apenas no proprio.
+-- Report Semanal: acesso completo gerencia tudo. Fiscal apenas consulta o
+-- proprio planejamento e continua registrando atividades no proprio report.
 drop policy if exists report_planejamentos_admin_all on public.report_semanal_planejamentos;
 drop policy if exists report_planejamentos_full_access on public.report_semanal_planejamentos;
 drop policy if exists report_planejamentos_fiscal_own on public.report_semanal_planejamentos;
+drop policy if exists report_planejamentos_fiscal_select on public.report_semanal_planejamentos;
 create policy report_planejamentos_full_access on public.report_semanal_planejamentos for all to authenticated
   using ((select public.has_full_access())) with check ((select public.has_full_access()));
-create policy report_planejamentos_fiscal_own on public.report_semanal_planejamentos for all to authenticated
-  using (public.is_fiscal() and fiscal = public.current_fiscal())
-  with check (public.is_fiscal() and fiscal = public.current_fiscal());
+create policy report_planejamentos_fiscal_select on public.report_semanal_planejamentos for select to authenticated
+  using ((select public.is_fiscal()) and fiscal = (select public.current_fiscal()));
 
 drop policy if exists report_registros_admin_all on public.report_semanal_registros;
 drop policy if exists report_registros_full_access on public.report_semanal_registros;
