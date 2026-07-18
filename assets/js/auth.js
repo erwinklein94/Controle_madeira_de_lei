@@ -24,6 +24,23 @@
     }
   }
 
+  function authMsgTarget(preferred) {
+    return preferred || document.querySelector('.auth__card--admin .auth__msg') || document.querySelector(".auth__msg");
+  }
+
+  function withTimeout(promise, milliseconds) {
+    return new Promise(function (resolve, reject) {
+      var timer = window.setTimeout(function () { reject(new Error("timeout")); }, milliseconds);
+      Promise.resolve(promise).then(function (value) {
+        window.clearTimeout(timer);
+        resolve(value);
+      }, function (error) {
+        window.clearTimeout(timer);
+        reject(error);
+      });
+    });
+  }
+
   if (!sb) {
     body.classList.remove("auth-loading");
     showMsg(document.querySelector(".auth__msg"), "Não foi possível conectar ao servidor. Recarregue a página.", true);
@@ -65,33 +82,62 @@
     return access ? access.isTeam(profileRole) : profileRole !== "fornecedor";
   }
 
+  /* Compatibilidade enquanto a migração auditoria-perfis.sql ainda não foi
+     aplicada: bancos antigos não possuem a coluna profiles.fiscal. */
+  function loadProfile(userId) {
+    return sb.from("profiles")
+      .select("role, nome, fornecedor, fiscal")
+      .eq("id", userId)
+      .maybeSingle()
+      .then(function (result) {
+        var missingFiscal = result.error &&
+          (result.error.code === "42703" || result.error.code === "PGRST204") &&
+          String(result.error.message || "").toLowerCase().indexOf("fiscal") >= 0;
+        if (!missingFiscal) return result;
+        return sb.from("profiles")
+          .select("role, nome, fornecedor")
+          .eq("id", userId)
+          .maybeSingle()
+          .then(function (legacy) {
+            if (legacy.data) legacy.data.fiscal = null;
+            return legacy;
+          });
+      });
+  }
+
+  function sessionFailure(msgEl, message, error) {
+    if (error) console.error("Erro ao iniciar autenticação:", error);
+    showLogin();
+    showMsg(authMsgTarget(msgEl), message, true);
+  }
+
   /* Resolve a sessao atual. Quando vem de um card, valida se a conta pode
      entrar por aquele tipo de acesso. */
   function resolveSession(expectedAccess, msgEl) {
-    sb.auth.getUser().then(function (res) {
+    withTimeout(sb.auth.getUser(), 12000).then(function (res) {
       var user = res.data ? res.data.user : null;
       if (!user) { showLogin(); return; }
-      sb.from("profiles")
-        .select("role, nome, fornecedor, fiscal")
-        .eq("id", user.id)
-        .maybeSingle()
-        .then(function (p) {
-          if (p.error) {
-            console.error("Erro ao carregar perfil:", p.error, "| user id:", user.id);
-            showMsg(msgEl, "Erro ao carregar perfil (" + (p.error.code || "?") + "): " + p.error.message, true);
-            return;
-          }
-          if (!p.data) {
-            showMsg(msgEl, "Perfil não encontrado. Fale com um Editor, Coordenador ou Analista.", true);
-            return;
-          }
-          if (!matchesCard(p.data.role, expectedAccess)) {
-            showMsg(msgEl, "Esta conta é de " + (access ? access.label(p.data.role) : p.data.role) + ". Use o acesso correto.", true);
-            sb.auth.signOut();
-            return;
-          }
-          showApp(p.data);
-        });
+      withTimeout(loadProfile(user.id), 12000).then(function (p) {
+        if (p.error) {
+          console.error("Erro ao carregar perfil:", p.error, "| user id:", user.id);
+          sessionFailure(msgEl, "Não foi possível carregar seu perfil. Tente entrar novamente.", p.error);
+          return;
+        }
+        if (!p.data) {
+          sessionFailure(msgEl, "Perfil não encontrado. Fale com um Editor, Coordenador ou Analista.");
+          return;
+        }
+        if (!matchesCard(p.data.role, expectedAccess)) {
+          showMsg(msgEl, "Esta conta é de " + (access ? access.label(p.data.role) : p.data.role) + ". Use o acesso correto.", true);
+          sb.auth.signOut();
+          return;
+        }
+        showApp(p.data);
+      }).catch(function (error) {
+        sessionFailure(msgEl, "O servidor demorou para responder. Tente entrar novamente.", error);
+      });
+    }).catch(function (error) {
+      sessionFailure(msgEl, "O servidor demorou para responder. Tente entrar novamente.", error);
     });
   }
 
@@ -106,11 +152,15 @@
       var btn = form.querySelector('button[type="submit"]');
       clearMsgs();
       btn.disabled = true;
-      sb.auth.signInWithPassword({ email: email, password: passEl.value }).then(function (res) {
+      withTimeout(sb.auth.signInWithPassword({ email: email, password: passEl.value }), 15000).then(function (res) {
         btn.disabled = false;
         if (res.error) { showMsg(msgEl, "E-mail ou senha inválidos.", true); return; }
         passEl.value = "";
         resolveSession(expectedAccess, msgEl);
+      }).catch(function (error) {
+        btn.disabled = false;
+        console.error("Erro no login:", error);
+        showMsg(msgEl, "O servidor demorou para responder. Tente novamente.", true);
       });
     });
   }
