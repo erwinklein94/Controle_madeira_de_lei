@@ -14,15 +14,13 @@ create table if not exists public.padroes (
 
 alter table public.padroes enable row level security;
 
--- Qualquer usuário logado lê as opções; só o admin gerencia.
+-- Somente a equipe acessa; o Fiscal/Inspetor também pode gerenciar.
 drop policy if exists padroes_select on public.padroes;
-create policy padroes_select on public.padroes
-  for select using (auth.uid() is not null);
-
 drop policy if exists padroes_admin_all on public.padroes;
-create policy padroes_admin_all on public.padroes
-  for all using (public.current_role_name() = 'admin')
-  with check (public.current_role_name() = 'admin');
+drop policy if exists padroes_team_all on public.padroes;
+create policy padroes_team_all on public.padroes
+  for all using (public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal'))
+  with check (public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal'));
 
 grant select, insert, update, delete on public.padroes to authenticated;
 

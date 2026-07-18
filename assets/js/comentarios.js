@@ -1,7 +1,7 @@
 /* =====================================================================
-   COMENTÁRIOS — mural admin + comentários na área do fornecedor.
+   COMENTÁRIOS — mural da equipe + comentários na área do fornecedor.
    Regras (espelhadas no RLS da tabela comentarios):
-   - admin lê tudo e pode excluir qualquer comentário;
+   - perfis de acesso completo leem tudo e podem excluir qualquer comentário;
    - fornecedor só lê/cria comentários do próprio fornecedor;
    - o autor pode excluir o próprio comentário.
    ===================================================================== */
@@ -25,7 +25,7 @@
   }
 
   function isAdmin() {
-    return !!(window.currentProfile && window.currentProfile.role === "admin");
+    return !!(window.currentProfile && window.AccessControl && window.AccessControl.isFull(window.currentProfile.role));
   }
 
   /* Card de um comentário. showForn: mostra a etiqueta do fornecedor.
@@ -167,7 +167,7 @@
   function drawGrupo(listaEl, countEl, lista, textoVazio) {
     countEl.textContent = lista.length
       ? lista.length + (lista.length === 1 ? " comentário. " : " comentários. ") +
-        "O autor pode excluir o próprio comentário; administradores podem excluir qualquer um."
+        "O autor pode excluir o próprio comentário; usuários com acesso completo podem excluir qualquer um."
       : "Nenhum comentário ainda.";
 
     if (!lista.length) {
@@ -323,7 +323,7 @@
 
     var prof = window.currentProfile || {};
     var ped = els.pedido.value, texto = els.texto.value.trim();
-    if (!prof.fornecedor) { showMsg("Seu perfil não tem fornecedor definido. Fale com o administrador.", false); return; }
+    if (!prof.fornecedor) { showMsg("Seu perfil não tem fornecedor definido. Fale com a equipe responsável.", false); return; }
     if (!ped) { showMsg("Escolha o pedido do comentário.", false); return; }
     if (!texto) { showMsg("Escreva o comentário antes de publicar.", false); return; }
 

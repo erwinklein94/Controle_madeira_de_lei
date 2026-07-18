@@ -1,8 +1,8 @@
 /* =====================================================================
-   INFORMAÇÕES PENDENTES — fluxo fornecedor -> administrador (Supabase).
+   INFORMAÇÕES PENDENTES — fluxo fornecedor -> equipe responsável (Supabase).
    O fornecedor envia (Pedido, Volume do pedido, Transportado) e vê os
    próprios envios. Ele NÃO altera o histórico direto: pede alteração
-   (propondo novos valores) e o administrador aprova ou recusa.
+   (propondo novos valores) e a equipe com acesso completo aprova ou recusa.
    ===================================================================== */
 (function () {
   "use strict";
@@ -22,7 +22,7 @@
     return false;
   }
 
-  /* ---------- camada de dados (RLS filtra fornecedor x admin) ---------- */
+  /* ---------- camada de dados (RLS filtra fornecedor x equipe) ---------- */
   var Data = {
     listPendencias: function (somenteEnviadas) {
       var q = sb.from("pendencias")
@@ -144,7 +144,7 @@
       if (nes === null) return;
       var nt = window.prompt("Novo Volume Transportado (atual: " + num(r.vol_transportado) + "):", r.vol_transportado);
       if (nt === null) return;
-      var obs = window.prompt("Observação para o administrador (opcional):", "");
+      var obs = window.prompt("Observação para a equipe responsável (opcional):", "");
 
       var rec = {
         pendencia_id: r.id,
@@ -158,7 +158,7 @@
       };
       Data.addSolicitacao(rec).then(function (res) {
         if (res.error) { showMsg("Erro ao solicitar: " + res.error.message, false); return; }
-        showMsg("Solicitação enviada ao administrador.", true);
+        showMsg("Solicitação enviada à equipe responsável.", true);
         render();
       });
     }
@@ -172,7 +172,7 @@
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         var prof = window.currentProfile;
-        if (!prof || !prof.fornecedor) { showMsg("Perfil de fornecedor incompleto. Fale com o administrador.", false); return; }
+        if (!prof || !prof.fornecedor) { showMsg("Perfil de fornecedor incompleto. Fale com a equipe responsável.", false); return; }
         var pedido = pedidoEl.value.trim();
         if (!pedido) { showMsg("Informe o pedido.", false); return; }
         if (!dataEl.value) { showMsg("Informe a data.", false); return; }
@@ -212,7 +212,7 @@
     return { render: function () { wire(); render(); } };
   })();
 
-  /* ---------- UI do ADMIN: Informações pendentes + solicitações ---------- */
+  /* ---------- UI DA EQUIPE: Informações pendentes + solicitações ---------- */
   var PendentesUI = (function () {
     var tabela, count, refreshBtn, solicTabela, solicCount, wired = false;
     var solicitacoes = [];

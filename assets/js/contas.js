@@ -1,9 +1,6 @@
 /* =====================================================================
-   CONTAS — página do administrador com todas as contas do site,
-   separadas em Administradores e Fornecedores. Os dados vêm da função
-   admin_list_accounts() no Supabase (só retorna linhas para admins).
-   Criar usa a Edge Function create-account; alterar/excluir usa a
-   Edge Function manage-account.
+   CONTAS - gerenciamento dos cinco perfis do site.
+   A pagina e as Edge Functions sao restritas a acesso completo.
    ===================================================================== */
 (function () {
   "use strict";
@@ -17,16 +14,19 @@
     });
   }
   function dt(v) { return v ? fmtData.format(new Date(v)) : "—"; }
+  function label(role) { return window.AccessControl ? AccessControl.label(role) : role; }
 
   var ContasUI = (function () {
-    var admTabela, admCount, fornTabela, fornCount, orfSection, orfTabela, refreshBtn, wired = false;
-    var form, formTitle, formMsg, submitBtn, cancelBtn, papelEl, nomeEl, fornEl, fornField, emailEl, senhaEl;
+    var equipeTabela, equipeCount, fiscaisTabela, fiscaisCount, fornTabela, fornCount, orfSection, orfTabela, refreshBtn, wired = false;
+    var form, formTitle, formMsg, submitBtn, cancelBtn, papelEl, nomeEl, fornEl, fornField, fiscalEl, fiscalField, emailEl, senhaEl;
     var contas = [];
     var editingId = null;
 
     function grab() {
-      admTabela = document.getElementById("contas-admin-tabela");
-      admCount = document.getElementById("contas-admin-count");
+      equipeTabela = document.getElementById("contas-equipe-tabela");
+      equipeCount = document.getElementById("contas-equipe-count");
+      fiscaisTabela = document.getElementById("contas-fiscais-tabela");
+      fiscaisCount = document.getElementById("contas-fiscais-count");
       fornTabela = document.getElementById("contas-forn-tabela");
       fornCount = document.getElementById("contas-forn-count");
       orfSection = document.getElementById("contas-orfas");
@@ -41,6 +41,8 @@
       nomeEl = document.getElementById("conta-nome");
       fornEl = document.getElementById("conta-fornecedor");
       fornField = document.getElementById("conta-fornecedor-field");
+      fiscalEl = document.getElementById("conta-fiscal");
+      fiscalField = document.getElementById("conta-fiscal-field");
       emailEl = document.getElementById("conta-email");
       senhaEl = document.getElementById("conta-senha");
     }
@@ -51,196 +53,159 @@
       formMsg.classList.toggle("is-ok", ok === true);
       formMsg.classList.toggle("is-error", ok === false);
     }
-
-    /* Extrai a mensagem detalhada devolvida pela Edge Function. */
     function fnError(res, prefixo) {
       var ctx = res.error.context;
       if (ctx && typeof ctx.json === "function") {
-        ctx.json().then(function (b) {
-          showFormMsg(prefixo + (b && b.error ? b.error : res.error.message), false);
-        }).catch(function () { showFormMsg(prefixo + res.error.message, false); });
-      } else {
-        showFormMsg(prefixo + res.error.message, false);
-      }
+        ctx.json().then(function (body) { showFormMsg(prefixo + (body && body.error ? body.error : res.error.message), false); })
+          .catch(function () { showFormMsg(prefixo + res.error.message, false); });
+      } else showFormMsg(prefixo + res.error.message, false);
     }
+    function vazio(texto) { return '<div class="empty"><div class="empty__title">' + texto + "</div></div>"; }
+    function countText(list) { return list.length === 1 ? "1 conta." : list.length + " contas."; }
 
-    function vazio(texto) {
-      return '<div class="empty"><div class="empty__title">' + texto + "</div></div>";
-    }
-
-    function tabelaContas(list, comFornecedor) {
+    function tabelaContas(list, linkedField) {
+      var linkedTitle = linkedField === "fornecedor" ? "Fornecedor" : linkedField === "fiscal" ? "Fiscal/Inspetor" : null;
       var head = "<thead><tr>" +
-        '<th class="col-text">Nome</th>' +
-        (comFornecedor ? '<th class="col-text">Fornecedor</th>' : "") +
-        '<th class="col-text">E-mail</th>' +
-        "<th>Criada em</th><th>Último acesso</th><th>Ações</th></tr></thead>";
+        '<th class="col-text">Nome</th><th class="col-text">Perfil</th>' +
+        (linkedTitle ? '<th class="col-text">' + linkedTitle + "</th>" : "") +
+        '<th class="col-text">E-mail</th><th>Criada em</th><th>Último acesso</th><th>Ações</th></tr></thead>';
       var rows = list.map(function (c) {
         return "<tr>" +
           '<td class="col-text cell-pedido">' + esc(c.nome || "—") + "</td>" +
-          (comFornecedor ? '<td class="col-text">' + esc(c.fornecedor || "—") + "</td>" : "") +
-          '<td class="col-text">' + esc(c.email) + "</td>" +
-          "<td>" + dt(c.created_at) + "</td>" +
-          "<td>" + dt(c.last_sign_in_at) + "</td>" +
-          '<td><div class="row-actions">' +
-            '<button class="btn btn--ghost btn--sm conta-edit" data-id="' + c.id + '" type="button">Editar</button>' +
-            '<button class="btn btn--danger btn--sm conta-del" data-id="' + c.id + '" type="button">Excluir</button>' +
-          "</div></td>" +
-          "</tr>";
+          '<td class="col-text"><span class="account-role account-role--' + esc(c.role || "orfao") + '">' + esc(label(c.role)) + "</span></td>" +
+          (linkedTitle ? '<td class="col-text">' + esc(c[linkedField] || "—") + "</td>" : "") +
+          '<td class="col-text">' + esc(c.email) + "</td><td>" + dt(c.created_at) + "</td><td>" + dt(c.last_sign_in_at) + "</td>" +
+          '<td><div class="row-actions"><button class="btn btn--ghost btn--sm conta-edit" data-id="' + c.id + '" type="button">Editar</button>' +
+          '<button class="btn btn--danger btn--sm conta-del" data-id="' + c.id + '" type="button">Excluir</button></div></td></tr>';
       }).join("");
       return '<div class="table-wrap"><table class="tabela tabela--slim">' + head + "<tbody>" + rows + "</tbody></table></div>";
     }
 
     function render() {
-      if (!admTabela) grab();
-      if (!admTabela) return;
-      if (!sb) { admTabela.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>'; return; }
+      if (!equipeTabela) grab();
+      if (!equipeTabela) return;
+      if (!sb) { equipeTabela.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>'; return; }
+      if (!window.AccessControl || !AccessControl.isFull(window.currentProfile && window.currentProfile.role)) return;
 
       if (window.Padroes) {
         window.Padroes.load().then(function () {
           window.Padroes.fill(fornEl, "fornecedor");
-        }).catch(function () { /* lista fica como está */ });
+          window.Padroes.fill(fiscalEl, "fiscal");
+        }).catch(function () {});
       }
 
-      sb.rpc("admin_list_accounts").then(function (res) {
+      sb.rpc("list_accounts").then(function (res) {
         if (res.error) {
-          admTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Confira se o SQL supabase/contas.sql foi executado.</p>";
-          fornTabela.innerHTML = "";
+          equipeTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Execute supabase/auditoria-perfis.sql.</p>";
+          fiscaisTabela.innerHTML = ""; fornTabela.innerHTML = "";
           return;
         }
         contas = res.data || [];
-        var admins = contas.filter(function (c) { return c.role === "admin"; });
-        var forns = contas.filter(function (c) { return c.role === "fornecedor"; });
+        var equipe = contas.filter(function (c) { return AccessControl.isFull(c.role); });
+        var fiscais = contas.filter(function (c) { return AccessControl.isFiscal(c.role); });
+        var forns = contas.filter(function (c) { return AccessControl.isFornecedor(c.role); });
         var orfas = contas.filter(function (c) { return !c.role; });
 
-        admCount.textContent = admins.length === 1 ? "1 conta." : admins.length + " contas.";
-        fornCount.textContent = forns.length === 1 ? "1 conta." : forns.length + " contas.";
-
-        admTabela.innerHTML = admins.length ? tabelaContas(admins, false) : vazio("Nenhuma conta de administrador");
-        fornTabela.innerHTML = forns.length ? tabelaContas(forns, true) : vazio("Nenhuma conta de fornecedor");
-
+        equipeCount.textContent = countText(equipe); fiscaisCount.textContent = countText(fiscais); fornCount.textContent = countText(forns);
+        equipeTabela.innerHTML = equipe.length ? tabelaContas(equipe, null) : vazio("Nenhuma conta com acesso completo");
+        fiscaisTabela.innerHTML = fiscais.length ? tabelaContas(fiscais, "fiscal") : vazio("Nenhuma conta de Fiscal/Inspetor");
+        fornTabela.innerHTML = forns.length ? tabelaContas(forns, "fornecedor") : vazio("Nenhuma conta de fornecedor");
         orfSection.hidden = !orfas.length;
-        if (orfas.length) orfTabela.innerHTML = tabelaContas(orfas, false);
+        if (orfas.length) orfTabela.innerHTML = tabelaContas(orfas, null);
       });
     }
 
-    /* ---------- modo edição ---------- */
     function startEdit(c) {
       editingId = c.id;
-      papelEl.value = c.role || "fornecedor";
+      papelEl.value = c.role === "admin" ? "editor" : (c.role || "fornecedor");
       nomeEl.value = c.nome || "";
-      if (window.Padroes) window.Padroes.fill(fornEl, "fornecedor", c.fornecedor || "");
-      else fornEl.value = c.fornecedor || "";
-      emailEl.value = c.email || "";
-      senhaEl.value = "";
-      syncFornField();
-      formTitle.textContent = "Editar conta";
-      submitBtn.textContent = "Salvar alterações";
-      cancelBtn.hidden = false;
+      if (window.Padroes) {
+        window.Padroes.fill(fornEl, "fornecedor", c.fornecedor || "");
+        window.Padroes.fill(fiscalEl, "fiscal", c.fiscal || "");
+      }
+      emailEl.value = c.email || ""; senhaEl.value = "";
+      syncLinkedFields();
+      formTitle.textContent = "Editar conta"; submitBtn.textContent = "Salvar alterações"; cancelBtn.hidden = false;
       showFormMsg("Editando " + c.email + ". Deixe a senha em branco para manter a atual.");
       form.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-
     function cancelEdit() {
-      editingId = null;
-      form.reset();
-      syncFornField();
-      formTitle.textContent = "Nova conta";
-      submitBtn.textContent = "Criar conta";
-      cancelBtn.hidden = true;
-      showFormMsg("");
+      editingId = null; form.reset(); syncLinkedFields();
+      formTitle.textContent = "Nova conta"; submitBtn.textContent = "Criar conta"; cancelBtn.hidden = true; showFormMsg("");
     }
-
-    /* ---------- criar / salvar ---------- */
-    function submeter() {
+    function bodyFromForm() {
       var role = papelEl.value;
-      var body = {
-        email: emailEl.value.trim(),
-        password: senhaEl.value,
-        role: role,
-        nome: nomeEl.value.trim(),
-        fornecedor: role === "fornecedor" ? fornEl.value.trim() : null
+      return {
+        email: emailEl.value.trim(), password: senhaEl.value, role: role, nome: nomeEl.value.trim(),
+        fornecedor: role === "fornecedor" ? fornEl.value.trim() : null,
+        fiscal: role === "fiscal" ? fiscalEl.value.trim() : null
       };
-      if (role === "fornecedor" && !body.fornecedor) { showFormMsg("Informe o nome do fornecedor.", false); return; }
-
+    }
+    function validate(body, creating) {
+      if (body.role === "fornecedor" && !body.fornecedor) return "Informe o nome do fornecedor.";
+      if (body.role === "fiscal" && !body.fiscal) return "Vincule a conta a um Fiscal/Inspetor.";
+      if (creating && (!body.email || !body.password)) return "Informe e-mail e senha.";
+      if (body.password && body.password.length < 6) return "A senha precisa ter pelo menos 6 caracteres.";
+      return null;
+    }
+    function submeter() {
+      var body = bodyFromForm();
+      var validation = validate(body, !editingId);
+      if (validation) { showFormMsg(validation, false); return; }
+      submitBtn.disabled = true;
       if (editingId) {
-        if (body.password && body.password.length < 6) { showFormMsg("A senha precisa ter pelo menos 6 caracteres.", false); return; }
-        var patch = { action: "update", id: editingId, role: body.role, nome: body.nome, fornecedor: body.fornecedor };
+        var patch = { action: "update", id: editingId, role: body.role, nome: body.nome, fornecedor: body.fornecedor, fiscal: body.fiscal };
         if (body.email) patch.email = body.email;
         if (body.password) patch.password = body.password;
-        submitBtn.disabled = true;
         showFormMsg("Salvando…");
         sb.functions.invoke("manage-account", { body: patch }).then(function (res) {
           submitBtn.disabled = false;
           if (res.error) { fnError(res, "Erro ao salvar: "); return; }
-          cancelEdit();
-          showFormMsg("Conta atualizada!", true);
-          render();
+          cancelEdit(); showFormMsg("Conta atualizada!", true); render();
         });
         return;
       }
-
-      if (!body.email || !body.password) { showFormMsg("Informe e-mail e senha.", false); return; }
-      if (body.password.length < 6) { showFormMsg("A senha precisa ter pelo menos 6 caracteres.", false); return; }
-      submitBtn.disabled = true;
-      showFormMsg("Criando conta…");
+      showFormMsg("Criando…");
       sb.functions.invoke("create-account", { body: body }).then(function (res) {
         submitBtn.disabled = false;
         if (res.error) { fnError(res, "Erro: "); return; }
-        form.reset();
-        syncFornField();
-        showFormMsg("Conta criada!", true);
-        render();
+        form.reset(); syncLinkedFields(); showFormMsg("Conta criada!", true); render();
       });
     }
-
-    /* ---------- excluir ---------- */
     function excluir(c) {
       sb.auth.getUser().then(function (res) {
         var me = res.data ? res.data.user : null;
-        if (me && me.id === c.id) {
-          window.alert("Você não pode excluir a própria conta.");
-          return;
-        }
-        if (!window.confirm("Excluir a conta " + c.email + "? O login deixa de funcionar. Os envios e registros já feitos são preservados.")) return;
-        sb.functions.invoke("manage-account", { body: { action: "delete", id: c.id } }).then(function (r2) {
-          if (r2.error) { fnError(r2, "Erro ao excluir: "); return; }
-          if (editingId === c.id) cancelEdit();
-          showFormMsg("Conta excluída.", true);
-          render();
+        if (me && me.id === c.id) { window.alert("Você não pode excluir a própria conta."); return; }
+        if (!window.confirm("Excluir a conta " + c.email + "? O login deixa de funcionar e os históricos serão preservados.")) return;
+        sb.functions.invoke("manage-account", { body: { action: "delete", id: c.id } }).then(function (out) {
+          if (out.error) { fnError(out, "Erro ao excluir: "); return; }
+          if (editingId === c.id) cancelEdit(); showFormMsg("Conta excluída.", true); render();
         });
       });
     }
-
     function onTabelaClick(e) {
-      var edit = e.target.closest(".conta-edit");
-      var del = e.target.closest(".conta-del");
+      var edit = e.target.closest(".conta-edit"), del = e.target.closest(".conta-del");
       if (!edit && !del) return;
       var id = (edit || del).getAttribute("data-id");
-      var c = contas.filter(function (x) { return x.id === id; })[0];
-      if (!c) return;
-      if (edit) startEdit(c); else excluir(c);
+      var account = contas.filter(function (item) { return item.id === id; })[0];
+      if (!account) return;
+      if (edit) startEdit(account); else excluir(account);
     }
-
-    function syncFornField() {
+    function syncLinkedFields() {
       if (fornField) fornField.hidden = papelEl.value !== "fornecedor";
+      if (fiscalField) fiscalField.hidden = papelEl.value !== "fiscal";
     }
-
     function wire() {
       if (wired) return;
       grab();
       if (refreshBtn) refreshBtn.addEventListener("click", render);
       if (form) {
         form.addEventListener("submit", function (e) { e.preventDefault(); submeter(); });
-        papelEl.addEventListener("change", syncFornField);
-        cancelBtn.addEventListener("click", cancelEdit);
-        syncFornField();
+        papelEl.addEventListener("change", syncLinkedFields); cancelBtn.addEventListener("click", cancelEdit); syncLinkedFields();
       }
-      [admTabela, fornTabela, orfTabela].forEach(function (t) {
-        if (t) t.addEventListener("click", onTabelaClick);
-      });
+      [equipeTabela, fiscaisTabela, fornTabela, orfTabela].forEach(function (table) { if (table) table.addEventListener("click", onTabelaClick); });
       wired = true;
     }
-
     return { render: function () { wire(); render(); } };
   })();
 

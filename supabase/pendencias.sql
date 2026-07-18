@@ -19,11 +19,15 @@ create index if not exists pendencias_fornecedor_idx on public.pendencias (forne
 
 alter table public.pendencias enable row level security;
 
--- Admin: vê e gerencia tudo.
+-- Editor, Coordenador e Analista: veem e gerenciam tudo.
 drop policy if exists pendencias_admin_all on public.pendencias;
 create policy pendencias_admin_all on public.pendencias
-  for all using (public.current_role_name() = 'admin')
-  with check (public.current_role_name() = 'admin');
+  for all using (public.current_role_name() in ('editor', 'coordenador', 'analista'))
+  with check (public.current_role_name() in ('editor', 'coordenador', 'analista'));
+
+drop policy if exists pendencias_fiscal_select on public.pendencias;
+create policy pendencias_fiscal_select on public.pendencias
+  for select using (public.current_role_name() = 'fiscal');
 
 -- Fornecedor: só os próprios (por nome de fornecedor).
 drop policy if exists pendencias_forn_select on public.pendencias;

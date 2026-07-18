@@ -28,7 +28,7 @@ alter table public.comentarios enable row level security;
 drop policy if exists comentarios_select on public.comentarios;
 create policy comentarios_select on public.comentarios
   for select using (
-    public.current_role_name() = 'admin'
+    public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal')
     or (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor())
   );
 
@@ -37,7 +37,7 @@ create policy comentarios_insert on public.comentarios
   for insert with check (
     autor_id = auth.uid()
     and (
-      public.current_role_name() = 'admin'
+      public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal')
       or (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor())
     )
   );
@@ -46,7 +46,7 @@ drop policy if exists comentarios_delete on public.comentarios;
 create policy comentarios_delete on public.comentarios
   for delete using (
     autor_id = auth.uid()
-    or public.current_role_name() = 'admin'
+    or public.current_role_name() in ('editor', 'coordenador', 'analista')
   );
 
 -- Usuários logados podem ler, criar e excluir (RLS restringe o alcance).

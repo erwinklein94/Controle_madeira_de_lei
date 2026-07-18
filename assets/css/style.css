@@ -204,7 +204,7 @@ body.sidebar-collapsed .main {
   clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
 }
 
-.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
 .nav__item {
   display: flex;
   align-items: center;
@@ -580,7 +580,7 @@ body.sidebar-collapsed .main {
   .sidebar__brand { padding: 0; }
   .sidebar__logo { width: 104px; }
   .sidebar__tag, .sidebar__rule, .sidebar__foot { display: none; }
-  .nav { flex-direction: row; gap: 6px; margin-left: auto; }
+  .nav { flex-direction: row; gap: 6px; margin-left: auto; overflow-x: auto; overflow-y: hidden; }
   .nav__item.is-active { clip-path: none; }
   .main { padding: 18px 18px 44px; }
   .charts-2 { grid-template-columns: 1fr; }
@@ -856,6 +856,262 @@ body.dashboard-mode { overflow-y: scroll; }
 }
 
 /* =====================================================================
+   Report Semanal - planejamento e acompanhamento por fiscal
+   ===================================================================== */
+.report-page-head { align-items: flex-end; }
+.report-page-head__legend {
+  display: flex;
+  gap: 16px;
+  padding: 9px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--txt-suave);
+  font-size: 12px;
+  font-weight: 700;
+}
+.report-page-head__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.report-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.report-dot--plan { background: var(--rumo-azul-claro); }
+.report-dot--done { background: var(--rumo-verde); }
+
+.report-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 22px;
+  padding: 15px 17px;
+  border: 1px solid rgba(50, 166, 230, 0.32);
+  border-left: 4px solid var(--rumo-azul-claro);
+  border-radius: var(--rumo-raio-sm);
+  background: rgba(50, 166, 230, 0.08);
+}
+.report-intro__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--rumo-azul-claro);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+.report-intro strong { color: var(--rumo-azul); font-size: 14px; }
+.report-intro p { margin: 2px 0 0; color: var(--txt-suave); font-size: 13px; }
+:root[data-theme="dark"] .report-intro strong { color: #e6eff6; }
+
+.report-fiscais { display: grid; gap: 26px; }
+.report-fiscal {
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--rumo-sombra);
+}
+.report-fiscal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 22px;
+  background: linear-gradient(105deg, var(--rumo-azul) 0%, #07598a 100%);
+  color: #fff;
+}
+.report-fiscal__head h2 { color: #fff; font-size: 23px; line-height: 1.15; }
+.report-fiscal__eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--rumo-verde-claro);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.report-week {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.report-week input {
+  min-width: 166px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.97);
+  color: var(--rumo-azul);
+  font: 600 13px var(--rumo-fonte);
+}
+.report-fiscal-msg { min-height: 0; padding: 0 22px; }
+.report-fiscal-msg:not(:empty) { padding-top: 10px; }
+
+.report-planning,
+.report-dashboard,
+.report-activities { padding: 20px 22px 22px; }
+.report-planning { background: linear-gradient(180deg, rgba(50, 166, 230, 0.05), transparent); }
+.report-dashboard,
+.report-activities { border-top: 1px solid var(--borda); }
+.report-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 15px;
+}
+.report-section-head h3 { font-size: 16px; }
+.report-section-head p { margin: 3px 0 0; color: var(--txt-suave); font-size: 12.5px; }
+
+.report-plan-form,
+.report-entry-form {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--rumo-raio-sm);
+  background: var(--rumo-cinza-50);
+}
+.report-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 13px;
+}
+.report-form-grid--plan { grid-template-columns: repeat(3, minmax(180px, 1fr)); }
+.report-form-grid .field--wide { grid-column: span 2; }
+
+.report-destinations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.report-destination {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 38px 14px 15px;
+  border: 1px solid var(--borda);
+  border-radius: var(--rumo-raio-sm);
+  background: var(--surface);
+}
+.report-destination__route strong,
+.report-destination__route span { display: block; }
+.report-destination__route strong { color: var(--rumo-azul); font-size: 14px; }
+.report-destination__route span { margin-top: 2px; color: var(--txt-suave); font-size: 12px; }
+.report-destination > div:not(.report-destination__route) { text-align: right; }
+.report-destination small { display: block; color: var(--txt-suave); font-size: 10.5px; text-transform: uppercase; }
+.report-destination > div > strong { color: var(--txt); font-size: 17px; font-variant-numeric: tabular-nums; }
+.report-destination__note { grid-column: 1 / -1; margin: -7px 0 0; color: var(--txt-suave); font-size: 11.5px; }
+.report-plan-delete {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--rumo-texto-claro);
+  cursor: pointer;
+  font-size: 18px;
+}
+.report-plan-delete:hover { background: rgba(216, 69, 69, 0.12); color: var(--rumo-erro); }
+:root[data-theme="dark"] .report-destination__route strong { color: var(--rumo-azul-claro); }
+
+.report-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; margin-bottom: 14px; }
+.report-kpi {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--rumo-raio-sm);
+  background: var(--rumo-cinza-50);
+}
+.report-kpi > span,
+.report-kpi > strong,
+.report-kpi > small,
+.report-kpi > em { display: block; }
+.report-kpi > span { color: var(--txt-suave); font-size: 11px; font-weight: 700; }
+.report-kpi > strong { margin-top: 4px; color: var(--rumo-azul); font-size: 23px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.report-kpi > small { margin-top: 4px; color: var(--txt-suave); font-size: 11px; }
+.report-kpi > em { margin-top: 8px; color: var(--rumo-laranja); font-size: 11px; font-style: normal; font-weight: 700; }
+:root[data-theme="dark"] .report-kpi > strong { color: #e6eff6; }
+
+.report-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr); gap: 14px; }
+.report-chart,
+.report-progress {
+  min-height: 255px;
+  padding: 13px;
+  border: 1px solid var(--borda);
+  border-radius: var(--rumo-raio-sm);
+}
+.report-chart { position: relative; height: 285px; }
+.report-progress { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 285px; }
+.report-progress-row { padding-bottom: 11px; border-bottom: 1px solid var(--borda); }
+.report-progress-row:last-child { padding-bottom: 0; border-bottom: 0; }
+.report-progress-row h4 { margin: 0 0 8px; color: var(--rumo-azul); font-size: 13px; }
+.report-bar + .report-bar { margin-top: 9px; }
+.report-bar > div:first-child { display: flex; justify-content: space-between; gap: 10px; color: var(--txt-suave); font-size: 10.5px; }
+.report-bar > div:first-child strong { color: var(--txt); }
+.report-bar__track { height: 7px; margin-top: 4px; overflow: hidden; border-radius: 999px; background: var(--rumo-cinza-100); }
+.report-bar__track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--rumo-azul-claro), var(--rumo-verde)); }
+.report-bar small { color: var(--rumo-texto-claro); font-size: 10px; }
+:root[data-theme="dark"] .report-progress-row h4 { color: var(--rumo-azul-claro); }
+
+.report-table { margin-top: 2px; }
+.report-table__table { min-width: 1520px; }
+.report-table__table th,
+.report-table__table td { white-space: nowrap; }
+.report-table__table th { font-size: 11px; }
+.report-send-cell { text-align: center !important; }
+.report-sent {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(30, 159, 127, 0.14);
+  color: var(--rumo-verde);
+  font-size: 11px;
+  font-weight: 800;
+}
+.report-empty {
+  padding: 20px;
+  border: 1px dashed var(--borda);
+  border-radius: var(--rumo-raio-sm);
+  color: var(--txt-suave);
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 1250px) {
+  .report-form-grid { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+  .report-destinations { grid-template-columns: 1fr; }
+  .report-dashboard-grid { grid-template-columns: 1fr; }
+  .report-progress { max-height: none; }
+}
+@media (max-width: 900px) {
+  .report-page-head { align-items: flex-start; }
+  .report-page-head__legend { display: none; }
+  .report-form-grid,
+  .report-form-grid--plan { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+  .report-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-fiscal__head { padding: 15px 17px; }
+  .report-planning,
+  .report-dashboard,
+  .report-activities { padding: 17px; }
+}
+@media (max-width: 620px) {
+  .report-fiscal__head { align-items: flex-start; flex-direction: column; }
+  .report-week { width: 100%; justify-content: space-between; }
+  .report-week input { min-width: 0; width: 170px; }
+  .report-form-grid,
+  .report-form-grid--plan { grid-template-columns: 1fr; }
+  .report-form-grid .field--wide { grid-column: span 1; }
+  .report-kpis { grid-template-columns: 1fr; }
+  .report-destination { grid-template-columns: 1fr 1fr; }
+  .report-destination__route { grid-column: 1 / -1; }
+  .report-section-head { align-items: stretch; flex-direction: column; }
+}
+
+/* =====================================================================
    Modal de gráfico expandido
    ===================================================================== */
 .chart-card[data-modal-chart] {
@@ -964,10 +1220,78 @@ body.role-fornecedor .menu-toggle,
 body.role-fornecedor #view-registros,
 body.role-fornecedor #view-dashboard,
 body.role-fornecedor #view-fornecedores,
+body.role-fornecedor #view-report-semanal,
 body.role-fornecedor #view-pendentes,
 body.role-fornecedor #view-contas,
+body.role-fornecedor #view-auditoria,
 body.role-fornecedor #view-comentarios,
 body.role-fornecedor #view-padronizacao { display: none; }
+
+/* Fiscal/Inspetor: operacao em modo controlado. As mesmas restricoes sao
+   aplicadas pelo RLS; estas regras apenas deixam a interface coerente. */
+body.role-fiscal [data-requires-full],
+body.role-fiscal #view-contas,
+body.role-fiscal #view-auditoria,
+body.role-fiscal #view-registros > .form-card,
+body.role-fiscal #view-pendentes .pend-ok,
+body.role-fiscal #view-pendentes .pend-no,
+body.role-fiscal #view-pendentes .solic-ok,
+body.role-fiscal #view-pendentes .solic-no { display: none !important; }
+
+/* =====================================================================
+   Auditoria
+   ===================================================================== */
+.audit-filters .filters__field input,
+.audit-filters .filters__field select { min-width: 145px; }
+.audit-table { min-width: 1120px; }
+.audit-table td { vertical-align: top; }
+.audit-table td strong,
+.audit-table td small { display: block; }
+.audit-table td small { margin-top: 2px; color: var(--txt-suave); font-size: 10.5px; font-weight: 400; }
+.audit-role,
+.audit-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--rumo-cinza-100);
+  color: var(--txt);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.audit-action--insert { background: rgba(30, 159, 127, 0.14); color: var(--rumo-verde); }
+.audit-action--update { background: rgba(50, 166, 230, 0.14); color: var(--rumo-azul); }
+.audit-action--delete { background: rgba(216, 69, 69, 0.14); color: var(--rumo-erro); }
+.audit-summary { min-width: 320px; }
+.audit-summary details { margin-top: 5px; }
+.audit-summary summary { color: var(--rumo-azul-claro); cursor: pointer; font-size: 11px; font-weight: 700; }
+.audit-detail-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 11px; }
+.audit-detail-table th,
+.audit-detail-table td { padding: 6px 8px; border: 1px solid var(--borda); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.audit-detail-table thead th { background: var(--rumo-cinza-50); }
+.audit-detail-table tbody th { width: 25%; color: var(--txt); }
+.audit-detail-empty { margin: 6px 0 0; color: var(--txt-suave); font-size: 11px; }
+:root[data-theme="dark"] .audit-action--update { color: var(--rumo-azul-claro); }
+
+.account-role {
+  display: inline-flex;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--rumo-cinza-100);
+  color: var(--txt);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.account-role--editor { background: rgba(0, 56, 101, 0.14); color: var(--rumo-azul); }
+.account-role--coordenador { background: rgba(159, 75, 185, 0.14); color: #86409c; }
+.account-role--analista { background: rgba(50, 166, 230, 0.15); color: #1477ad; }
+.account-role--fiscal { background: rgba(247, 131, 68, 0.16); color: #bd5a24; }
+.account-role--fornecedor { background: rgba(30, 159, 127, 0.14); color: var(--rumo-verde); }
+:root[data-theme="dark"] .account-role--editor,
+:root[data-theme="dark"] .account-role--analista { color: var(--rumo-azul-claro); }
 
 /* =====================================================================
    Comentários — mural da equipe

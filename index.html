@@ -26,11 +26,11 @@
         <h1 class="auth__title">Acessar o sistema</h1>
       </div>
       <div class="auth__cards">
-        <!-- Administrador -->
+        <!-- Equipe Rumo e fiscais/inspetores -->
         <div class="auth__card auth__card--admin">
-          <div class="auth__card-eyebrow">Acesso do administrador</div>
-          <h2 class="auth__card-title">Administrador</h2>
-          <form data-role="admin" novalidate>
+          <div class="auth__card-eyebrow">Acesso da equipe</div>
+          <h2 class="auth__card-title">Equipe / Fiscal</h2>
+          <form data-access="equipe" novalidate>
             <div class="field">
               <label for="admin-email">E-mail</label>
               <input id="admin-email" type="email" autocomplete="username" required />
@@ -48,7 +48,7 @@
         <div class="auth__card auth__card--fornecedor">
           <div class="auth__card-eyebrow">Acesso do fornecedor</div>
           <h2 class="auth__card-title">Fornecedor</h2>
-          <form data-role="fornecedor" novalidate>
+          <form data-access="fornecedor" novalidate>
             <div class="field">
               <label for="forn-email">E-mail</label>
               <input id="forn-email" type="email" autocomplete="username" required />
@@ -75,11 +75,13 @@
       <nav class="nav">
         <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
         <a class="nav__item" href="#fornecedores" data-view="fornecedores"><span class="nav__ico">◪</span> Detalhes do fornecedor</a>
+        <a class="nav__item" href="#report-semanal" data-view="report-semanal"><span class="nav__ico">▣</span> Report Semanal</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
         <div class="nav__sep"></div>
-        <a class="nav__item" href="#contas" data-view="contas"><span class="nav__ico">◈</span> Contas</a>
+        <a class="nav__item" href="#contas" data-view="contas" data-requires-full><span class="nav__ico">◈</span> Contas</a>
+        <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-full><span class="nav__ico">◎</span> Auditoria</a>
         <a class="nav__item" href="#comentarios" data-view="comentarios"><span class="nav__ico">✎</span> Comentários</a>
         <a class="nav__item" href="#padronizacao" data-view="padronizacao"><span class="nav__ico">☰</span> Padronização</a>
         <div class="nav__sep"></div>
@@ -349,7 +351,7 @@
         </div>
       </section>
 
-      <!-- ============== TELA: DETALHES DO FORNECEDOR (admin) ============== -->
+      <!-- ============== TELA: DETALHES DO FORNECEDOR (equipe) ============== -->
       <section id="view-fornecedores" class="view" hidden>
         <header class="page-head">
           <div>
@@ -437,6 +439,33 @@
         </div>
       </section>
 
+      <!-- ============================ TELA: REPORT SEMANAL ============================ -->
+      <section id="view-report-semanal" class="view" hidden>
+        <header class="page-head report-page-head">
+          <div>
+            <div class="page-head__eyebrow">Coordenação da fiscalização</div>
+            <h1>Report Semanal</h1>
+            <p class="page-head__sub">Planejamento, localização e evolução diária das atividades de cada fiscal.</p>
+          </div>
+          <div class="report-page-head__legend" aria-label="Fluxo do report semanal">
+            <span><i class="report-dot report-dot--plan"></i> Planejado</span>
+            <span><i class="report-dot report-dot--done"></i> Realizado</span>
+          </div>
+        </header>
+
+        <section class="report-intro" aria-label="Como usar o Report Semanal">
+          <div class="report-intro__icon">i</div>
+          <div>
+            <strong>Comece pelo roteiro da semana.</strong>
+            <p>Informe onde cada fiscal estará, o fornecedor, o local e as expectativas de inspeção e entrega. Depois, registre as atividades diariamente e envie cada lançamento concluído para a página Registros.</p>
+          </div>
+        </section>
+
+        <div id="report-fiscais" class="report-fiscais">
+          <div class="report-empty">Carregando fiscais…</div>
+        </div>
+      </section>
+
       <!-- ============================ TELA: FORNECEDOR ============================ -->
       <section id="view-fornecedor" class="view">
         <header class="page-head">
@@ -449,7 +478,7 @@
         <section class="card form-card">
           <div class="card__head">
             <h2 class="card__title">Enviar informação</h2>
-            <p class="card__hint">Preencha e envie. Os dados vão para o painel do administrador.</p>
+            <p class="card__hint">Preencha e envie. Os dados vão para o painel da equipe responsável.</p>
           </div>
           <div class="card__body">
             <form id="forn-form" novalidate>
@@ -506,7 +535,7 @@
             <h2 class="card__title">Novo comentário</h2>
             <p class="card__hint">
               Escolha um dos seus pedidos e escreva a mensagem para a equipe Rumo.
-              <strong>Apenas você ou um administrador podem excluir um comentário seu.</strong>
+              <strong>Apenas você ou um usuário com acesso completo podem excluir um comentário seu.</strong>
             </p>
           </div>
           <div class="card__body">
@@ -545,11 +574,11 @@
         </section>
       </section>
 
-      <!-- ===================== TELA: INFORMAÇÕES PENDENTES (admin) ===================== -->
+      <!-- ===================== TELA: INFORMAÇÕES PENDENTES (equipe) ===================== -->
       <section id="view-pendentes" class="view" hidden>
         <header class="page-head">
           <div>
-            <div class="page-head__eyebrow">Administrador</div>
+            <div class="page-head__eyebrow">Equipe</div>
             <h1>Informações pendentes</h1>
           </div>
           <div class="page-head__actions">
@@ -585,11 +614,70 @@
         </section>
       </section>
 
-      <!-- ============================ TELA: CONTAS (admin) ============================ -->
+      <!-- ============================ TELA: AUDITORIA ============================ -->
+      <section id="view-auditoria" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Governança e rastreabilidade</div>
+            <h1>Auditoria</h1>
+            <p class="page-head__sub">Histórico imutável das alterações realizadas pelos usuários no site.</p>
+          </div>
+          <div class="page-head__actions">
+            <button id="auditoria-refresh" class="btn btn--ghost" type="button">Atualizar</button>
+          </div>
+        </header>
+
+        <section class="card filters audit-filters">
+          <div class="filters__field">
+            <label for="audit-user">Usuário</label>
+            <input id="audit-user" type="search" placeholder="Nome ou e-mail" />
+          </div>
+          <div class="filters__field">
+            <label for="audit-role">Perfil</label>
+            <select id="audit-role">
+              <option value="">Todos</option>
+              <option value="editor">Editor</option>
+              <option value="coordenador">Coordenador</option>
+              <option value="analista">Analista</option>
+              <option value="fiscal">Fiscal/Inspetor</option>
+              <option value="fornecedor">Fornecedor</option>
+            </select>
+          </div>
+          <div class="filters__field">
+            <label for="audit-action">Ação</label>
+            <select id="audit-action"><option value="">Todas</option><option value="INSERT">Criação</option><option value="UPDATE">Alteração</option><option value="DELETE">Exclusão</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="audit-entity">Área</label>
+            <select id="audit-entity">
+              <option value="">Todas</option>
+              <option value="registros">Registros</option>
+              <option value="report_semanal_planejamentos">Report · Planejamento</option>
+              <option value="report_semanal_registros">Report · Atividades</option>
+              <option value="pendencias">Informações pendentes</option>
+              <option value="solicitacoes">Solicitações</option>
+              <option value="comentarios">Comentários</option>
+              <option value="padroes">Padronização</option>
+              <option value="contas">Contas</option>
+            </select>
+          </div>
+          <div class="filters__field"><label for="audit-from">De</label><input id="audit-from" type="date" /></div>
+          <div class="filters__field"><label for="audit-to">Até</label><input id="audit-to" type="date" /></div>
+          <div class="filters__spacer"></div>
+          <button id="audit-clear" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
+        </section>
+
+        <section class="card">
+          <div class="card__head"><h2 class="card__title">Alterações registradas</h2><p class="card__hint" id="auditoria-count">—</p></div>
+          <div class="card__body"><div id="auditoria-tabela"></div></div>
+        </section>
+      </section>
+
+      <!-- ============================ TELA: CONTAS ============================ -->
       <section id="view-contas" class="view" hidden>
         <header class="page-head">
           <div>
-            <div class="page-head__eyebrow">Administrador</div>
+            <div class="page-head__eyebrow">Acesso completo</div>
             <h1>Contas do site</h1>
           </div>
           <div class="page-head__actions">
@@ -609,7 +697,10 @@
                   <label for="conta-papel">Papel</label>
                   <select id="conta-papel">
                     <option value="fornecedor">Fornecedor</option>
-                    <option value="admin">Administrador</option>
+                    <option value="fiscal">Fiscal/Inspetor</option>
+                    <option value="analista">Analista</option>
+                    <option value="coordenador">Coordenador</option>
+                    <option value="editor">Editor</option>
                   </select>
                 </div>
                 <div class="field">
@@ -620,13 +711,17 @@
                   <label for="conta-fornecedor">Fornecedor (igual ao usado nos registros)</label>
                   <select id="conta-fornecedor"><option value="">Selecione…</option></select>
                 </div>
+                <div class="field" id="conta-fiscal-field" hidden>
+                  <label for="conta-fiscal">Fiscal/Inspetor vinculado</label>
+                  <select id="conta-fiscal"><option value="">Selecione…</option></select>
+                </div>
                 <div class="field">
                   <label for="conta-email">E-mail</label>
                   <input id="conta-email" type="email" autocomplete="off" required />
                 </div>
                 <div class="field">
                   <label for="conta-senha">Senha (mín. 6 caracteres)</label>
-                  <input id="conta-senha" type="text" autocomplete="off" required />
+                  <input id="conta-senha" type="password" autocomplete="new-password" required />
                 </div>
               </div>
               <div class="form-foot">
@@ -642,14 +737,23 @@
           <div class="card__head">
             <div class="chart-head-flex">
               <div>
-                <h2 class="card__title">Administradores</h2>
-                <p class="card__hint" id="contas-admin-count">—</p>
+                <h2 class="card__title">Equipe com acesso completo</h2>
+                <p class="card__hint" id="contas-equipe-count">—</p>
               </div>
             </div>
           </div>
           <div class="card__body">
-            <div id="contas-admin-tabela"></div>
+            <div id="contas-equipe-tabela"></div>
           </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <div class="chart-head-flex">
+              <div><h2 class="card__title">Fiscais/Inspetores</h2><p class="card__hint" id="contas-fiscais-count">—</p></div>
+            </div>
+          </div>
+          <div class="card__body"><div id="contas-fiscais-tabela"></div></div>
         </section>
 
         <section class="card">
@@ -699,7 +803,7 @@
             <p class="card__hint">
               Indique o fornecedor e o pedido a que o comentário se refere e escreva a mensagem.
               Os fornecedores também comentam por aqui (cada um só vê os comentários dos próprios pedidos).
-              <strong>Quem criou um comentário pode excluí-lo, e administradores podem excluir qualquer comentário.</strong>
+              <strong>Quem criou um comentário pode excluí-lo; Editor, Coordenador e Analista podem excluir qualquer comentário.</strong>
             </p>
           </div>
           <div class="card__body">
@@ -756,11 +860,11 @@
         </section>
       </section>
 
-      <!-- ===================== TELA: PADRONIZAÇÃO (admin) ===================== -->
+      <!-- ===================== TELA: PADRONIZAÇÃO (equipe) ===================== -->
       <section id="view-padronizacao" class="view" hidden>
         <header class="page-head">
           <div>
-            <div class="page-head__eyebrow">Administrador</div>
+            <div class="page-head__eyebrow">Acesso completo</div>
             <h1>Padronização</h1>
           </div>
         </header>
@@ -800,10 +904,13 @@
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/access-control.js"></script>
   <script src="assets/js/pendencias.js"></script>
   <script src="assets/js/padroes.js"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js"></script>
+  <script src="assets/js/report-semanal.js"></script>
+  <script src="assets/js/auditoria.js"></script>
 
   <script src="assets/js/app.js"></script>
   <script src="assets/js/tema.js"></script>

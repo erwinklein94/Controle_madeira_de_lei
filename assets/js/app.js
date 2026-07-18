@@ -103,10 +103,10 @@
   }
 
   function migrateLegacy() {
-    // Só o admin importa (o fornecedor enxerga o banco parcialmente pelo RLS
+    // Só os perfis de acesso completo importam (o fornecedor enxerga o banco parcialmente pelo RLS
     // e poderia concluir errado que ele está vazio).
     var prof = global.currentProfile;
-    if (!prof || prof.role !== "admin") return Promise.resolve();
+    if (!prof || !global.AccessControl || !global.AccessControl.isFull(prof.role)) return Promise.resolve();
 
     var locais = [];
     LEGACY_KEYS.forEach(function (key) {
@@ -327,6 +327,10 @@
   var rfLocal = document.getElementById("rf-local");
   var rfPedido = document.getElementById("rf-pedido");
 
+  function canEditRecords() {
+    return !!(window.AccessControl && window.AccessControl.canEditRecords());
+  }
+
   /* ---------- filtros da tabela ---------- */
   function getFiltered() {
     var f1 = rfFiscal.value, f2 = rfForn.value, f3 = rfLocal.value, f4 = rfPedido.value;
@@ -439,7 +443,7 @@
       '<th class="col-text">Local</th>' +
       '<th class="col-text">Pedido</th>' +
       STAGES.map(function (s) { return "<th>" + s.label + "</th>"; }).join("") +
-      '<th>Ações</th>' +
+      (canEditRecords() ? '<th>Ações</th>' : "") +
       "</tr></thead>";
 
     var rows = list.map(function (r) {
@@ -454,10 +458,10 @@
         '<td class="col-text">' + esc(r.local) + "</td>" +
         '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
         cells +
-        '<td><div class="row-actions">' +
+        (canEditRecords() ? '<td><div class="row-actions">' +
           '<button class="row-edit" data-id="' + r.id + '" type="button" title="Editar" aria-label="Editar registro">Editar</button>' +
           '<button class="row-del" data-id="' + r.id + '" type="button" title="Excluir" aria-label="Excluir registro">✕</button>' +
-        '</div></td>' +
+        '</div></td>' : "") +
         "</tr>"
       );
     }).join("");
@@ -469,7 +473,7 @@
         var t = list.reduce(function (a, r) { return a + (Number(r[s.key]) || 0); }, 0);
         return "<td>" + fmt.format(t) + "</td>";
       }).join("") +
-      "<td></td></tr></tfoot>";
+      (canEditRecords() ? "<td></td>" : "") + "</tr></tfoot>";
 
     tabelaArea.innerHTML =
       '<div class="table-wrap"><table class="tabela">' + head + "<tbody>" + rows + "</tbody>" + foot + "</table></div>";
@@ -477,6 +481,7 @@
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
+    if (!canEditRecords()) { showMsg("Seu perfil possui acesso somente para leitura em Registros.", false); return; }
     clearMsg();
 
     var data = collectFormData();
@@ -515,6 +520,7 @@
   });
 
   tabelaArea.addEventListener("click", function (e) {
+    if (!canEditRecords()) return;
     var edit = e.target.closest(".row-edit");
     var del = e.target.closest(".row-del");
 
@@ -1799,6 +1805,8 @@
     registros: document.getElementById("view-registros"),
     dashboard: document.getElementById("view-dashboard"),
     fornecedores: document.getElementById("view-fornecedores"),
+    "report-semanal": document.getElementById("view-report-semanal"),
+    auditoria: document.getElementById("view-auditoria"),
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
@@ -1807,6 +1815,10 @@
 
   function show(view) {
     if (!views[view]) view = "registros";
+    var role = window.currentProfile ? window.currentProfile.role : null;
+    if (window.AccessControl && role && !window.AccessControl.canView(view, role)) {
+      view = window.AccessControl.isFornecedor(role) ? "fornecedor" : "dashboard";
+    }
 
     Object.keys(views).forEach(function (k) {
       views[k].hidden = (k !== view);
@@ -1821,6 +1833,8 @@
 
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
     if (view === "fornecedores" && window.FornecedoresUI) window.FornecedoresUI.render();
+    if (view === "report-semanal" && window.ReportSemanalUI) window.ReportSemanalUI.render();
+    if (view === "auditoria" && window.AuditoriaUI) window.AuditoriaUI.render();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();

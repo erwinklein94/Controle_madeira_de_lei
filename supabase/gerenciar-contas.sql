@@ -26,6 +26,27 @@ alter table public.registros
   add constraint registros_created_by_fkey
   foreign key (created_by) references auth.users (id) on delete set null;
 
+alter table public.comentarios
+  alter column autor_id drop not null,
+  drop constraint if exists comentarios_autor_id_fkey;
+alter table public.comentarios
+  add constraint comentarios_autor_id_fkey
+  foreign key (autor_id) references auth.users (id) on delete set null;
+
+alter table public.report_semanal_planejamentos
+  alter column created_by drop not null,
+  drop constraint if exists report_semanal_planejamentos_created_by_fkey;
+alter table public.report_semanal_planejamentos
+  add constraint report_semanal_planejamentos_created_by_fkey
+  foreign key (created_by) references auth.users (id) on delete set null;
+
+alter table public.report_semanal_registros
+  alter column created_by drop not null,
+  drop constraint if exists report_semanal_registros_created_by_fkey;
+alter table public.report_semanal_registros
+  add constraint report_semanal_registros_created_by_fkey
+  foreign key (created_by) references auth.users (id) on delete set null;
+
 -- ---------------------------------------------------------------------
 -- Permissões do service_role (usado pelas Edge Functions).
 -- Neste projeto os papéis não ganham grants automáticos; sem isto as

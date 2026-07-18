@@ -1,8 +1,8 @@
 /* =====================================================================
    PADRONIZAÇÃO — listas de opções (tabela padroes no Supabase) que
-   alimentam os formulários do admin, evitando erros de digitação.
+   alimentam os formulários da equipe, evitando erros de digitação.
    window.Padroes: dados/preenchimento de selects.
-   window.PadronizacaoUI: página de gerenciamento (admin).
+   window.PadronizacaoUI: página de gerenciamento da equipe.
    ===================================================================== */
 (function () {
   "use strict";
@@ -76,7 +76,7 @@
 
   window.Padroes = { load: load, options: options, fill: fill };
 
-  /* ---------- página Padronização (admin) ---------- */
+  /* ---------- página Padronização (equipe) ---------- */
   var PadronizacaoUI = (function () {
     var root, wired = false;
 
