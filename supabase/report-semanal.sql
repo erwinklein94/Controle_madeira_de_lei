@@ -57,6 +57,23 @@ create index if not exists report_registro_fornecedor_idx
 alter table public.report_semanal_planejamentos enable row level security;
 alter table public.report_semanal_registros enable row level security;
 
+-- Compatibilidade para projetos que ainda nao aplicaram a migration de perfis.
+-- A migration auditoria-perfis.sql substitui esta funcao pela versao que usa
+-- o vinculo explicito do fiscal no perfil.
+create or replace function public.current_fiscal()
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.nome
+  from public.profiles as p
+  where p.id = (select auth.uid())
+$$;
+
+grant execute on function public.current_fiscal() to authenticated;
+
 drop policy if exists report_planejamentos_admin_all on public.report_semanal_planejamentos;
 create policy report_planejamentos_admin_all
   on public.report_semanal_planejamentos

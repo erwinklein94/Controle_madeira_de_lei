@@ -1,5 +1,5 @@
 // Edge Function: manage-account - altera ou exclui contas.
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

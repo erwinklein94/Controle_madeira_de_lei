@@ -1,6 +1,6 @@
 // Edge Function: create-account - cria contas dos cinco perfis.
 // A service role permanece somente no servidor.
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

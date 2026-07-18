@@ -424,3 +424,29 @@ grant insert, update, delete on public.registros,
   public.pendencias, public.solicitacoes, public.comentarios, public.padroes,
   public.report_semanal_planejamentos, public.report_semanal_registros
 to authenticated;
+
+-- A funcao de event trigger e interna ao banco e nao deve ficar exposta
+-- como RPC pela Data API.
+do $$
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    execute 'revoke execute on function public.rls_auto_enable() from public, anon, authenticated';
+  end if;
+end
+$$;
+
+-- Indices para as chaves estrangeiras usadas nos filtros e nas exclusoes.
+create index if not exists comentarios_autor_id_idx
+  on public.comentarios (autor_id);
+create index if not exists pendencias_created_by_idx
+  on public.pendencias (created_by);
+create index if not exists registros_created_by_idx
+  on public.registros (created_by);
+create index if not exists report_planejamentos_created_by_idx
+  on public.report_semanal_planejamentos (created_by);
+create index if not exists report_registros_created_by_idx
+  on public.report_semanal_registros (created_by);
+create index if not exists solicitacoes_created_by_idx
+  on public.solicitacoes (created_by);
+create index if not exists solicitacoes_pendencia_id_idx
+  on public.solicitacoes (pendencia_id);
