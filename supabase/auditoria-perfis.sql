@@ -175,15 +175,33 @@ create policy solicitacoes_forn_select on public.solicitacoes for select to auth
 create policy solicitacoes_forn_insert on public.solicitacoes for insert to authenticated
   with check (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor());
 
--- Padronizacao: toda a equipe, inclusive Fiscal/Inspetor, consulta e altera.
--- Fornecedor nao recebe acesso direto a esta area.
+-- Padronizacao: Fiscal/Inspetor consulta, mas somente Editor, Coordenador e
+-- Analista podem cadastrar, editar ou excluir. Fornecedor nao recebe acesso
+-- direto a esta area.
 drop policy if exists padroes_select on public.padroes;
 drop policy if exists padroes_admin_all on public.padroes;
 drop policy if exists padroes_full_access on public.padroes;
 drop policy if exists padroes_team_all on public.padroes;
-create policy padroes_team_all on public.padroes for all to authenticated
-  using (public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal'))
-  with check (public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal'));
+drop policy if exists padroes_read_scope on public.padroes;
+drop policy if exists padroes_full_insert on public.padroes;
+drop policy if exists padroes_full_update on public.padroes;
+drop policy if exists padroes_full_delete on public.padroes;
+create policy padroes_read_scope on public.padroes for select to authenticated
+  using (
+    (select public.current_role_name()) in ('editor', 'coordenador', 'analista', 'fiscal')
+    or (
+      (select public.current_role_name()) = 'fornecedor'
+      and categoria = 'pedido'
+      and fornecedor = (select public.current_fornecedor())
+    )
+  );
+create policy padroes_full_insert on public.padroes for insert to authenticated
+  with check ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'));
+create policy padroes_full_update on public.padroes for update to authenticated
+  using ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'))
+  with check ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'));
+create policy padroes_full_delete on public.padroes for delete to authenticated
+  using ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'));
 
 -- Comentarios: a equipe ve todos e publica; fornecedor fica limitado ao seu.
 drop policy if exists comentarios_select on public.comentarios;
@@ -248,7 +266,7 @@ create index if not exists audit_logs_entity_idx on public.audit_logs (entity, o
 alter table public.audit_logs enable row level security;
 drop policy if exists audit_logs_full_select on public.audit_logs;
 create policy audit_logs_full_select on public.audit_logs for select to authenticated
-  using ((select public.has_full_access()));
+  using ((select public.current_role_name()) in ('editor', 'coordenador'));
 
 revoke all on public.audit_logs from anon, authenticated;
 grant select on public.audit_logs to authenticated;

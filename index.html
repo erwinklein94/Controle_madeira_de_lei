@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=pedidos-detalhes-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=permissoes-2" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -81,7 +81,7 @@
         <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
         <div class="nav__sep"></div>
         <a class="nav__item" href="#contas" data-view="contas" data-requires-full><span class="nav__ico">◈</span> Contas</a>
-        <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-full><span class="nav__ico">◎</span> Auditoria</a>
+        <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-audit><span class="nav__ico">◎</span> Auditoria</a>
         <a class="nav__item" href="#comentarios" data-view="comentarios"><span class="nav__ico">✎</span> Comentários</a>
         <a class="nav__item" href="#padronizacao" data-view="padronizacao"><span class="nav__ico">☰</span> Padronização</a>
         <div class="nav__sep"></div>
@@ -944,13 +944,13 @@
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
-  <script src="assets/js/access-control.js"></script>
+  <script src="assets/js/access-control.js?v=permissoes-2"></script>
   <script src="assets/js/pendencias.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/padroes.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/report-semanal.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/auditoria.js"></script>
+  <script src="assets/js/auditoria.js?v=permissoes-2"></script>
 
   <script src="assets/js/app.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/tema.js"></script>

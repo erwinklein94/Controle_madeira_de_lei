@@ -104,7 +104,7 @@
   function load() {
     if (!root) grab();
     if (!root || !sb) return;
-    if (!window.AccessControl || !AccessControl.isFull(window.currentProfile && window.currentProfile.role)) {
+    if (!window.AccessControl || !AccessControl.canViewAudit(window.currentProfile && window.currentProfile.role)) {
       root.innerHTML = empty("Seu perfil não possui acesso à auditoria.");
       return;
     }

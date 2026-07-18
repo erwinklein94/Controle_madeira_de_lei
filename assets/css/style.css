@@ -1300,6 +1300,7 @@ body.role-fornecedor #view-padronizacao { display: none; }
 /* Fiscal/Inspetor: operacao em modo controlado. As mesmas restricoes sao
    aplicadas pelo RLS; estas regras apenas deixam a interface coerente. */
 body.role-fiscal [data-requires-full],
+body.role-fiscal [data-requires-audit],
 body.role-fiscal #view-contas,
 body.role-fiscal #view-auditoria,
 body.role-fiscal #view-registros > .form-card,
@@ -1307,6 +1308,10 @@ body.role-fiscal #view-pendentes .pend-ok,
 body.role-fiscal #view-pendentes .pend-no,
 body.role-fiscal #view-pendentes .solic-ok,
 body.role-fiscal #view-pendentes .solic-no { display: none !important; }
+
+/* Auditoria e exclusiva para Editor e Coordenador. */
+body.role-analista [data-requires-audit],
+body.role-analista #view-auditoria { display: none !important; }
 
 /* =====================================================================
    Auditoria
