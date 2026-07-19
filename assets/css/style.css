@@ -1219,6 +1219,7 @@ body.dashboard-mode { overflow-y: scroll; }
 .report-table__table td { white-space: nowrap; }
 .report-table__table th { font-size: 11px; }
 .report-send-cell { text-align: center !important; }
+.report-action-cell { text-align: center !important; }
 .report-sent {
   display: inline-flex;
   align-items: center;

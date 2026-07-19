@@ -21,6 +21,10 @@
     return !!(window.AccessControl && window.AccessControl.isFull(window.currentProfile && window.currentProfile.role));
   }
   function canSendEntries() { return canManagePlans(); }
+  function canDeleteEntries() {
+    var role = window.currentProfile && window.currentProfile.role;
+    return !!(window.AccessControl && (window.AccessControl.isFull(role) || window.AccessControl.isFiscal(role)));
+  }
   function canViewHistory() { return canManagePlans(); }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s) {
@@ -656,9 +660,10 @@
   function drawTable(card, fiscal) {
     var entries = state[fiscal].entries;
     var canSend = canSendEntries();
+    var canDelete = canDeleteEntries();
     var target = card.querySelector(".report-table");
     if (!entries.length) { target.innerHTML = empty("Nenhuma atividade registrada nesta semana."); return; }
-    var heads = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Pronto p/ inspeção", "Inspecionado", "Estoque p/ entrega", "Transportado", "Registros"];
+    var heads = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Pronto p/ inspeção", "Inspecionado", "Estoque p/ entrega", "Transportado", "Registros", "Ações"];
     var body = entries.map(function (r) {
       var sent = !!r.registro_id;
       return "<tr>" +
@@ -668,7 +673,10 @@
           ? '<span class="report-sent" title="Enviado em ' + attr(dateTimeBr(r.enviado_em)) + '">Enviado</span>'
           : canSend
             ? '<button class="btn btn--primary btn--sm report-send" data-id="' + r.id + '" type="button">Enviar</button>'
-            : '<span class="report-pending">Pendente</span>') + "</td></tr>";
+            : '<span class="report-pending">Pendente</span>') + "</td>" +
+        '<td class="report-action-cell">' + (canDelete
+          ? '<button class="btn btn--danger btn--sm report-entry-delete" data-id="' + r.id + '" data-sent="' + (sent ? "true" : "false") + '" type="button">Excluir</button>'
+          : "—") + "</td></tr>";
     }).join("");
     target.innerHTML = '<div class="table-wrap"><table class="tabela report-table__table"><thead><tr>' + heads.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>";
   }
@@ -706,6 +714,17 @@
     return sb().from("report_semanal_planejamentos").delete().eq("id", id).then(function (res) {
       if (res.error) throw res.error;
       return loadFiscal(fiscal);
+    });
+  }
+
+  function deleteEntry(fiscal, id) {
+    if (!canDeleteEntries()) return Promise.reject(new Error("Seu perfil não possui permissão para excluir lançamentos."));
+    return sb().from("report_semanal_registros").delete().eq("id", id).select("id").then(function (res) {
+      if (res.error) throw res.error;
+      if (!res.data || !res.data.length) throw new Error("O lançamento não foi encontrado ou seu perfil não possui permissão para excluí-lo.");
+      return Promise.all([loadFiscal(fiscal), loadHistory()]);
+    }).then(function () {
+      message(fiscal, "Lançamento excluído do Report Semanal.", false);
     });
   }
 
@@ -765,6 +784,19 @@
       }
       var send = e.target.closest(".report-send");
       if (canSendEntries() && send) sendEntry(fiscal, send.getAttribute("data-id"), send).catch(function (err) { message(fiscal, "Erro ao enviar: " + (err.message || err), true); });
+      var entryDelete = e.target.closest(".report-entry-delete");
+      if (canDeleteEntries() && entryDelete) {
+        var sentNotice = entryDelete.getAttribute("data-sent") === "true"
+          ? " Este lançamento já foi enviado: o registro oficial na página Registros será preservado."
+          : "";
+        if (window.confirm("Excluir este lançamento do Report Semanal?" + sentNotice)) {
+          entryDelete.disabled = true;
+          deleteEntry(fiscal, entryDelete.getAttribute("data-id")).catch(function (err) {
+            entryDelete.disabled = false;
+            message(fiscal, "Erro ao excluir lançamento: " + (err.message || err), true);
+          });
+        }
+      }
     });
     root.addEventListener("submit", function (e) {
       var card = e.target.closest(".report-fiscal");
