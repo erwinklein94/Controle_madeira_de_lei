@@ -143,7 +143,7 @@ create policy registros_fiscal_select on public.registros for select to authenti
 create policy registros_fornecedor_select on public.registros for select to authenticated
   using (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor());
 
--- Pendencias e solicitacoes: equipe completa decide; Fiscal somente consulta;
+-- Pendencias e solicitacoes: equipe completa decide; Fiscal nao possui acesso;
 -- Fornecedor mantem o fluxo proprio ja existente.
 drop policy if exists pendencias_admin_all on public.pendencias;
 drop policy if exists pendencias_full_access on public.pendencias;
@@ -154,8 +154,6 @@ drop policy if exists pendencias_forn_update on public.pendencias;
 drop policy if exists pendencias_forn_delete on public.pendencias;
 create policy pendencias_full_access on public.pendencias for all to authenticated
   using ((select public.has_full_access())) with check ((select public.has_full_access()));
-create policy pendencias_fiscal_select on public.pendencias for select to authenticated
-  using ((select public.is_fiscal()));
 create policy pendencias_forn_select on public.pendencias for select to authenticated
   using (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor());
 create policy pendencias_forn_insert on public.pendencias for insert to authenticated
@@ -168,8 +166,6 @@ drop policy if exists solicitacoes_forn_select on public.solicitacoes;
 drop policy if exists solicitacoes_forn_insert on public.solicitacoes;
 create policy solicitacoes_full_access on public.solicitacoes for all to authenticated
   using ((select public.has_full_access())) with check ((select public.has_full_access()));
-create policy solicitacoes_fiscal_select on public.solicitacoes for select to authenticated
-  using ((select public.is_fiscal()));
 create policy solicitacoes_forn_select on public.solicitacoes for select to authenticated
   using (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor());
 create policy solicitacoes_forn_insert on public.solicitacoes for insert to authenticated

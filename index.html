@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=report-destinos-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=permissoes-fiscal-3" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -78,7 +78,7 @@
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><span class="nav__ico">▣</span> Report Semanal</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
-        <a class="nav__item" href="#pendentes" data-view="pendentes"><span class="nav__ico">◔</span> Informações pendentes</a>
+        <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><span class="nav__ico">◔</span> Informações pendentes</a>
         <div class="nav__sep"></div>
         <a class="nav__item" href="#contas" data-view="contas" data-requires-full><span class="nav__ico">◈</span> Contas</a>
         <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-audit><span class="nav__ico">◎</span> Auditoria</a>
@@ -462,7 +462,7 @@
           </div>
         </section>
 
-        <section class="card report-history" aria-labelledby="report-history-title">
+        <section class="card report-history" data-requires-full aria-labelledby="report-history-title">
           <div class="card__head report-history__head">
             <div>
               <div class="page-head__eyebrow">Consulta geral</div>
@@ -944,12 +944,12 @@
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
-  <script src="assets/js/access-control.js?v=permissoes-2"></script>
+  <script src="assets/js/access-control.js?v=permissoes-fiscal-3"></script>
   <script src="assets/js/pendencias.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/padroes.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/report-semanal.js?v=report-registros-1"></script>
+  <script src="assets/js/report-semanal.js?v=permissoes-fiscal-3"></script>
   <script src="assets/js/auditoria.js?v=permissoes-2"></script>
 
   <script src="assets/js/app.js?v=pedidos-detalhes-1"></script>

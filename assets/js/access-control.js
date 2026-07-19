@@ -27,7 +27,7 @@
     role = normalized(role || currentRole());
     if (role === "fornecedor") return view === "fornecedor";
     if (view === "auditoria") return AUDIT.indexOf(role) >= 0;
-    if (role === "fiscal" && view === "contas") return false;
+    if (role === "fiscal" && (view === "contas" || view === "pendentes")) return false;
     return TEAM.indexOf(role) >= 0;
   }
 

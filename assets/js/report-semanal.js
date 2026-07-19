@@ -19,6 +19,7 @@
     return !!(window.AccessControl && window.AccessControl.isFull(window.currentProfile && window.currentProfile.role));
   }
   function canSendEntries() { return canManagePlans(); }
+  function canViewHistory() { return canManagePlans(); }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -311,6 +312,7 @@
   }
 
   function loadHistory() {
+    if (!canViewHistory()) return Promise.resolve();
     var target = historyEl("report-history-table");
     if (!target) return Promise.resolve();
     target.innerHTML = empty("Carregando histórico…");
@@ -631,8 +633,13 @@
     if (!sb()) { root.innerHTML = empty("Sem conexão com o servidor."); return; }
     var standards = window.Padroes ? window.Padroes.load() : Promise.resolve();
     standards.then(function () {
-      renderShell(); wire(); historySupplierOptions();
-      return Promise.all(getFiscals().map(loadFiscal).concat([loadHistory()]));
+      renderShell(); wire();
+      var loads = getFiscals().map(loadFiscal);
+      if (canViewHistory()) {
+        historySupplierOptions();
+        loads.push(loadHistory());
+      }
+      return Promise.all(loads);
     }).catch(function (err) {
       root.innerHTML = empty("Não foi possível abrir o Report Semanal: " + (err.message || err));
     });

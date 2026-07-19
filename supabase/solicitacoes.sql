@@ -30,8 +30,6 @@ create policy solicitacoes_admin_all on public.solicitacoes
   with check (public.current_role_name() in ('editor', 'coordenador', 'analista'));
 
 drop policy if exists solicitacoes_fiscal_select on public.solicitacoes;
-create policy solicitacoes_fiscal_select on public.solicitacoes
-  for select using (public.current_role_name() = 'fiscal');
 
 -- Fornecedor: cria e acompanha as próprias (não edita nem exclui).
 drop policy if exists solicitacoes_forn_select on public.solicitacoes;

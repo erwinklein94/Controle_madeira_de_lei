@@ -26,8 +26,6 @@ create policy pendencias_admin_all on public.pendencias
   with check (public.current_role_name() in ('editor', 'coordenador', 'analista'));
 
 drop policy if exists pendencias_fiscal_select on public.pendencias;
-create policy pendencias_fiscal_select on public.pendencias
-  for select using (public.current_role_name() = 'fiscal');
 
 -- Fornecedor: só os próprios (por nome de fornecedor).
 drop policy if exists pendencias_forn_select on public.pendencias;
