@@ -18,6 +18,7 @@
   function canManagePlans() {
     return !!(window.AccessControl && window.AccessControl.isFull(window.currentProfile && window.currentProfile.role));
   }
+  function canSendEntries() { return canManagePlans(); }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -496,6 +497,7 @@
 
   function drawTable(card, fiscal) {
     var entries = state[fiscal].entries;
+    var canSend = canSendEntries();
     var target = card.querySelector(".report-table");
     if (!entries.length) { target.innerHTML = empty("Nenhuma atividade registrada nesta semana."); return; }
     var heads = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Pronto p/ inspeção", "Inspecionado", "Estoque p/ entrega", "Transportado", "Registros"];
@@ -506,7 +508,9 @@
         ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_pronto_insp", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) { return "<td>" + fmt.format(num(r[field])) + "</td>"; }).join("") +
         '<td class="report-send-cell">' + (sent
           ? '<span class="report-sent" title="Enviado em ' + attr(dateTimeBr(r.enviado_em)) + '">Enviado</span>'
-          : '<button class="btn btn--primary btn--sm report-send" data-id="' + r.id + '" type="button">Enviar</button>') + "</td></tr>";
+          : canSend
+            ? '<button class="btn btn--primary btn--sm report-send" data-id="' + r.id + '" type="button">Enviar</button>'
+            : '<span class="report-pending">Pendente</span>') + "</td></tr>";
     }).join("");
     target.innerHTML = '<div class="table-wrap"><table class="tabela report-table__table"><thead><tr>' + heads.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>";
   }
@@ -548,6 +552,7 @@
   }
 
   function sendEntry(fiscal, id, button) {
+    if (!canSendEntries()) return Promise.reject(new Error("Seu perfil não possui permissão para enviar lançamentos a Registros."));
     button.disabled = true; button.textContent = "Enviando…";
     return sb().rpc("enviar_report_semanal_para_registros", { p_report_id: id }).then(function (res) {
       if (res.error) throw res.error;
@@ -601,7 +606,7 @@
         deletePlan(fiscal, del.getAttribute("data-id")).catch(function (err) { message(fiscal, "Erro ao excluir: " + (err.message || err), true); });
       }
       var send = e.target.closest(".report-send");
-      if (send) sendEntry(fiscal, send.getAttribute("data-id"), send).catch(function (err) { message(fiscal, "Erro ao enviar: " + (err.message || err), true); });
+      if (canSendEntries() && send) sendEntry(fiscal, send.getAttribute("data-id"), send).catch(function (err) { message(fiscal, "Erro ao enviar: " + (err.message || err), true); });
     });
     root.addEventListener("submit", function (e) {
       var card = e.target.closest(".report-fiscal");

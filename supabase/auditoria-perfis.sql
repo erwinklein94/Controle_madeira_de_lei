@@ -382,8 +382,8 @@ drop function if exists public.admin_list_accounts();
 
 -- ---------------------------------------------------------------------
 -- 5. Envio controlado do Report para Registros
--- Fiscal nao possui INSERT livre em Registros; esta funcao copia somente
--- um lancamento do proprio Report e e idempotente.
+-- Somente Editor, Coordenador e Analista podem copiar um lancamento do Report
+-- para Registros. A operacao e idempotente.
 -- ---------------------------------------------------------------------
 create or replace function private.send_weekly_report(p_report_id uuid)
 returns uuid
@@ -394,14 +394,12 @@ declare
   new_id uuid;
   caller_role text := private.current_role_name();
 begin
-  select * into item from public.report_semanal_registros where id = p_report_id for update;
-  if not found then raise exception 'Registro do Report Semanal nao encontrado.'; end if;
-  if caller_role is null or caller_role not in ('editor', 'coordenador', 'analista', 'fiscal') then
+  if caller_role is null or caller_role not in ('editor', 'coordenador', 'analista') then
     raise exception 'Perfil sem permissao para enviar o Report Semanal.';
   end if;
-  if caller_role = 'fiscal' and item.fiscal is distinct from private.current_fiscal() then
-    raise exception 'O Fiscal/Inspetor so pode enviar o proprio Report Semanal.';
-  end if;
+
+  select * into item from public.report_semanal_registros where id = p_report_id for update;
+  if not found then raise exception 'Registro do Report Semanal nao encontrado.'; end if;
   if item.registro_id is not null then return item.registro_id; end if;
 
   insert into public.registros (
