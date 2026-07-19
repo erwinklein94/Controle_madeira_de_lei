@@ -72,6 +72,17 @@
     } : null;
   }
 
+  function pedidoDetailsById(id) {
+    var item = (cache.pedido || []).filter(function (row) { return String(row.id) === String(id || ""); })[0];
+    return isCompletePedido(item) ? {
+      id: item.id,
+      numero: item.valor,
+      fornecedor: item.fornecedor,
+      local: item.local,
+      quantidade: Number(item.quantidade_dormentes)
+    } : null;
+  }
+
   function pedidos(fornecedor, onlyComplete) {
     return (cache.pedido || []).filter(function (item) {
       if (fornecedor && item.fornecedor !== fornecedor) return false;
@@ -165,6 +176,8 @@
     fill: fill,
     fillPedidos: fillPedidos,
     pedido: pedidoDetails,
+    pedidoDetails: pedidoDetails,
+    pedidoPorId: pedidoDetailsById,
     pedidos: pedidos
   };
 

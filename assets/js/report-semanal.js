@@ -376,7 +376,7 @@
 
   function orderProgressQuery(fiscal, from, to) {
     return sb().from("report_semanal_registros")
-      .select("pedido, vol_pronto, vol_inspecionado, vol_transportado, created_at")
+      .select("pedido, pedido_id, fornecedor, local, vol_pedido, vol_pronto, vol_inspecionado, vol_transportado, created_at")
       .eq("fiscal", fiscal)
       .not("pedido", "is", null)
       .neq("pedido", "")
@@ -444,9 +444,13 @@
     }).join("") + "</div>";
   }
 
-  function pedidoStandard(numero) {
+  function pedidoStandard(numero, pedidoId) {
     if (!window.Padroes || !window.Padroes.pedidos) return null;
     var items = window.Padroes.pedidos("", false);
+    if (pedidoId) {
+      var byId = items.filter(function (item) { return String(item.id) === String(pedidoId); })[0];
+      if (byId) return byId;
+    }
     return items.filter(function (item) { return String(item.numero) === String(numero); })[0] || null;
   }
 
@@ -455,20 +459,37 @@
     (state[fiscal].orderEntries || []).forEach(function (entry) {
       var numero = String(entry.pedido || "").trim();
       if (!numero) return;
-      if (!map[numero]) map[numero] = { pedido: numero, fabricated: 0, inspected: 0, transported: 0 };
-      map[numero].fabricated += num(entry.vol_pronto);
-      map[numero].inspected += num(entry.vol_inspecionado);
-      map[numero].transported += num(entry.vol_transportado);
+      var identity = entry.pedido_id
+        ? "id:" + entry.pedido_id
+        : "legado:" + String(entry.fornecedor || "") + "::" + numero;
+      if (!map[identity]) map[identity] = {
+        pedidoId: entry.pedido_id || null,
+        pedido: numero,
+        fornecedor: entry.fornecedor || "",
+        local: entry.local || "",
+        fallbackTotal: 0,
+        fabricated: 0,
+        inspected: 0,
+        transported: 0
+      };
+      map[identity].fallbackTotal = Math.max(map[identity].fallbackTotal, num(entry.vol_pedido));
+      map[identity].fabricated += num(entry.vol_pronto);
+      map[identity].inspected += num(entry.vol_inspecionado);
+      map[identity].transported += num(entry.vol_transportado);
     });
-    return Object.keys(map).sort(function (a, b) { return a.localeCompare(b, "pt-BR", { numeric: true }); }).map(function (numero) {
-      var group = map[numero];
-      var standard = pedidoStandard(numero);
-      group.fornecedor = standard && standard.fornecedor ? standard.fornecedor : "";
-      group.local = standard && standard.local ? standard.local : "";
-      group.total = standard && num(standard.quantidade) > 0 ? num(standard.quantidade) : null;
+    return Object.keys(map).map(function (identity) {
+      var group = map[identity];
+      var standard = pedidoStandard(group.pedido, group.pedidoId);
+      group.fornecedor = standard && standard.fornecedor ? standard.fornecedor : group.fornecedor;
+      group.local = standard && standard.local ? standard.local : group.local;
+      group.total = standard && num(standard.quantidade) > 0
+        ? num(standard.quantidade)
+        : (group.fallbackTotal > 0 ? group.fallbackTotal : null);
       group.remainingInspection = group.total === null ? null : Math.max(group.total - group.inspected, 0);
       group.excessInspection = group.total === null ? 0 : Math.max(group.inspected - group.total, 0);
       return group;
+    }).sort(function (a, b) {
+      return String(a.pedido).localeCompare(String(b.pedido), "pt-BR", { numeric: true });
     });
   }
 

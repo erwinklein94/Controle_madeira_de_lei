@@ -178,20 +178,28 @@
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 
   function pedidoKey(r) {
+    var id = String(r && (r.pedidoId || r.pedido_id) || "").trim();
+    if (id) return "id:" + id;
     var pedido = String(r && r.pedido != null ? r.pedido : "").trim();
-    return pedido || "__registro__" + String(r && r.id ? r.id : "sem-id");
+    var fornecedor = String(r && r.fornecedor != null ? r.fornecedor : "").trim();
+    return pedido ? "legado:" + fornecedor + "::" + pedido : "__registro__" + String(r && r.id ? r.id : "sem-id");
   }
 
   function pedidoOfficialTotal(r) {
     if (!global.Padroes || typeof global.Padroes.pedidoDetails !== "function") return null;
-    var details = global.Padroes.pedidoDetails(r && r.pedido);
+    var pedidoId = r && (r.pedidoId || r.pedido_id);
+    var details = pedidoId && typeof global.Padroes.pedidoPorId === "function"
+      ? global.Padroes.pedidoPorId(pedidoId)
+      : null;
+    if (!details) details = global.Padroes.pedidoDetails(r && r.pedido);
     var total = details ? num(details.quantidade) : 0;
     return total > 0 ? total : null;
   }
 
-  /* O volume contratado pertence ao pedido, não ao lançamento diário.
-     Usa a Padronização como fonte oficial e, para pedidos antigos ainda sem
-     cadastro completo, mantém somente o maior total informado nos registros. */
+  /* Regra operacional: o total contratado pertence ao pedido e entra uma vez.
+     Os demais volumes pertencem ao movimento diário e são somados em todos os
+     registros consolidados. pedido_id é a identidade principal; o texto fica
+     somente como compatibilidade para registros legados. */
   function pedidoTotals(list) {
     var totals = {};
     list.forEach(function (r) {
@@ -239,16 +247,26 @@
   function pedidoVsTransportado(list, field) {
     var map = {};
     list.forEach(function (r) {
-      var k = r[field] || "—";
-      if (!map[k]) map[k] = { registros: [], transportado: 0 };
+      var k = field === "pedido" ? pedidoKey(r) : (r[field] || "—");
+      var label = field === "pedido" ? (r.pedido || "—") : k;
+      if (!map[k]) map[k] = { label: label, registros: [], fabricado: 0, inspecionado: 0, transportado: 0 };
       map[k].registros.push(r);
+      map[k].fabricado += num(r.volPronto);
+      map[k].inspecionado += num(r.volInspecionado);
       map[k].transportado += num(r.volTransportado);
     });
     return Object.keys(map)
       .map(function (k) {
         var pedido = totalPedidos(map[k].registros);
         var saldo = Math.max(pedido - map[k].transportado, 0);
-        return { label: k, pedido: pedido, transportado: map[k].transportado, saldo: saldo };
+        return {
+          label: map[k].label,
+          pedido: pedido,
+          fabricado: map[k].fabricado,
+          inspecionado: map[k].inspecionado,
+          transportado: map[k].transportado,
+          saldo: saldo
+        };
       })
       .sort(function (a, b) { return b.pedido - a.pedido; });
   }
@@ -268,14 +286,17 @@
 
   function trendByOrder(list) {
     var totals = pedidoTotals(list);
+    var accumulated = {};
     var points = list
       .slice()
-      .sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); })
+      .sort(function (a, b) { return refDate(a) - refDate(b); })
       .map(function (r) {
-        var item = totals[pedidoKey(r)];
+        var key = pedidoKey(r);
+        var item = totals[key];
         var total = item ? (item.official !== null ? item.official : item.fallback) : 0;
-        var pct = total > 0 ? (num(r.volTransportado) / total) * 100 : 0;
-        return { pedido: r.pedido, date: r.createdAt, pct: Math.round(pct * 10) / 10 };
+        accumulated[key] = (accumulated[key] || 0) + num(r.volTransportado);
+        var pct = total > 0 ? (accumulated[key] / total) * 100 : 0;
+        return { pedido: r.pedido, date: refDate(r), pct: Math.round(pct * 10) / 10 };
       });
 
     var trend = linearTrend(points.map(function (p) { return p.pct; }));
@@ -283,11 +304,20 @@
   }
 
   function cumulativeTransported(list) {
-    var sorted = list.slice().sort(function (a, b) { return refDate(a) - refDate(b); });
+    var days = {};
+    list.forEach(function (r) {
+      var date = refDate(r);
+      if (!date) return;
+      var day = date.getTime();
+      if (!days[day]) days[day] = { date: date, movement: 0, pedidos: {} };
+      days[day].movement += num(r.volTransportado);
+      if (r.pedido) days[day].pedidos[String(r.pedido)] = true;
+    });
     var acc = 0;
-    return sorted.map(function (r) {
-      acc += num(r.volTransportado);
-      return { date: refDate(r), total: acc, label: r.pedido };
+    return Object.keys(days).map(Number).sort(function (a, b) { return a - b; }).map(function (day) {
+      var bucket = days[day];
+      acc += bucket.movement;
+      return { date: bucket.date, total: acc, label: Object.keys(bucket.pedidos).join(", ") };
     });
   }
 
