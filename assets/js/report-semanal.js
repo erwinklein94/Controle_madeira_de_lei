@@ -8,9 +8,11 @@
   var root;
   var wired = false;
   var charts = {};
+  var orderCharts = {};
   var state = {};
   var historyState = { start: "", end: "", supplier: "", entries: [], suppliers: [] };
   var HISTORY_PAGE_SIZE = 1000;
+  var ORDER_PROGRESS_PAGE_SIZE = 1000;
   var fmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
   var DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
@@ -135,6 +137,14 @@
           "</form>" : "") +
           '<div class="report-plan-list"></div>' +
         "</section>" +
+        '<section class="report-order-progress">' +
+          '<div class="report-section-head"><div><h3>Progresso total dos pedidos</h3><p>Acumulado de todas as semanas, comparado ao total cadastrado para cada pedido.</p></div><span class="report-total-badge">Todas as semanas</span></div>' +
+          '<div class="report-order-summary"></div>' +
+          '<div class="report-order-layout">' +
+            '<div class="report-order-chart"><canvas id="report-order-chart-' + fiscalKey + '"></canvas></div>' +
+            '<div class="report-order-list"></div>' +
+          "</div>" +
+        "</section>" +
         '<section class="report-dashboard">' +
           '<div class="report-section-head"><div><h3>Evolução da semana</h3><p>Realizado comparado à expectativa cadastrada.</p></div></div>' +
           '<div class="report-kpis"></div>' +
@@ -204,7 +214,7 @@
     }
     var currentMonday = isoLocal(mondayOf(new Date()));
     fiscals.forEach(function (fiscal) {
-      if (!state[fiscal]) state[fiscal] = { week: currentMonday, plans: [], entries: [] };
+      if (!state[fiscal]) state[fiscal] = { week: currentMonday, plans: [], entries: [], orderEntries: [] };
     });
     root.innerHTML = fiscals.map(fiscalCard).join("");
   }
@@ -360,6 +370,26 @@
     return loadHistory();
   }
 
+  function orderProgressQuery(fiscal, from, to) {
+    return sb().from("report_semanal_registros")
+      .select("pedido, vol_pronto, vol_inspecionado, vol_transportado, created_at")
+      .eq("fiscal", fiscal)
+      .not("pedido", "is", null)
+      .neq("pedido", "")
+      .order("created_at", { ascending: true })
+      .range(from, to);
+  }
+
+  function fetchOrderProgress(fiscal, from, collected) {
+    return orderProgressQuery(fiscal, from, from + ORDER_PROGRESS_PAGE_SIZE - 1).then(function (res) {
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      var all = collected.concat(rows);
+      if (rows.length === ORDER_PROGRESS_PAGE_SIZE) return fetchOrderProgress(fiscal, from + ORDER_PROGRESS_PAGE_SIZE, all);
+      return all;
+    });
+  }
+
   function loadFiscal(fiscal) {
     var week = state[fiscal].week;
     var plans = sb().from("report_semanal_planejamentos")
@@ -368,11 +398,12 @@
     var entries = sb().from("report_semanal_registros")
       .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at")
       .eq("fiscal", fiscal).eq("semana_inicio", week).order("data_ref", { ascending: true }).order("created_at", { ascending: true });
-    return Promise.all([plans, entries]).then(function (results) {
+    return Promise.all([plans, entries, fetchOrderProgress(fiscal, 0, [])]).then(function (results) {
       if (results[0].error) throw results[0].error;
       if (results[1].error) throw results[1].error;
       state[fiscal].plans = results[0].data || [];
       state[fiscal].entries = results[1].data || [];
+      state[fiscal].orderEntries = results[2] || [];
       drawFiscal(fiscal);
     }).catch(function (err) {
       message(fiscal, "Não foi possível carregar: " + (err.message || err) + ". Execute supabase/report-semanal.sql.", true);
@@ -383,6 +414,7 @@
     var card = root.querySelector('[data-fiscal-key="' + key(fiscal) + '"]');
     if (!card) return;
     drawPlans(card, fiscal);
+    drawOrderProgress(card, fiscal);
     drawDashboard(card, fiscal);
     drawTable(card, fiscal);
   }
@@ -406,6 +438,130 @@
         "</article>"
       );
     }).join("") + "</div>";
+  }
+
+  function pedidoStandard(numero) {
+    if (!window.Padroes || !window.Padroes.pedidos) return null;
+    var items = window.Padroes.pedidos("", false);
+    return items.filter(function (item) { return String(item.numero) === String(numero); })[0] || null;
+  }
+
+  function groupedOrders(fiscal) {
+    var map = {};
+    (state[fiscal].orderEntries || []).forEach(function (entry) {
+      var numero = String(entry.pedido || "").trim();
+      if (!numero) return;
+      if (!map[numero]) map[numero] = { pedido: numero, fabricated: 0, inspected: 0, transported: 0 };
+      map[numero].fabricated += num(entry.vol_pronto);
+      map[numero].inspected += num(entry.vol_inspecionado);
+      map[numero].transported += num(entry.vol_transportado);
+    });
+    return Object.keys(map).sort(function (a, b) { return a.localeCompare(b, "pt-BR", { numeric: true }); }).map(function (numero) {
+      var group = map[numero];
+      var standard = pedidoStandard(numero);
+      group.fornecedor = standard && standard.fornecedor ? standard.fornecedor : "";
+      group.local = standard && standard.local ? standard.local : "";
+      group.total = standard && num(standard.quantidade) > 0 ? num(standard.quantidade) : null;
+      group.remainingInspection = group.total === null ? null : Math.max(group.total - group.inspected, 0);
+      group.excessInspection = group.total === null ? 0 : Math.max(group.inspected - group.total, 0);
+      return group;
+    });
+  }
+
+  function drawOrderProgress(card, fiscal) {
+    var groups = groupedOrders(fiscal);
+    var summary = card.querySelector(".report-order-summary");
+    var list = card.querySelector(".report-order-list");
+    var complete = groups.filter(function (group) { return group.total !== null; });
+    var missing = groups.length - complete.length;
+    var totalRegistered = complete.reduce(function (total, group) { return total + group.total; }, 0);
+    var totalFabricated = groups.reduce(function (total, group) { return total + group.fabricated; }, 0);
+    var totalInspected = groups.reduce(function (total, group) { return total + group.inspected; }, 0);
+    var totalRemaining = complete.reduce(function (total, group) { return total + group.remainingInspection; }, 0);
+
+    summary.innerHTML =
+      kpi("Pedidos acompanhados", fmt.format(groups.length), "Com lançamentos no Report Semanal", null, "") +
+      kpi("Total cadastrado", fmt.format(totalRegistered), complete.length + (complete.length === 1 ? " pedido completo" : " pedidos completos"), null, "") +
+      kpi("Fabricado acumulado", fmt.format(totalFabricated), "Somado em todas as semanas", null, "") +
+      kpi("Inspecionado acumulado", fmt.format(totalInspected), missing ? "Inclui " + missing + (missing === 1 ? " pedido sem total cadastrado" : " pedidos sem total cadastrado") : "Somado em todas as semanas", null, "") +
+      kpi("Falta inspecionar", fmt.format(totalRemaining), "Saldo dos pedidos com total cadastrado", null, "");
+
+    if (!groups.length) {
+      list.innerHTML = empty("Nenhum pedido foi registrado por este fiscal até o momento.");
+      drawOrderChart(fiscal, []);
+      return;
+    }
+    list.innerHTML = (missing ? '<div class="report-order-warning">' + missing + (missing === 1 ? " pedido precisa" : " pedidos precisam") + " da quantidade total na Padronização.</div>" : "") +
+      groups.map(orderProgressCard).join("");
+    drawOrderChart(fiscal, groups);
+  }
+
+  function orderProgressCard(group) {
+    var route = group.fornecedor || group.local
+      ? [group.fornecedor, group.local].filter(Boolean).join(" · ")
+      : "Fornecedor e local pendentes na Padronização";
+    var total = group.total === null ? "—" : fmt.format(group.total);
+    var remaining = group.remainingInspection === null ? "—" : fmt.format(group.remainingInspection);
+    var fiscalization = group.total === null
+      ? '<div class="report-order-unavailable">Cadastre a quantidade total do pedido para calcular o percentual e o saldo restante.</div>'
+      : progressBar("Fiscalização do pedido", group.inspected, group.total);
+    var excess = group.excessInspection > 0
+      ? '<div class="report-order-excess">O volume inspecionado supera o total cadastrado em ' + fmt.format(group.excessInspection) + ".</div>"
+      : "";
+    return '<article class="report-order-card">' +
+      '<header><div><span>Pedido</span><strong>' + esc(group.pedido) + '</strong></div><small>' + esc(route) + "</small></header>" +
+      '<div class="report-order-metrics">' +
+        orderMetric("Total do pedido", total) +
+        orderMetric("Fabricado", fmt.format(group.fabricated)) +
+        orderMetric("Inspecionado", fmt.format(group.inspected)) +
+        orderMetric("Falta inspecionar", remaining) +
+        orderMetric("Transportado", fmt.format(group.transported)) +
+      "</div>" + fiscalization + excess + "</article>";
+  }
+
+  function orderMetric(label, value) {
+    return '<div><span>' + label + "</span><strong>" + value + "</strong></div>";
+  }
+
+  function drawOrderChart(fiscal, groups) {
+    var canvas = document.getElementById("report-order-chart-" + key(fiscal));
+    if (!canvas || !window.Chart) return;
+    if (orderCharts[fiscal]) orderCharts[fiscal].destroy();
+    if (!groups.length) {
+      canvas.parentElement.hidden = true;
+      orderCharts[fiscal] = null;
+      return;
+    }
+    canvas.parentElement.hidden = false;
+    canvas.parentElement.style.height = Math.max(280, groups.length * 66 + 110) + "px";
+    var dark = document.documentElement.getAttribute("data-theme") === "dark";
+    orderCharts[fiscal] = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: groups.map(function (group) { return "Pedido " + group.pedido; }),
+        datasets: [
+          { label: "Total do pedido", data: groups.map(function (group) { return group.total || 0; }), backgroundColor: dark ? "rgba(164,184,198,.45)" : "rgba(111,131,142,.38)", borderRadius: 4 },
+          { label: "Fabricado", data: groups.map(function (group) { return group.fabricated; }), backgroundColor: "rgba(50,166,230,.78)", borderRadius: 4 },
+          { label: "Inspecionado", data: groups.map(function (group) { return group.inspected; }), backgroundColor: "rgba(30,159,127,.82)", borderRadius: 4 },
+          { label: "Transportado", data: groups.map(function (group) { return group.transported; }), backgroundColor: "rgba(242,142,43,.82)", borderRadius: 4 }
+        ]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom", labels: { color: dark ? "#dbe8f1" : "#4D626F", boxWidth: 12, usePointStyle: true } },
+          datalabels: { display: false },
+          tooltip: { callbacks: { label: function (context) { return context.dataset.label + ": " + fmt.format(num(context.raw)); } } }
+        },
+        scales: {
+          x: { beginAtZero: true, ticks: { color: dark ? "#a4b8c6" : "#6F838E" }, grid: { color: dark ? "rgba(255,255,255,.07)" : "rgba(0,56,101,.08)" } },
+          y: { ticks: { color: dark ? "#dbe8f1" : "#4D626F" }, grid: { display: false } }
+        }
+      }
+    });
   }
 
   function grouped(fiscal) {
