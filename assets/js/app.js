@@ -168,7 +168,44 @@
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 
+  function pedidoKey(r) {
+    var pedido = String(r && r.pedido != null ? r.pedido : "").trim();
+    return pedido || "__registro__" + String(r && r.id ? r.id : "sem-id");
+  }
+
+  function pedidoOfficialTotal(r) {
+    if (!global.Padroes || typeof global.Padroes.pedidoDetails !== "function") return null;
+    var details = global.Padroes.pedidoDetails(r && r.pedido);
+    var total = details ? num(details.quantidade) : 0;
+    return total > 0 ? total : null;
+  }
+
+  /* O volume contratado pertence ao pedido, não ao lançamento diário.
+     Usa a Padronização como fonte oficial e, para pedidos antigos ainda sem
+     cadastro completo, mantém somente o maior total informado nos registros. */
+  function pedidoTotals(list) {
+    var totals = {};
+    list.forEach(function (r) {
+      var key = pedidoKey(r);
+      var official = pedidoOfficialTotal(r);
+      var fallback = Math.max(num(r.volPedido), 0);
+      if (!totals[key]) totals[key] = { official: null, fallback: 0 };
+      if (official !== null) totals[key].official = official;
+      totals[key].fallback = Math.max(totals[key].fallback, fallback);
+    });
+    return totals;
+  }
+
+  function totalPedidos(list) {
+    var totals = pedidoTotals(list);
+    return Object.keys(totals).reduce(function (sum, key) {
+      var item = totals[key];
+      return sum + (item.official !== null ? item.official : item.fallback);
+    }, 0);
+  }
+
   function sumStage(list, key) {
+    if (key === "volPedido") return totalPedidos(list);
     return list.reduce(function (acc, r) { return acc + num(r[key]); }, 0);
   }
 
@@ -182,10 +219,11 @@
     var map = {};
     list.forEach(function (r) {
       var k = r[field] || "—";
-      map[k] = (map[k] || 0) + num(r[stageKey]);
+      if (!map[k]) map[k] = [];
+      map[k].push(r);
     });
     return Object.keys(map)
-      .map(function (k) { return { label: k, value: map[k] }; })
+      .map(function (k) { return { label: k, value: sumStage(map[k], stageKey) }; })
       .sort(function (a, b) { return b.value - a.value; });
   }
 
@@ -193,14 +231,15 @@
     var map = {};
     list.forEach(function (r) {
       var k = r[field] || "—";
-      if (!map[k]) map[k] = { pedido: 0, transportado: 0 };
-      map[k].pedido += num(r.volPedido);
+      if (!map[k]) map[k] = { registros: [], transportado: 0 };
+      map[k].registros.push(r);
       map[k].transportado += num(r.volTransportado);
     });
     return Object.keys(map)
       .map(function (k) {
-        var saldo = Math.max(map[k].pedido - map[k].transportado, 0);
-        return { label: k, pedido: map[k].pedido, transportado: map[k].transportado, saldo: saldo };
+        var pedido = totalPedidos(map[k].registros);
+        var saldo = Math.max(pedido - map[k].transportado, 0);
+        return { label: k, pedido: pedido, transportado: map[k].transportado, saldo: saldo };
       })
       .sort(function (a, b) { return b.pedido - a.pedido; });
   }
@@ -219,11 +258,14 @@
   }
 
   function trendByOrder(list) {
+    var totals = pedidoTotals(list);
     var points = list
       .slice()
       .sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); })
       .map(function (r) {
-        var pct = num(r.volPedido) > 0 ? (num(r.volTransportado) / num(r.volPedido)) * 100 : 0;
+        var item = totals[pedidoKey(r)];
+        var total = item ? (item.official !== null ? item.official : item.fallback) : 0;
+        var pct = total > 0 ? (num(r.volTransportado) / total) * 100 : 0;
         return { pedido: r.pedido, date: r.createdAt, pct: Math.round(pct * 10) / 10 };
       });
 
@@ -269,7 +311,7 @@
     return {
       totalPedido: pedido,
       totalTransportado: transportado,
-      emAndamento: pedido - transportado,
+      emAndamento: Math.max(pedido - transportado, 0),
       conclusao: conclusao,
       gargalo: gargalo,
       registros: list.length,
@@ -295,6 +337,8 @@
     remove: remove,
     refDate: refDate,
     count: count,
+    sumStage: sumStage,
+    totalPedidos: totalPedidos,
     funnelTotals: funnelTotals,
     groupSum: groupSum,
     pedidoVsTransportado: pedidoVsTransportado,
@@ -496,7 +540,7 @@
       "<tfoot><tr>" +
       '<td class="col-text">Total</td><td></td><td></td><td></td><td></td>' +
       STAGES.map(function (s) {
-        var t = list.reduce(function (a, r) { return a + (Number(r[s.key]) || 0); }, 0);
+        var t = Store.sumStage(list, s.key);
         return "<td>" + fmt.format(t) + "</td>";
       }).join("") +
       (canEditRecords() ? "<td></td>" : "") + "</tr></tfoot>";
@@ -1321,9 +1365,8 @@
 
   /* Previsão de término: ritmo médio desde o primeiro registro. */
   function etaInfo(list) {
-    var totalPedido = 0, totalTransp = 0, minData = null;
+    var totalPedido = Store.totalPedidos(list), totalTransp = 0, minData = null;
     list.forEach(function (r) {
-      totalPedido += Number(r.volPedido) || 0;
       totalTransp += Number(r.volTransportado) || 0;
       var d = Store.refDate(r);
       var t = d ? d.getTime() : NaN;
@@ -1769,7 +1812,7 @@
       "<tfoot><tr>" +
       '<td class="col-text">Total</td><td></td><td></td><td></td><td></td><td></td><td></td>' +
       STAGES.map(function (s) {
-        var t = sorted.reduce(function (a, r) { return a + (Number(r[s.key]) || 0); }, 0);
+        var t = Store.sumStage(sorted, s.key);
         return "<td>" + fmt.format(t) + "</td>";
       }).join("") +
       "</tr></tfoot>";
