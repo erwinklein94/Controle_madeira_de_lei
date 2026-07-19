@@ -2191,8 +2191,8 @@ body.role-fornecedor .sidebar { display: flex; }
 body.role-fornecedor .menu-toggle { display: inline-flex; }
 body.role-fornecedor .nav > * { display: none; }
 body.role-fornecedor .nav > [data-supplier-nav],
-body.role-fornecedor .nav > [data-public-flow],
 body.role-fornecedor .nav > .nav__theme { display: flex; }
+body.role-fornecedor .presentation-toggle { display: none !important; }
 
 .flow-intro { margin-bottom: 18px; }
 .flow-legend {
