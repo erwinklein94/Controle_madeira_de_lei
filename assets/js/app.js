@@ -1837,7 +1837,9 @@
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
-    padronizacao: document.getElementById("view-padronizacao")
+    padronizacao: document.getElementById("view-padronizacao"),
+    fornecedor: document.getElementById("view-fornecedor"),
+    "fluxo-dados": document.getElementById("view-fluxo-dados")
   };
 
   function show(view) {
@@ -1867,6 +1869,7 @@
     if (view === "contas" && window.ContasUI) window.ContasUI.render();
     if (view === "comentarios" && window.ComentariosUI) window.ComentariosUI.render();
     if (view === "padronizacao" && window.PadronizacaoUI) window.PadronizacaoUI.render();
+    if (view === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
 
     window.scrollTo(0, 0);
   }

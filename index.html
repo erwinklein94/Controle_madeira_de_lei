@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=brandbook-rumo-3" />
+  <link rel="stylesheet" href="assets/css/style.css?v=fluxo-apresentacao-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -73,6 +73,7 @@
       </div>
       <div class="sidebar__rule"></div>
       <nav class="nav">
+        <a class="nav__item" href="#fornecedor" data-view="fornecedor" data-supplier-nav><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Área do fornecedor</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-dashboard"></use></svg> Dashboard</a>
         <a class="nav__item" href="#fornecedores" data-view="fornecedores"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Detalhes do fornecedor</a>
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report Semanal</a>
@@ -84,6 +85,7 @@
         <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-audit><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-audit"></use></svg> Auditoria</a>
         <a class="nav__item" href="#comentarios" data-view="comentarios"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-comments"></use></svg> Comentários</a>
         <a class="nav__item" href="#padronizacao" data-view="padronizacao"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-standards"></use></svg> Padronização</a>
+        <a class="nav__item" href="#fluxo-dados" data-view="fluxo-dados" data-public-flow><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-flow"></use></svg> Fluxo de dados</a>
         <div class="nav__sep"></div>
         <button id="btn-tema" class="nav__item nav__theme" type="button">
           <svg class="nav__ico" id="tema-ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-sun"></use></svg> <span id="tema-txt">Tema claro</span>
@@ -95,6 +97,7 @@
       <div class="top-menu">
         <button id="btn-menu" class="btn btn--ghost menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false"><svg class="btn__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-menu"></use></svg> Menu</button>
         <div class="top-menu__user">
+          <button id="btn-presentation" class="btn btn--ghost btn--sm presentation-toggle" type="button" aria-pressed="false" disabled title="Disponível nas páginas que possuem gráficos"><svg class="btn__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-presentation"></use></svg><span class="presentation-label">Modo Apresentação</span></button>
           <span id="user-chip" class="user-chip"></span>
           <button class="btn btn--ghost btn--sm" type="button" data-logout>Sair</button>
         </div>
@@ -503,6 +506,137 @@
         <div id="report-fiscais" class="report-fiscais">
           <div class="report-empty">Carregando fiscais…</div>
         </div>
+      </section>
+
+      <!-- ============================ TELA: FLUXO DE DADOS ============================ -->
+      <section id="view-fluxo-dados" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Visão do sistema</div>
+            <h1>Fluxo de dados</h1>
+            <p class="page-head__sub">Entenda como as informações entram, são organizadas, registradas e transformadas em acompanhamento operacional.</p>
+          </div>
+        </header>
+
+        <section class="card flow-intro" aria-labelledby="flow-intro-title">
+          <div class="card__head">
+            <h2 id="flow-intro-title" class="card__title">Como ler este fluxo</h2>
+            <p class="card__hint">As setas representam o caminho principal. Algumas informações alimentam mais de uma página, sempre respeitando o perfil e as políticas de segurança do banco.</p>
+          </div>
+          <div class="card__body">
+            <div class="flow-legend" aria-label="Legenda do fluxo">
+              <span><i class="flow-dot flow-dot--input"></i> Entrada de informação</span>
+              <span><i class="flow-dot flow-dot--rule"></i> Regra e organização</span>
+              <span><i class="flow-dot flow-dot--process"></i> Processamento operacional</span>
+              <span><i class="flow-dot flow-dot--output"></i> Visualização e decisão</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="flow-pipeline" aria-label="Organograma do fluxo de dados do site">
+          <article class="flow-stage flow-stage--input">
+            <header><span>1</span><div><small>Origem</small><h2>Quem informa</h2></div></header>
+            <div class="flow-node">
+              <strong>Fornecedor</strong>
+              <p>Envia produção, estoque, transporte e comentários vinculados aos próprios pedidos.</p>
+              <em>Área do fornecedor</em>
+            </div>
+            <div class="flow-node">
+              <strong>Fiscal/Inspetor</strong>
+              <p>Registra diariamente onde está e os volumes fabricados, inspecionados e transportados.</p>
+              <em>Report Semanal</em>
+            </div>
+            <div class="flow-node">
+              <strong>Gestão da área</strong>
+              <p>Define pedidos, destinos semanais, expectativas, contas e padrões utilizados pelo site.</p>
+              <em>Editor · Coordenador · Analista</em>
+            </div>
+          </article>
+
+          <div class="flow-arrow" aria-hidden="true"><span>→</span></div>
+
+          <article class="flow-stage flow-stage--rule">
+            <header><span>2</span><div><small>Contexto</small><h2>Regras e cadastros</h2></div></header>
+            <div class="flow-node">
+              <strong>Login e perfis</strong>
+              <p>Identificam o usuário e determinam quais páginas e ações ficam disponíveis.</p>
+              <em>Autenticação</em>
+            </div>
+            <div class="flow-node">
+              <strong>Padronização</strong>
+              <p>Centraliza fiscais, fornecedores, locais, números de pedido e a quantidade total de dormentes.</p>
+              <em>Fonte dos preenchimentos automáticos</em>
+            </div>
+            <div class="flow-node">
+              <strong>Segurança dos dados</strong>
+              <p>As políticas do Supabase filtram leitura e edição conforme o perfil autenticado.</p>
+              <em>RLS e permissões</em>
+            </div>
+          </article>
+
+          <div class="flow-arrow" aria-hidden="true"><span>→</span></div>
+
+          <article class="flow-stage flow-stage--process">
+            <header><span>3</span><div><small>Operação</small><h2>Onde é processado</h2></div></header>
+            <div class="flow-node">
+              <strong>Informações pendentes</strong>
+              <p>Recebe os envios dos fornecedores para análise da equipe autorizada.</p>
+              <em>Revisão</em>
+            </div>
+            <div class="flow-node">
+              <strong>Report Semanal</strong>
+              <p>Mantém o histórico diário, compara expectativas e acompanha o saldo total de cada pedido.</p>
+              <em>Fiscalização</em>
+            </div>
+            <div class="flow-node">
+              <strong>Registros</strong>
+              <p>Consolida os lançamentos oficiais. O envio a partir do Report é feito pela gestão autorizada.</p>
+              <em>Base operacional</em>
+            </div>
+            <div class="flow-node">
+              <strong>Comentários</strong>
+              <p>Conecta equipe e fornecedor dentro do contexto de cada pedido.</p>
+              <em>Comunicação</em>
+            </div>
+          </article>
+
+          <div class="flow-arrow" aria-hidden="true"><span>→</span></div>
+
+          <article class="flow-stage flow-stage--output">
+            <header><span>4</span><div><small>Resultado</small><h2>Como é utilizado</h2></div></header>
+            <div class="flow-node">
+              <strong>Dashboard</strong>
+              <p>Transforma os registros em indicadores, funil, comparações e tendências.</p>
+              <em>Visão gerencial</em>
+            </div>
+            <div class="flow-node">
+              <strong>Detalhes do fornecedor</strong>
+              <p>Organiza evolução, conclusão, entregas e histórico por fornecedor.</p>
+              <em>Acompanhamento</em>
+            </div>
+            <div class="flow-node">
+              <strong>Auditoria</strong>
+              <p>Apresenta alterações controladas para Editor e Coordenador.</p>
+              <em>Governança</em>
+            </div>
+            <div class="flow-node">
+              <strong>Decisão e apresentação</strong>
+              <p>Os gráficos apoiam reuniões, planejamento semanal e cobrança dos saldos restantes.</p>
+              <em>Modo Apresentação</em>
+            </div>
+          </article>
+        </section>
+
+        <section class="flow-database" aria-label="Camada central de dados">
+          <svg aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-flow"></use></svg>
+          <div><span>Camada central</span><strong>Supabase</strong><p>Autenticação, tabelas, políticas de acesso e histórico mantêm o mesmo dado disponível para as páginas autorizadas, sem duplicar o fluxo visual.</p></div>
+        </section>
+
+        <section class="flow-summary-grid" aria-label="Resumo das automações do sistema">
+          <article class="card"><div class="card__head"><h2 class="card__title">Pedido conectado</h2><p class="card__hint">Ao selecionar um pedido, fornecedor, local e quantidade cadastrada são recuperados automaticamente.</p></div></article>
+          <article class="card"><div class="card__head"><h2 class="card__title">Histórico preservado</h2><p class="card__hint">Enviar um lançamento do Report para Registros não apaga o acompanhamento semanal e diário.</p></div></article>
+          <article class="card"><div class="card__head"><h2 class="card__title">Acesso por função</h2><p class="card__hint">Cada perfil visualiza somente as páginas e ações definidas para sua responsabilidade.</p></div></article>
+        </section>
       </section>
 
       <!-- ============================ TELA: FORNECEDOR ============================ -->
@@ -944,7 +1078,7 @@
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js"></script>
-  <script src="assets/js/access-control.js?v=permissoes-fiscal-3"></script>
+  <script src="assets/js/access-control.js?v=fluxo-dados-1"></script>
   <script src="assets/js/pendencias.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/padroes.js?v=pedidos-detalhes-1"></script>
   <script src="assets/js/contas.js"></script>
@@ -952,8 +1086,9 @@
   <script src="assets/js/report-semanal.js?v=progresso-pedidos-2"></script>
   <script src="assets/js/auditoria.js?v=permissoes-2"></script>
 
-  <script src="assets/js/app.js?v=pedidos-detalhes-1"></script>
+  <script src="assets/js/app.js?v=fluxo-dados-1"></script>
+  <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>
   <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>
-  <script src="assets/js/auth.js?v=95d62d7"></script>
+  <script src="assets/js/auth.js?v=fluxo-dados-1"></script>
 </body>
 </html>

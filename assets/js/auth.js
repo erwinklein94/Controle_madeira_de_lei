@@ -70,6 +70,7 @@
     if (access && access.isFornecedor(profile.role)) {
       if (window.FornecedorUI) window.FornecedorUI.render();
       if (window.FornComentariosUI) window.FornComentariosUI.render();
+      if (window.RouterShow) window.RouterShow((location.hash || "#fornecedor").slice(1));
       return;
     }
 

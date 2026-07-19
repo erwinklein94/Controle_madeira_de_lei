@@ -25,7 +25,8 @@
   function currentRole() { return global.currentProfile ? global.currentProfile.role : null; }
   function canView(view, role) {
     role = normalized(role || currentRole());
-    if (role === "fornecedor") return view === "fornecedor";
+    if (role === "fornecedor") return view === "fornecedor" || view === "fluxo-dados";
+    if (view === "fornecedor") return false;
     if (view === "auditoria") return AUDIT.indexOf(role) >= 0;
     if (role === "fiscal" && (view === "contas" || view === "pendentes")) return false;
     return TEAM.indexOf(role) >= 0;
