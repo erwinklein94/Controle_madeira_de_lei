@@ -397,10 +397,10 @@
   function loadFiscal(fiscal) {
     var week = state[fiscal].week;
     var plans = sb().from("report_semanal_planejamentos")
-      .select("id, semana_inicio, fiscal, fornecedor, local, pedido, expectativa_inspecionado, expectativa_entregue, observacoes, created_at")
+      .select("id, semana_inicio, fiscal, fornecedor, local, pedido, pedido_id, expectativa_inspecionado, expectativa_entregue, observacoes, created_at, updated_at")
       .eq("fiscal", fiscal).eq("semana_inicio", week).order("created_at", { ascending: true });
     var entries = sb().from("report_semanal_registros")
-      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at")
+      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at, updated_at")
       .eq("fiscal", fiscal).eq("semana_inicio", week).order("data_ref", { ascending: true }).order("created_at", { ascending: true });
     return Promise.all([plans, entries, fetchOrderProgress(fiscal, 0, [])]).then(function (results) {
       if (results[0].error) throw results[0].error;
@@ -711,15 +711,22 @@
   }
 
   function deletePlan(fiscal, id) {
-    return sb().from("report_semanal_planejamentos").delete().eq("id", id).then(function (res) {
+    var current = state[fiscal].plans.filter(function (item) { return item.id === id; })[0];
+    if (!current) return Promise.reject(new Error("Destino desatualizado. Recarregue a página."));
+    return sb().from("report_semanal_planejamentos").delete().eq("id", id)
+      .eq("updated_at", current.updated_at).select("id").then(function (res) {
       if (res.error) throw res.error;
+      if (!res.data || !res.data.length) throw new Error("Este destino foi alterado por outro usuário e não foi excluído.");
       return loadFiscal(fiscal);
     });
   }
 
   function deleteEntry(fiscal, id) {
     if (!canDeleteEntries()) return Promise.reject(new Error("Seu perfil não possui permissão para excluir lançamentos."));
-    return sb().from("report_semanal_registros").delete().eq("id", id).select("id").then(function (res) {
+    var current = state[fiscal].entries.filter(function (item) { return item.id === id; })[0];
+    if (!current) return Promise.reject(new Error("Lançamento desatualizado. Recarregue a página."));
+    return sb().from("report_semanal_registros").delete().eq("id", id)
+      .eq("updated_at", current.updated_at).select("id").then(function (res) {
       if (res.error) throw res.error;
       if (!res.data || !res.data.length) throw new Error("O lançamento não foi encontrado ou seu perfil não possui permissão para excluí-lo.");
       return Promise.all([loadFiscal(fiscal), loadHistory()]);

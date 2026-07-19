@@ -1,6 +1,6 @@
 /* =====================================================================
    AUDITORIA - consulta a trilha imutavel criada por gatilhos no Supabase.
-   Somente Editor, Coordenador e Analista recebem linhas pelo RLS.
+   Somente Editor e Coordenador recebem linhas pelo RLS.
    ===================================================================== */
 (function () {
   "use strict";
@@ -19,6 +19,8 @@
     pendencias: "Informações pendentes",
     solicitacoes: "Solicitações",
     comentarios: "Comentários",
+    pedidos: "Pedidos",
+    profiles: "Perfis de acesso",
     padroes: "Padronização",
     report_semanal_planejamentos: "Report · Planejamento",
     report_semanal_registros: "Report · Atividades",
@@ -26,6 +28,7 @@
   };
   var FIELD = {
     data_ref: "Data", fiscal: "Fiscal", fornecedor: "Fornecedor", local: "Local", pedido: "Pedido",
+    numero: "Número do pedido", quantidade_dormentes: "Quantidade de dormentes", ativo: "Ativo",
     vol_pedido: "Volume do pedido", vol_fabricar: "A fabricar", vol_pronto: "Fabricado",
     vol_pronto_insp: "Pronto para inspeção", vol_inspecionado: "Inspecionado",
     vol_liberado: "Estoque para entrega", vol_transportado: "Transportado",

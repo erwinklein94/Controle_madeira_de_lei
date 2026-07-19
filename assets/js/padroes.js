@@ -28,14 +28,29 @@
 
   function load() {
     if (!sb()) return Promise.resolve(cache);
-    return sb().from("padroes")
-      .select("id, categoria, valor, fornecedor, local, quantidade_dormentes, created_at, updated_at")
-      .order("valor")
-      .then(function (res) {
-        if (res.error) throw res.error;
+    var standards = sb().from("padroes")
+      .select("id, categoria, valor, created_at, updated_at").order("valor");
+    var orders = sb().from("pedidos")
+      .select("id, numero, fornecedor, local, quantidade_dormentes, ativo, created_at, updated_at")
+      .eq("ativo", true).order("numero");
+    return Promise.all([standards, orders]).then(function (results) {
+        if (results[0].error) throw results[0].error;
+        if (results[1].error) throw results[1].error;
         var novo = { fiscal: [], fornecedor: [], local: [], pedido: [] };
-        (res.data || []).forEach(function (row) {
+        (results[0].data || []).forEach(function (row) {
           if (novo[row.categoria]) novo[row.categoria].push(row);
+        });
+        (results[1].data || []).forEach(function (row) {
+          novo.pedido.push({
+            id: row.id,
+            valor: row.numero,
+            fornecedor: row.fornecedor,
+            local: row.local,
+            quantidade_dormentes: row.quantidade_dormentes,
+            ativo: row.ativo,
+            created_at: row.created_at,
+            updated_at: row.updated_at
+          });
         });
         cache = novo;
         return cache;
@@ -119,10 +134,29 @@
     });
   }
   function savePedido(id, data) {
+    var payload = {
+      numero: data.valor,
+      fornecedor: data.fornecedor,
+      local: data.local,
+      quantidade_dormentes: data.quantidade_dormentes,
+      ativo: true
+    };
+    var current = id ? (cache.pedido || []).filter(function (item) { return item.id === id; })[0] : null;
     var query = id
-      ? sb().from("padroes").update(data).eq("id", id)
-      : sb().from("padroes").insert(Object.assign({ categoria: "pedido" }, data));
-    return query.then(function (res) { if (res.error) throw res.error; });
+      ? sb().from("pedidos").update(payload).eq("id", id).eq("updated_at", current && current.updated_at).select("id")
+      : sb().from("pedidos").insert(payload).select("id");
+    return query.then(function (res) {
+      if (res.error) throw res.error;
+      if (!res.data || !res.data.length) throw new Error("Este pedido foi alterado por outro usuário. Recarregue a página e tente novamente.");
+    });
+  }
+  function archivePedido(id) {
+    var current = (cache.pedido || []).filter(function (item) { return item.id === id; })[0];
+    return sb().from("pedidos").update({ ativo: false }).eq("id", id)
+      .eq("updated_at", current && current.updated_at).select("id").then(function (res) {
+        if (res.error) throw res.error;
+        if (!res.data || !res.data.length) throw new Error("Este pedido foi alterado por outro usuário. Recarregue a página e tente novamente.");
+      });
   }
 
   window.Padroes = {
@@ -277,10 +311,10 @@
         if (genericDelete || pedidoDelete) {
           var button = pedidoDelete || genericDelete;
           var question = pedidoDelete
-            ? "Excluir este pedido da padronização? Os registros históricos não serão alterados."
+            ? "Arquivar este pedido? Ele deixará de aparecer em novos lançamentos, mas todo o histórico permanecerá vinculado."
             : "Remover esta opção da padronização? Os registros já criados não mudam.";
           if (!window.confirm(question)) return;
-          remove(button.getAttribute("data-id")).then(function () {
+          (pedidoDelete ? archivePedido(button.getAttribute("data-id")) : remove(button.getAttribute("data-id"))).then(function () {
             if (pedidoDelete) editingPedidoId = null;
             render();
           }).catch(function (err) { window.alert("Erro ao remover: " + (err.message || err)); });

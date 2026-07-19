@@ -16,4 +16,25 @@
   }
 
   global.sbClient = global.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var realtimeChannel = null;
+  global.SiteRealtime = {
+    start: function () {
+      if (realtimeChannel || !global.sbClient) return;
+      realtimeChannel = global.sbClient.channel("site-data-sync")
+        .on("postgres_changes", { event: "*", schema: "public" }, function (payload) {
+          global.dispatchEvent(new CustomEvent("site:data-changed", { detail: payload }));
+        })
+        .subscribe(function (status) {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.warn("Atualização em tempo real temporariamente indisponível:", status);
+          }
+        });
+    },
+    stop: function () {
+      if (!realtimeChannel || !global.sbClient) return;
+      global.sbClient.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+  };
 })(window);

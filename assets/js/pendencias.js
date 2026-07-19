@@ -41,7 +41,9 @@
         .order("created_at", { ascending: false });
     },
     addSolicitacao: function (rec) { return sb.from("solicitacoes").insert(rec); },
-    setStatusSolicitacao: function (id, status) { return sb.from("solicitacoes").update({ status: status }).eq("id", id); }
+    setStatusSolicitacao: function (id, status) { return sb.from("solicitacoes").update({ status: status }).eq("id", id); },
+    aceitarPendencia: function (id) { return sb.rpc("aceitar_pendencia", { p_pendencia_id: id }); },
+    aprovarSolicitacao: function (id) { return sb.rpc("aprovar_solicitacao", { p_solicitacao_id: id }); }
   };
 
   /* ---------- UI do FORNECEDOR ---------- */
@@ -165,6 +167,11 @@
       if (nt === null) return;
       var obs = window.prompt("Observação para a equipe responsável (opcional):", "");
 
+      if ([nvf, nfb, nes, nt].some(function (value) { return num(value) < 0; })) {
+        showMsg("Os volumes não podem ser negativos.", false);
+        return;
+      }
+
       var rec = {
         pendencia_id: r.id,
         fornecedor: r.fornecedor,
@@ -196,6 +203,10 @@
         var pedido = pedidoEl.value.trim();
         if (!pedido) { showMsg("Informe o pedido.", false); return; }
         if (!dataEl.value) { showMsg("Informe a data.", false); return; }
+        if ([valorFabEl, fabricadoEl, estoqueEl, transpEl].some(function (input) { return num(input.value) < 0; })) {
+          showMsg("Os volumes não podem ser negativos.", false);
+          return;
+        }
 
         var rec = {
           fornecedor: prof.fornecedor,
@@ -332,29 +343,12 @@
     }
 
     function aceitarPendencia(r) {
-      // Vira registro oficial (tabela de Registros -> dashboard) e sai das pendências.
-      if (!window.Store) { window.alert("Não foi possível acessar os registros. Recarregue a página."); return; }
-      window.Store.add({
-        dataRef: r.data_ref || null,
-        fiscal: "",
-        fornecedor: r.fornecedor,
-        local: "",
-        pedido: r.pedido,
-        volPedido: 0,
-        volFabricar: num(r.valor_fabricar),
-        volPronto: num(r.vol_fabricado),
-        volProntoInsp: 0,
-        volInspecionado: 0,
-        volLiberado: num(r.vol_estoque),
-        volTransportado: num(r.vol_transportado)
-      }).then(function () {
-        return Data.updatePendencia(r.id, { status: "aceita" }).then(function (res) {
-          if (res.error) { window.alert("Registro criado, mas erro ao atualizar o status: " + res.error.message); }
-          render();
-          if (window.RegistrosUI) window.RegistrosUI.render();
-        });
+      Data.aceitarPendencia(r.id).then(function (res) {
+        if (res.error) throw res.error;
+        render();
+        if (window.RegistrosUI) window.RegistrosUI.render();
       }).catch(function (err) {
-        window.alert("Erro ao criar o registro: " + (err.message || err));
+        window.alert("Erro ao aceitar a pendência: " + (err.message || err));
       });
     }
 
@@ -366,41 +360,12 @@
     }
 
     function aprovar(s) {
-      // Aplica os valores propostos na pendência e marca a solicitação como aprovada.
-      Data.updatePendencia(s.pendencia_id, {
-        valor_fabricar: num(s.valor_fabricar_novo),
-        vol_fabricado: num(s.vol_fabricado_novo),
-        vol_estoque: num(s.vol_estoque_novo),
-        vol_transportado: num(s.vol_transportado_novo)
-      }).then(function (res) {
-        if (res.error) { window.alert("Erro ao aplicar alteração: " + res.error.message); return; }
-        sincronizaRegistro(s);
-        Data.setStatusSolicitacao(s.id, "aprovada").then(function (r2) {
-          if (r2.error) { window.alert("Alteração aplicada, mas erro ao fechar a solicitação: " + r2.error.message); }
-          render();
-        });
-      });
-    }
-
-    /* Se o envio já tinha sido aceito (existe como registro oficial),
-       aplica os novos valores também no registro para refletir no dashboard. */
-    function sincronizaRegistro(s) {
-      if (!window.Store) return;
-      window.Store.refresh().then(function () {
-        var alvo = window.Store.getAll().filter(function (r) {
-          return r.fornecedor === s.fornecedor && String(r.pedido) === String(s.pedido);
-        })[0];
-        if (!alvo) return;
-        return window.Store.update(alvo.id, {
-          volFabricar: num(s.valor_fabricar_novo),
-          volPronto: num(s.vol_fabricado_novo),
-          volLiberado: num(s.vol_estoque_novo),
-          volTransportado: num(s.vol_transportado_novo)
-        }).then(function () {
-          if (window.RegistrosUI) window.RegistrosUI.render();
-        });
+      Data.aprovarSolicitacao(s.id).then(function (res) {
+        if (res.error) throw res.error;
+        render();
+        if (window.RegistrosUI) window.RegistrosUI.render();
       }).catch(function (err) {
-        window.alert("Solicitação aprovada, mas não foi possível sincronizar o registro: " + (err.message || err));
+        window.alert("Erro ao aprovar a solicitação: " + (err.message || err));
       });
     }
 

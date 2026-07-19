@@ -41,6 +41,7 @@
       fornecedor: r.fornecedor || "",
       local: r.local || "",
       pedido: r.pedido || "",
+      pedidoId: r.pedido_id || null,
       volPedido: num(r.vol_pedido),
       volFabricar: num(r.vol_fabricar),
       volPronto: num(r.vol_pronto),
@@ -68,6 +69,7 @@
       vol_liberado: num(rec.volLiberado),
       vol_transportado: num(rec.volTransportado)
     };
+    if (rec.pedidoId) row.pedido_id = rec.pedidoId;
     if (rec.createdAt) row.created_at = rec.createdAt;
     return row;
   }
@@ -93,7 +95,7 @@
   function refresh() {
     if (!sb()) return Promise.resolve(cache);
     return sb().from("registros")
-      .select("id, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
+      .select("id, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
       .order("created_at", { ascending: true })
       .then(function (res) {
         if (res.error) throw res.error;
@@ -148,8 +150,12 @@
   }
 
   function update(id, patch) {
-    return sb().from("registros").update(patchToDb(patch)).eq("id", id).select("*").single().then(function (res) {
+    var current = cache.filter(function (r) { return r.id === id; })[0];
+    if (!current) return Promise.reject(new Error("Registro desatualizado. Recarregue a página e tente novamente."));
+    return sb().from("registros").update(patchToDb(patch)).eq("id", id)
+      .eq("updated_at", current.updatedAt).select("*").maybeSingle().then(function (res) {
       if (res.error) throw res.error;
+      if (!res.data) throw new Error("Este registro foi alterado por outro usuário. Recarregue a página antes de salvar novamente.");
       var rec = fromDb(res.data);
       cache = cache.map(function (r) { return r.id === id ? rec : r; });
       return rec;
@@ -157,8 +163,11 @@
   }
 
   function remove(id) {
-    return sb().from("registros").delete().eq("id", id).then(function (res) {
+    var current = cache.filter(function (r) { return r.id === id; })[0];
+    if (!current) return Promise.reject(new Error("Registro desatualizado. Recarregue a página e tente novamente."));
+    return sb().from("registros").delete().eq("id", id).eq("updated_at", current.updatedAt).select("id").then(function (res) {
       if (res.error) throw res.error;
+      if (!res.data || !res.data.length) throw new Error("Este registro foi alterado por outro usuário e não foi excluído.");
       cache = cache.filter(function (r) { return r.id !== id; });
       return cache;
     });
@@ -1897,7 +1906,7 @@
     "fluxo-dados": document.getElementById("view-fluxo-dados")
   };
 
-  function show(view) {
+  function show(view, preserveScroll) {
     if (!views[view]) view = "registros";
     var role = window.currentProfile ? window.currentProfile.role : null;
     if (window.AccessControl && role && !window.AccessControl.canView(view, role)) {
@@ -1927,7 +1936,7 @@
     if (view === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
     if (window.PDFExport && window.PDFExport.sync) window.setTimeout(window.PDFExport.sync, 80);
 
-    window.scrollTo(0, 0);
+    if (!preserveScroll) window.scrollTo(0, 0);
   }
 
   // Cliques em qualquer elemento com data-view (sidebar, botões, empty-state)
@@ -1953,6 +1962,15 @@
 
   window.addEventListener("hashchange", function () {
     show((location.hash || "#registros").slice(1));
+  });
+
+  var realtimeRefreshTimer = null;
+  window.addEventListener("site:data-changed", function () {
+    if (!window.currentProfile) return;
+    window.clearTimeout(realtimeRefreshTimer);
+    realtimeRefreshTimer = window.setTimeout(function () {
+      show((location.hash || "#registros").slice(1), true);
+    }, 250);
   });
 
   // Permite ao login redesenhar a tela atual depois que a sessão é resolvida.

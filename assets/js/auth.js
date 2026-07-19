@@ -48,12 +48,14 @@
   }
 
   function showLogin() {
+    if (window.SiteRealtime) window.SiteRealtime.stop();
     body.classList.remove("authed", "role-admin", "role-editor", "role-coordenador", "role-analista", "role-fiscal", "role-fornecedor", "auth-loading");
     window.currentProfile = null;
   }
 
   function showApp(profile) {
     window.currentProfile = profile;
+    if (window.SiteRealtime) window.SiteRealtime.start();
     body.classList.remove("auth-loading");
     body.classList.add("authed");
     ["admin", "editor", "coordenador", "analista", "fiscal", "fornecedor"].forEach(function (role) {

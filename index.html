@@ -828,6 +828,8 @@
               <option value="pendencias">Informações pendentes</option>
               <option value="solicitacoes">Solicitações</option>
               <option value="comentarios">Comentários</option>
+              <option value="pedidos">Pedidos</option>
+              <option value="profiles">Perfis de acesso</option>
               <option value="padroes">Padronização</option>
               <option value="contas">Contas</option>
             </select>
@@ -1075,19 +1077,19 @@
 
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/supabase-config.js?v=realtime-1"></script>
   <script src="assets/js/access-control.js?v=fornecedor-restrito-1"></script>
-  <script src="assets/js/pendencias.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/padroes.js?v=pedidos-detalhes-1"></script>
+  <script src="assets/js/pendencias.js?v=fluxos-atomicos-1"></script>
+  <script src="assets/js/padroes.js?v=pedidos-unicos-1"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/report-semanal.js?v=progresso-pedidos-2"></script>
-  <script src="assets/js/auditoria.js?v=permissoes-2"></script>
+  <script src="assets/js/report-semanal.js?v=concorrencia-1"></script>
+  <script src="assets/js/auditoria.js?v=pedidos-1"></script>
 
-  <script src="assets/js/app.js?v=menu-lateral-2"></script>
+  <script src="assets/js/app.js?v=integridade-dados-1"></script>
   <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>
   <script src="assets/js/pdf-export.js?v=pdf-compacto-9"></script>
   <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>
-  <script src="assets/js/auth.js?v=fluxo-dados-1"></script>
+  <script src="assets/js/auth.js?v=realtime-1"></script>
 </body>
 </html>
