@@ -2133,3 +2133,50 @@ body.role-analista #view-auditoria { display: none !important; }
   .auth__logo { width: 112px; }
   .auth__card { padding: 20px; }
 }
+
+/* No celular o funil deixa de ocupar duas linhas artificiais do grid.
+   Cada etapa ganha altura própria para não ser comprimida pelo flex layout. */
+@media (max-width: 900px) {
+  #view-dashboard .funnel-card {
+    display: block;
+    grid-row: auto;
+    min-height: 0;
+  }
+  #view-dashboard .funnel-card .card__body {
+    display: block;
+    min-height: 0;
+  }
+  #view-dashboard .funnel {
+    display: flex;
+    height: auto;
+    min-height: 0;
+    gap: 7px;
+    justify-content: flex-start;
+  }
+  #view-dashboard .funnel__row {
+    flex: 0 0 36px;
+    grid-template-columns: 105px minmax(0, 1fr);
+    gap: 8px;
+    min-height: 36px;
+  }
+  #view-dashboard .funnel__track {
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+  }
+  #view-dashboard .funnel__bar {
+    height: 36px;
+  }
+}
+
+@media (max-width: 430px) {
+  #view-dashboard .funnel__row {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+  #view-dashboard .funnel__name {
+    font-size: 10px;
+  }
+  #view-dashboard .funnel__name small {
+    font-size: 8.5px;
+  }
+}
