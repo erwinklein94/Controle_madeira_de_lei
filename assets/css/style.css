@@ -1847,3 +1847,289 @@ body.role-analista #view-auditoria { display: none !important; }
   .chart-modal__funnel .funnel__value .pct { font-size: 10px; margin-left: 4px; }
   .chart-modal__funnel .funnel__value--out { font-size: 11px; }
 }
+
+/* =====================================================================
+   PADRÃO VISUAL RUMO — tradução do Brand Book para produto digital
+   ===================================================================== */
+:root {
+  --rumo-raio: 9px;
+  --rumo-raio-sm: 6px;
+  --rumo-sombra: 0 2px 10px rgba(0, 56, 101, 0.055);
+  --rumo-sombra-hover: 0 7px 20px rgba(0, 56, 101, 0.12);
+  --rumo-chanfro: 14px;
+}
+
+/* Navegação: ícones da família oficial e módulos mais geométricos. */
+.sidebar { padding: 24px 16px; }
+.sidebar__brand { padding-inline: 10px; }
+.sidebar__rule {
+  height: 5px;
+  margin-inline: 10px;
+  background: var(--rumo-verde-claro);
+}
+.nav { gap: 3px; }
+.nav__item {
+  min-height: 44px;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.nav__ico {
+  display: block;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  color: currentColor;
+  opacity: 0.96;
+}
+.nav__item.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+.nav__item.is-active::before {
+  flex: 0 0 3px;
+  width: 3px;
+  height: 24px;
+  border-radius: 0;
+}
+.nav__sep { margin-block: 7px; }
+
+.btn__ico {
+  display: block;
+  width: 18px;
+  height: 18px;
+  color: currentColor;
+}
+
+/* Cabeçalho modular comum a todas as páginas. */
+.page-head {
+  position: relative;
+  align-items: center;
+  min-height: 104px;
+  padding: 20px 26px 20px 28px;
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-left: 5px solid var(--rumo-azul-claro);
+  border-radius: var(--rumo-raio);
+  background: var(--surface);
+  box-shadow: var(--rumo-sombra);
+  clip-path: polygon(0 0, calc(100% - var(--rumo-chanfro)) 0, 100% var(--rumo-chanfro), 100% 100%, 0 100%);
+}
+.page-head::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90px;
+  height: 7px;
+  background: var(--rumo-verde-claro);
+  clip-path: polygon(9px 0, 100% 0, 100% 100%, 0 100%);
+}
+.page-head__eyebrow {
+  margin-bottom: 5px;
+  color: var(--rumo-azul-claro);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.page-head h1 { font-size: clamp(23px, 2vw, 30px); }
+.page-head__sub { margin-bottom: 0; }
+:root[data-theme="dark"] .page-head { background: var(--surface); }
+
+/* Superfícies planas; cinzas delimitam áreas sem sobrecarregar as cores. */
+.card,
+.kpi,
+.report-fiscal,
+.report-order-card,
+.report-kpi,
+.report-history-kpi {
+  border-radius: var(--rumo-raio);
+  box-shadow: var(--rumo-sombra);
+}
+.card { overflow: hidden; }
+.card__head {
+  position: relative;
+  padding-top: 32px;
+}
+.card__head::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  width: 46px;
+  height: 4px;
+  background: var(--rumo-azul-claro);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+}
+.card__title { font-weight: 700; }
+.card__hint { max-width: 72ch; line-height: 1.45; }
+.chart-card { border-radius: var(--rumo-raio) 0 var(--rumo-raio) var(--rumo-raio); }
+.chart-card:hover { border-color: var(--rumo-azul-claro); }
+
+.kpi {
+  border-radius: var(--rumo-raio) 0 var(--rumo-raio) var(--rumo-raio);
+  clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
+}
+.kpi::after { height: 4px; right: 11px; }
+.report-kpi,
+.report-history-kpi {
+  border-radius: var(--rumo-raio) 0 var(--rumo-raio) var(--rumo-raio);
+}
+
+/* Formulários e ações: menos arredondamento e hierarquia mais objetiva. */
+.btn {
+  min-height: 38px;
+  border-radius: 6px 0 6px 6px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.field input,
+.field select,
+.filters select,
+.filters input,
+.padrao-form input {
+  min-height: 40px;
+  border-radius: var(--rumo-raio-sm);
+}
+.filters {
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--rumo-azul-claro);
+  border-radius: var(--rumo-raio);
+  background: var(--surface);
+  box-shadow: var(--rumo-sombra);
+}
+
+/* Tabelas: azul para hierarquia e verde para leitura do realizado. */
+.table-wrap { scrollbar-color: var(--rumo-cinza-300) transparent; }
+.tabela thead th {
+  padding-top: 11px;
+  padding-bottom: 11px;
+  border-bottom: 2px solid var(--rumo-azul-claro);
+  background: var(--rumo-cinza-50);
+  color: var(--rumo-azul);
+  font-size: 11px;
+  letter-spacing: 0.025em;
+}
+.tabela tbody tr { transition: background var(--rumo-transicao); }
+.tabela tbody tr:hover { background: rgba(50, 166, 230, 0.055); }
+.tag-pend,
+.tag-ok,
+.tag-no,
+.tag-wait,
+.report-pending,
+.report-sent { border-radius: 5px 0 5px 5px; }
+
+/* Report Semanal: cabeçalhos chapados e barras sem gradiente. */
+.report-intro {
+  border-radius: var(--rumo-raio) 0 var(--rumo-raio) var(--rumo-raio);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+.report-fiscal { border-radius: 10px; }
+.report-fiscal__head {
+  position: relative;
+  overflow: hidden;
+  background: var(--rumo-azul);
+}
+.report-fiscal__head::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  background: rgba(127, 224, 108, 0.2);
+  clip-path: polygon(48% 0, 100% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+.report-fiscal__head > * { position: relative; z-index: 1; }
+.report-bar__track { border-radius: 2px; }
+.report-bar__track i { border-radius: 2px; background: var(--rumo-verde); }
+.report-order-chart,
+.report-progress,
+.report-destination,
+.report-order-card { border-radius: var(--rumo-raio); }
+
+/* Login institucional em cor chapada, com módulos inspirados nos ativos Rumo. */
+.auth {
+  overflow: hidden;
+  background: var(--rumo-azul-noite);
+}
+.auth::before,
+.auth::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.auth::before {
+  top: -90px;
+  right: -70px;
+  width: 420px;
+  height: 250px;
+  background: var(--rumo-azul);
+  opacity: 0.8;
+  clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%);
+}
+.auth::after {
+  bottom: -80px;
+  left: -80px;
+  width: 390px;
+  height: 190px;
+  background: var(--rumo-verde);
+  opacity: 0.34;
+  clip-path: polygon(0 0, 78% 0, 100% 100%, 0 100%);
+}
+.auth__box { position: relative; z-index: 1; }
+.auth__logo { width: 142px; }
+.auth__card {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top-width: 5px;
+  border-radius: var(--rumo-raio) 0 var(--rumo-raio) var(--rumo-raio);
+  box-shadow: 0 10px 28px rgba(0, 30, 54, 0.28);
+}
+
+/* O dashboard preserva sua densidade operacional. */
+#view-dashboard .page-head {
+  min-height: 68px;
+  padding: 10px 15px 10px 17px;
+}
+#view-dashboard .card__head::before {
+  top: 8px;
+  left: 10px;
+  width: 30px;
+  height: 3px;
+}
+#view-dashboard .card__head { padding-top: 18px; }
+#view-dashboard .kpi { border-radius: 7px 0 7px 7px; }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.section-title::before {
+  content: "";
+  width: 30px;
+  height: 4px;
+  background: var(--rumo-verde);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+@media (max-width: 900px) {
+  .sidebar { padding: 13px 16px; }
+  .nav__item { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+  .nav__ico { flex-basis: 23px; width: 23px; height: 23px; }
+  .page-head { min-height: 94px; padding: 17px 19px 17px 21px; }
+}
+
+@media (max-width: 620px) {
+  .page-head { align-items: flex-start; padding: 16px 17px; }
+  .page-head::after { width: 54px; height: 5px; }
+  .page-head__actions { width: 100%; }
+  .page-head__actions .btn { flex: 1 1 auto; justify-content: center; }
+  .auth { justify-content: flex-start; overflow-y: auto; padding-top: 34px; }
+  .auth__logo { width: 112px; }
+  .auth__card { padding: 20px; }
+}

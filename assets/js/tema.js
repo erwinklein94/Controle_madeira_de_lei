@@ -16,7 +16,8 @@
 
   function syncBtn() {
     var dark = isDark();
-    if (ico) ico.textContent = dark ? "☾" : "☀";
+    var iconUse = ico ? ico.querySelector("use") : null;
+    if (iconUse) iconUse.setAttribute("href", "assets/img/rumo-icons.svg#" + (dark ? "icon-moon" : "icon-sun"));
     // Mostra o tema atual (não o alvo).
     if (txt) txt.textContent = dark ? "Tema escuro" : "Tema claro";
     if (btn) btn.setAttribute("aria-pressed", String(dark));

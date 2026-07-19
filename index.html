@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=progresso-pedidos-2" />
+  <link rel="stylesheet" href="assets/css/style.css?v=brandbook-rumo-2" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -73,27 +73,27 @@
       </div>
       <div class="sidebar__rule"></div>
       <nav class="nav">
-        <a class="nav__item" href="#dashboard" data-view="dashboard"><span class="nav__ico">▦</span> Dashboard</a>
-        <a class="nav__item" href="#fornecedores" data-view="fornecedores"><span class="nav__ico">◪</span> Detalhes do fornecedor</a>
-        <a class="nav__item" href="#report-semanal" data-view="report-semanal"><span class="nav__ico">▣</span> Report Semanal</a>
+        <a class="nav__item" href="#dashboard" data-view="dashboard"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-dashboard"></use></svg> Dashboard</a>
+        <a class="nav__item" href="#fornecedores" data-view="fornecedores"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Detalhes do fornecedor</a>
+        <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report Semanal</a>
         <div class="nav__sep"></div>
-        <a class="nav__item is-active" href="#registros" data-view="registros"><span class="nav__ico">▤</span> Registros</a>
-        <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><span class="nav__ico">◔</span> Informações pendentes</a>
+        <a class="nav__item is-active" href="#registros" data-view="registros"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-records"></use></svg> Registros</a>
+        <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-pending"></use></svg> Informações pendentes</a>
         <div class="nav__sep"></div>
-        <a class="nav__item" href="#contas" data-view="contas" data-requires-full><span class="nav__ico">◈</span> Contas</a>
-        <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-audit><span class="nav__ico">◎</span> Auditoria</a>
-        <a class="nav__item" href="#comentarios" data-view="comentarios"><span class="nav__ico">✎</span> Comentários</a>
-        <a class="nav__item" href="#padronizacao" data-view="padronizacao"><span class="nav__ico">☰</span> Padronização</a>
+        <a class="nav__item" href="#contas" data-view="contas" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-accounts"></use></svg> Contas</a>
+        <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-audit><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-audit"></use></svg> Auditoria</a>
+        <a class="nav__item" href="#comentarios" data-view="comentarios"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-comments"></use></svg> Comentários</a>
+        <a class="nav__item" href="#padronizacao" data-view="padronizacao"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-standards"></use></svg> Padronização</a>
         <div class="nav__sep"></div>
         <button id="btn-tema" class="nav__item nav__theme" type="button">
-          <span class="nav__ico" id="tema-ico">☀</span> <span id="tema-txt">Tema claro</span>
+          <svg class="nav__ico" id="tema-ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-sun"></use></svg> <span id="tema-txt">Tema claro</span>
         </button>
       </nav>
     </aside>
 
     <main class="main">
       <div class="top-menu">
-        <button id="btn-menu" class="btn btn--ghost menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">☰ Menu</button>
+        <button id="btn-menu" class="btn btn--ghost menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false"><svg class="btn__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-menu"></use></svg> Menu</button>
         <div class="top-menu__user">
           <span id="user-chip" class="user-chip"></span>
           <button class="btn btn--ghost btn--sm" type="button" data-logout>Sair</button>
@@ -953,7 +953,7 @@
   <script src="assets/js/auditoria.js?v=permissoes-2"></script>
 
   <script src="assets/js/app.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/tema.js"></script>
+  <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>
   <script src="assets/js/auth.js?v=95d62d7"></script>
 </body>
 </html>
