@@ -1807,16 +1807,28 @@
   "use strict";
 
   var btn = document.getElementById("btn-menu");
+  var backdrop = document.querySelector(".sidebar-backdrop");
   if (!btn) return;
 
   function sync() {
     var open = !document.body.classList.contains("sidebar-collapsed");
     btn.setAttribute("aria-expanded", String(open));
+    if (backdrop) backdrop.setAttribute("aria-hidden", String(!open));
+  }
+
+  function close() {
+    document.body.classList.add("sidebar-collapsed");
+    sync();
   }
 
   btn.addEventListener("click", function () {
     document.body.classList.toggle("sidebar-collapsed");
     sync();
+  });
+
+  if (backdrop) backdrop.addEventListener("click", close);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !document.body.classList.contains("sidebar-collapsed")) close();
   });
 
   sync();
@@ -1870,6 +1882,7 @@
     if (view === "comentarios" && window.ComentariosUI) window.ComentariosUI.render();
     if (view === "padronizacao" && window.PadronizacaoUI) window.PadronizacaoUI.render();
     if (view === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
+    if (window.PDFExport && window.PDFExport.sync) window.setTimeout(window.PDFExport.sync, 80);
 
     window.scrollTo(0, 0);
   }

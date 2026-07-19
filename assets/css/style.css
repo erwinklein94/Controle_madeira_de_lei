@@ -2427,3 +2427,95 @@ body.presentation-mode .report-order-chart { min-height: 330px; }
   .flow-database { padding: 13px; }
   .flow-database svg { flex-basis: 34px; width: 34px; height: 34px; }
 }
+
+/* =====================================================================
+   MENU MOBILE EM GAVETA LATERAL
+   ===================================================================== */
+.sidebar-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  .app { flex-direction: row; }
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 160;
+    display: flex;
+    width: min(84vw, 320px);
+    height: 100dvh;
+    margin-left: 0;
+    padding: 20px 16px;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 0;
+    overflow: hidden;
+    transform: translateX(0);
+    box-shadow: 18px 0 40px rgba(0, 28, 51, 0.28);
+  }
+  body.sidebar-collapsed .sidebar {
+    display: flex;
+    margin-left: 0;
+    transform: translateX(-105%);
+  }
+  .sidebar__brand { padding: 0 8px 4px; }
+  .sidebar__logo { width: 118px; }
+  .sidebar__rule { display: block; margin: 18px 8px 16px; }
+  .sidebar__foot { display: none; }
+  .nav {
+    width: 100%;
+    margin-left: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 3px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .nav__item { width: 100%; flex: 0 0 auto; }
+  .nav__item.is-active {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 28, 51, 0.48);
+    opacity: 1;
+    cursor: default;
+    transition: opacity var(--rumo-transicao), visibility var(--rumo-transicao);
+  }
+  body.sidebar-collapsed .sidebar-backdrop {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  body:not(.sidebar-collapsed) { overflow: hidden; }
+  body.presentation-mode .sidebar-backdrop { display: none; }
+}
+
+/* Exportação só aparece em páginas com gráficos e nunca para fornecedor. */
+.pdf-export-toggle.is-loading { cursor: progress; opacity: 0.72; }
+body.role-fornecedor .pdf-export-toggle { display: none !important; }
+
+@media (max-width: 760px) {
+  .top-menu__user {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .presentation-toggle,
+  .pdf-export-toggle {
+    width: 100%;
+    margin-right: 0;
+    justify-content: center;
+  }
+  .top-menu__user .user-chip { align-self: center; white-space: normal; }
+  .top-menu__user [data-logout] { justify-self: end; }
+}
+
+@media (max-width: 430px) {
+  .pdf-export-toggle { padding-inline: 9px; font-size: 11px; }
+}

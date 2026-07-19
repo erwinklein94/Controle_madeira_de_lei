@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=fornecedor-restrito-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=menu-lateral-pdf-2" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -92,12 +92,14 @@
         </button>
       </nav>
     </aside>
+    <button class="sidebar-backdrop" type="button" aria-label="Fechar menu" tabindex="-1"></button>
 
     <main class="main">
       <div class="top-menu">
         <button id="btn-menu" class="btn btn--ghost menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false"><svg class="btn__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-menu"></use></svg> Menu</button>
         <div class="top-menu__user">
           <button id="btn-presentation" class="btn btn--ghost btn--sm presentation-toggle" type="button" aria-pressed="false" disabled title="Disponível nas páginas que possuem gráficos"><svg class="btn__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-presentation"></use></svg><span class="presentation-label">Modo Apresentação</span></button>
+          <button id="btn-export-pdf" class="btn btn--ghost btn--sm pdf-export-toggle" type="button" hidden title="Exportar informações e gráficos desta página"><svg class="btn__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-export"></use></svg><span class="pdf-export-label">Exportar PDF</span></button>
           <span id="user-chip" class="user-chip"></span>
           <button class="btn btn--ghost btn--sm" type="button" data-logout>Sair</button>
         </div>
@@ -1074,6 +1076,7 @@
   <!-- Chart.js + datalabels (CDN, versões fixas). Precisa de internet na 1ª carga do Dashboard. -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1086,8 +1089,9 @@
   <script src="assets/js/report-semanal.js?v=progresso-pedidos-2"></script>
   <script src="assets/js/auditoria.js?v=permissoes-2"></script>
 
-  <script src="assets/js/app.js?v=fluxo-dados-1"></script>
+  <script src="assets/js/app.js?v=menu-lateral-2"></script>
   <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>
+  <script src="assets/js/pdf-export.js?v=pdf-compacto-9"></script>
   <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>
   <script src="assets/js/auth.js?v=fluxo-dados-1"></script>
 </body>
