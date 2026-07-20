@@ -28,7 +28,6 @@ with referencias as (
   select pedido as numero, fornecedor, local, nullif(vol_pedido, 0)::bigint as quantidade from public.registros
   union all select pedido, fornecedor, null::text, null::bigint from public.pendencias
   union all select pedido, fornecedor, null::text, null::bigint from public.solicitacoes where pedido is not null
-  union all select pedido, fornecedor, local, null::bigint from public.report_semanal_planejamentos where pedido is not null
   union all select pedido, fornecedor, local, nullif(vol_pedido, 0)::bigint from public.report_semanal_registros
   union all select pedido, fornecedor, null::text, null::bigint from public.comentarios
 ), consolidados as (
@@ -48,14 +47,12 @@ alter table public.registros add column if not exists pedido_id uuid;
 alter table public.pendencias add column if not exists pedido_id uuid;
 alter table public.pendencias add column if not exists registro_id uuid;
 alter table public.solicitacoes add column if not exists pedido_id uuid;
-alter table public.report_semanal_planejamentos add column if not exists pedido_id uuid;
 alter table public.report_semanal_registros add column if not exists pedido_id uuid;
 alter table public.comentarios add column if not exists pedido_id uuid;
 
 update public.registros r set pedido_id = p.id from public.pedidos p where r.pedido_id is null and p.numero = r.pedido;
 update public.pendencias r set pedido_id = p.id from public.pedidos p where r.pedido_id is null and p.numero = r.pedido;
 update public.solicitacoes r set pedido_id = p.id from public.pedidos p where r.pedido_id is null and p.numero = r.pedido;
-update public.report_semanal_planejamentos r set pedido_id = p.id from public.pedidos p where r.pedido_id is null and p.numero = r.pedido;
 update public.report_semanal_registros r set pedido_id = p.id from public.pedidos p where r.pedido_id is null and p.numero = r.pedido;
 update public.comentarios r set pedido_id = p.id from public.pedidos p where r.pedido_id is null and p.numero = r.pedido;
 
@@ -67,7 +64,6 @@ begin
     ('pendencias_pedido_id_fkey', 'public.pendencias', 'pedido_id'),
     ('pendencias_registro_id_fkey', 'public.pendencias', 'registro_id'),
     ('solicitacoes_pedido_id_fkey', 'public.solicitacoes', 'pedido_id'),
-    ('report_planejamentos_pedido_id_fkey', 'public.report_semanal_planejamentos', 'pedido_id'),
     ('report_registros_pedido_id_fkey', 'public.report_semanal_registros', 'pedido_id'),
     ('comentarios_pedido_id_fkey', 'public.comentarios', 'pedido_id')
   ) v(nome, tabela, coluna)
@@ -97,7 +93,6 @@ create index if not exists pendencias_pedido_id_idx on public.pendencias(pedido_
 create index if not exists pendencias_status_created_idx on public.pendencias(status, created_at desc);
 create index if not exists solicitacoes_pedido_id_idx on public.solicitacoes(pedido_id);
 create index if not exists solicitacoes_status_created_idx on public.solicitacoes(status, created_at desc);
-create index if not exists report_planejamentos_pedido_id_idx on public.report_semanal_planejamentos(pedido_id);
 create index if not exists report_registros_pedido_id_idx on public.report_semanal_registros(pedido_id);
 create index if not exists comentarios_pedido_id_idx on public.comentarios(pedido_id);
 create index if not exists pedidos_fornecedor_ativo_idx on public.pedidos(fornecedor, ativo);
@@ -127,7 +122,6 @@ end $$;
 alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 alter table public.pendencias add column if not exists updated_at timestamptz not null default now();
 alter table public.solicitacoes add column if not exists updated_at timestamptz not null default now();
-alter table public.report_semanal_planejamentos add column if not exists updated_at timestamptz not null default now();
 alter table public.report_semanal_registros add column if not exists updated_at timestamptz not null default now();
 alter table public.comentarios add column if not exists updated_at timestamptz not null default now();
 
@@ -141,7 +135,7 @@ end $$;
 do $$
 declare tabela text;
 begin
-  foreach tabela in array array['pedidos','profiles','registros','padroes','pendencias','solicitacoes','report_semanal_planejamentos','report_semanal_registros','comentarios']
+  foreach tabela in array array['pedidos','profiles','registros','padroes','pendencias','solicitacoes','report_semanal_registros','comentarios']
   loop
     execute format('drop trigger if exists set_updated_at on public.%I', tabela);
     execute format('drop trigger if exists %I on public.%I', tabela || '_set_updated_at', tabela);
@@ -176,9 +170,6 @@ begin
   elsif tg_table_name = 'solicitacoes' then
     new.fornecedor = coalesce(item.fornecedor, new.fornecedor);
     new.vol_pedido_novo = coalesce(item.quantidade_dormentes, new.vol_pedido_novo);
-  elsif tg_table_name = 'report_semanal_planejamentos' then
-    new.fornecedor = coalesce(item.fornecedor, new.fornecedor);
-    new.local = coalesce(item.local, new.local);
   elsif tg_table_name = 'report_semanal_registros' then
     new.fornecedor = coalesce(item.fornecedor, new.fornecedor);
     new.local = coalesce(item.local, new.local);
@@ -192,7 +183,7 @@ end $$;
 do $$
 declare tabela text;
 begin
-  foreach tabela in array array['registros','pendencias','solicitacoes','report_semanal_planejamentos','report_semanal_registros','comentarios']
+  foreach tabela in array array['registros','pendencias','solicitacoes','report_semanal_registros','comentarios']
   loop
     execute format('drop trigger if exists canonicalize_pedido on public.%I', tabela);
     execute format('create trigger canonicalize_pedido before insert or update of pedido_id, pedido on public.%I for each row execute function private.canonicalize_pedido_reference()', tabela);
@@ -210,8 +201,6 @@ begin
       vol_pedido=coalesce(new.quantidade_dormentes, vol_pedido) where pedido_id=new.id;
     update public.solicitacoes set pedido=new.numero, fornecedor=coalesce(new.fornecedor, fornecedor),
       vol_pedido_novo=coalesce(new.quantidade_dormentes, vol_pedido_novo) where pedido_id=new.id;
-    update public.report_semanal_planejamentos set pedido=new.numero, fornecedor=coalesce(new.fornecedor, fornecedor),
-      local=coalesce(new.local, local) where pedido_id=new.id;
     update public.report_semanal_registros set pedido=new.numero, fornecedor=coalesce(new.fornecedor, fornecedor),
       local=coalesce(new.local, local), vol_pedido=coalesce(new.quantidade_dormentes, vol_pedido) where pedido_id=new.id;
     update public.comentarios set pedido=new.numero, fornecedor=coalesce(new.fornecedor, fornecedor) where pedido_id=new.id;
@@ -314,12 +303,22 @@ drop policy if exists profiles_full_access on public.profiles;
 alter table public.pedidos enable row level security;
 drop policy if exists pedidos_read_scope on public.pedidos;
 drop policy if exists pedidos_full_insert on public.pedidos;
+drop policy if exists pedidos_fiscal_insert on public.pedidos;
 drop policy if exists pedidos_full_update on public.pedidos;
 create policy pedidos_read_scope on public.pedidos for select to authenticated using (
   (select public.current_role_name()) in ('editor','coordenador','analista','fiscal') or
   ((select public.current_role_name())='fornecedor' and fornecedor=(select public.current_fornecedor()))
 );
 create policy pedidos_full_insert on public.pedidos for insert to authenticated with check ((select public.has_full_access()));
+create policy pedidos_fiscal_insert on public.pedidos for insert to authenticated with check (
+  (select public.is_fiscal())
+  and created_by = (select auth.uid())
+  and ativo is true
+  and nullif(btrim(numero), '') is not null
+  and quantidade_dormentes > 0
+  and exists (select 1 from public.padroes p where p.categoria='fornecedor' and p.valor=pedidos.fornecedor)
+  and exists (select 1 from public.padroes p where p.categoria='local' and p.valor=pedidos.local)
+);
 create policy pedidos_full_update on public.pedidos for update to authenticated
   using ((select public.has_full_access())) with check ((select public.has_full_access()));
 grant select,insert,update on public.pedidos to authenticated;
@@ -336,7 +335,7 @@ do $$
 declare tabela text;
 begin
   if exists(select 1 from pg_publication where pubname='supabase_realtime') then
-    foreach tabela in array array['pedidos','profiles','registros','padroes','pendencias','solicitacoes','report_semanal_planejamentos','report_semanal_registros','comentarios'] loop
+    foreach tabela in array array['pedidos','profiles','registros','padroes','pendencias','solicitacoes','report_semanal_registros','comentarios'] loop
       if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename=tabela) then
         execute format('alter publication supabase_realtime add table public.%I', tabela);
       end if;

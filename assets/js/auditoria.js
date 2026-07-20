@@ -22,7 +22,6 @@
     pedidos: "Pedidos",
     profiles: "Perfis de acesso",
     padroes: "Padronização",
-    report_semanal_planejamentos: "Report · Planejamento",
     report_semanal_registros: "Report · Atividades",
     contas: "Contas"
   };
@@ -33,8 +32,7 @@
     vol_inspecionado: "Inspecionado",
     vol_liberado: "Estoque para entrega", vol_transportado: "Transportado",
     status: "Status", texto: "Texto", categoria: "Categoria", valor: "Valor",
-    semana_inicio: "Semana", expectativa_inspecionado: "Expectativa de inspeção",
-    expectativa_entregue: "Expectativa de entrega", observacoes: "Observações",
+    semana_inicio: "Semana", observacoes: "Observações",
     role: "Perfil", nome: "Nome", email: "E-mail", password_changed: "Senha alterada"
   };
   var IGNORED = { created_at: true, updated_at: true, created_by: true, autor_id: true };

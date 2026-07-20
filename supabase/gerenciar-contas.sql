@@ -33,13 +33,6 @@ alter table public.comentarios
   add constraint comentarios_autor_id_fkey
   foreign key (autor_id) references auth.users (id) on delete set null;
 
-alter table public.report_semanal_planejamentos
-  alter column created_by drop not null,
-  drop constraint if exists report_semanal_planejamentos_created_by_fkey;
-alter table public.report_semanal_planejamentos
-  add constraint report_semanal_planejamentos_created_by_fkey
-  foreign key (created_by) references auth.users (id) on delete set null;
-
 alter table public.report_semanal_registros
   alter column created_by drop not null,
   drop constraint if exists report_semanal_registros_created_by_fkey;

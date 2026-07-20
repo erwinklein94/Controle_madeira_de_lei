@@ -447,19 +447,15 @@
           <div>
             <div class="page-head__eyebrow">Coordenação da fiscalização</div>
             <h1>Report Semanal</h1>
-            <p class="page-head__sub">Planejamento, localização e evolução diária das atividades de cada fiscal.</p>
-          </div>
-          <div class="report-page-head__legend" aria-label="Fluxo do report semanal">
-            <span><i class="report-dot report-dot--plan"></i> Planejado</span>
-            <span><i class="report-dot report-dot--done"></i> Realizado</span>
+            <p class="page-head__sub">Lançamentos realizados, evolução semanal e progresso acumulado dos pedidos.</p>
           </div>
         </header>
 
         <section class="report-intro" aria-label="Como usar o Report Semanal">
           <div class="report-intro__icon">i</div>
           <div>
-            <strong>Comece pelo roteiro da semana.</strong>
-            <p>Informe onde cada fiscal estará, o fornecedor, o local e as expectativas de inspeção e entrega. Depois, registre as atividades diariamente e envie cada lançamento concluído para a página Registros.</p>
+            <strong>Registre o realizado de forma simples.</strong>
+            <p>Selecione a semana, faça os lançamentos diários e acompanhe os resultados. Se o pedido ainda não existir, o fiscal pode cadastrá-lo no próprio Report e utilizá-lo imediatamente.</p>
           </div>
         </section>
 
@@ -546,7 +542,7 @@
             </div>
             <div class="flow-node">
               <strong>Gestão da área</strong>
-              <p>Define pedidos, destinos semanais, expectativas, contas e padrões utilizados pelo site.</p>
+              <p>Administra contas e padrões; o fiscal também pode cadastrar novos pedidos diretamente no Report Semanal.</p>
               <em>Coordenador · Analista</em>
             </div>
           </article>
@@ -583,7 +579,7 @@
             </div>
             <div class="flow-node">
               <strong>Report Semanal</strong>
-              <p>Mantém o histórico diário, compara expectativas e acompanha o saldo total de cada pedido.</p>
+              <p>Mantém o histórico diário, resume o realizado na semana e acompanha o saldo total de cada pedido.</p>
               <em>Fiscalização</em>
             </div>
             <div class="flow-node">
@@ -614,7 +610,7 @@
             </div>
             <div class="flow-node">
               <strong>Decisão e apresentação</strong>
-              <p>Os gráficos apoiam reuniões, planejamento semanal e cobrança dos saldos restantes.</p>
+              <p>Os gráficos apoiam reuniões, acompanhamento semanal e gestão dos saldos restantes.</p>
               <em>Modo Apresentação</em>
             </div>
           </article>
@@ -819,7 +815,6 @@
             <select id="audit-entity">
               <option value="">Todas</option>
               <option value="registros">Registros</option>
-              <option value="report_semanal_planejamentos">Report · Planejamento</option>
               <option value="report_semanal_registros">Report · Atividades</option>
               <option value="pendencias">Informações pendentes</option>
               <option value="solicitacoes">Solicitações</option>
@@ -1038,7 +1033,7 @@
           </div>
         </header>
         <p class="card__hint" style="margin: -8px 0 14px;">
-          Cadastre os detalhes de cada pedido e mantenha as listas usadas nos formulários do site. Editor, Coordenador e Analista podem editar; Fiscal/Inspetor possui somente leitura.
+          Cadastre os detalhes de cada pedido e mantenha as listas usadas nos formulários do site. Editor, Coordenador e Analista gerenciam tudo; Fiscal/Inspetor pode consultar e cadastrar novos pedidos pelo Report Semanal.
         </p>
         <div id="padroes-cards"></div>
       </section>
@@ -1076,11 +1071,11 @@
   <script src="assets/js/supabase-config.js?v=realtime-1"></script>
   <script src="assets/js/access-control.js?v=fornecedor-restrito-1"></script>
   <script src="assets/js/pendencias.js?v=fluxos-atomicos-1"></script>
-  <script src="assets/js/padroes.js?v=pedidos-diarios-1"></script>
+  <script src="assets/js/padroes.js?v=report-realizado-1"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/report-semanal.js?v=pedidos-diarios-1"></script>
-  <script src="assets/js/auditoria.js?v=pedidos-1"></script>
+  <script src="assets/js/report-semanal.js?v=report-realizado-1"></script>
+  <script src="assets/js/auditoria.js?v=report-realizado-1"></script>
 
   <script src="assets/js/app.js?v=pedidos-diarios-1"></script>
   <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>

@@ -1,5 +1,5 @@
 /* =====================================================================
-   REPORT SEMANAL - planejamento e atividades diarias por fiscal.
+   REPORT SEMANAL - atividades diarias e progresso real por fiscal.
    Os fiscais sao dinamicos e vem da categoria "fiscal" em Padronizacao.
    ===================================================================== */
 (function () {
@@ -17,15 +17,18 @@
   var DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
   function sb() { return window.sbClient; }
-  function canManagePlans() {
+  function canCreateOrders() {
+    var role = window.currentProfile && window.currentProfile.role;
+    return !!(window.AccessControl && (window.AccessControl.isFull(role) || window.AccessControl.isFiscal(role)));
+  }
+  function canSendEntries() {
     return !!(window.AccessControl && window.AccessControl.isFull(window.currentProfile && window.currentProfile.role));
   }
-  function canSendEntries() { return canManagePlans(); }
   function canDeleteEntries() {
     var role = window.currentProfile && window.currentProfile.role;
     return !!(window.AccessControl && (window.AccessControl.isFull(role) || window.AccessControl.isFiscal(role)));
   }
-  function canViewHistory() { return canManagePlans(); }
+  function canViewHistory() { return canSendEntries(); }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -103,6 +106,14 @@
     });
     return html;
   }
+  function orderOptions(selected) {
+    var items = window.Padroes && window.Padroes.pedidos ? window.Padroes.pedidos("", true) : [];
+    var html = '<option value="">Selecione um pedido…</option>';
+    items.forEach(function (item) {
+      html += '<option value="' + attr(item.numero) + '"' + (item.numero === selected ? " selected" : "") + ">Pedido " + esc(item.numero) + " · " + esc(item.fornecedor) + "</option>";
+    });
+    return html;
+  }
   function empty(message) {
     return '<div class="report-empty">' + esc(message) + "</div>";
   }
@@ -117,7 +128,7 @@
   function fiscalCard(fiscal) {
     var fiscalKey = key(fiscal);
     var week = state[fiscal].week;
-    var editablePlans = canManagePlans();
+    var canAddOrder = canCreateOrders();
     return (
       '<article class="report-fiscal" data-fiscal="' + attr(fiscal) + '" data-fiscal-key="' + fiscalKey + '">' +
         '<header class="report-fiscal__head">' +
@@ -125,49 +136,30 @@
           '<label class="report-week">Semana<input class="report-week-input" type="week" value="' + mondayToWeekValue(week) + '" aria-label="Semana de ' + attr(fiscal) + '"></label>' +
         "</header>" +
         '<div class="report-fiscal-msg form-msg" role="status" aria-live="polite"></div>' +
-        '<section class="report-planning">' +
-          '<div class="report-section-head"><div><h3>Roteiro e expectativa da semana</h3><p>Onde o fiscal estará e o volume previsto para inspeção e entrega.</p></div>' +
-          (editablePlans ? '<button class="btn btn--ghost btn--sm report-toggle-plan" type="button">Adicionar destino</button>' : '<span class="report-readonly-badge">Somente leitura</span>') + '</div>' +
-          (editablePlans ? '<form class="report-plan-form" hidden>' +
-            '<div class="report-form-grid report-form-grid--plan">' +
+        '<section class="report-activities">' +
+          '<div class="report-section-head"><div><h3>Lançamentos da semana</h3><p>Registre o realizado. Os lançamentos permanecem aqui depois de enviados para Registros.</p></div>' +
+          '<div class="report-section-actions">' +
+            (canAddOrder ? '<button class="btn btn--ghost btn--sm report-toggle-order" type="button">Cadastrar novo pedido</button>' : "") +
+            '<button class="btn btn--success btn--sm report-toggle-entry" type="button">Novo lançamento</button>' +
+          "</div></div>" +
+          (canAddOrder ? '<form class="report-new-order-form" hidden>' +
+            '<div class="report-new-order-intro"><span>Pedido novo</span><div><strong>Cadastre uma vez e use em todo o site.</strong><p>Informe os quatro dados abaixo. O pedido entrará automaticamente na Padronização e ficará selecionado no novo lançamento.</p></div></div>' +
+            '<div class="report-form-grid report-form-grid--order">' +
+              '<div class="field"><label>Número do pedido</label><input name="numero" type="text" inputmode="numeric" autocomplete="off" placeholder="Ex.: 4500123456" required><small>Use o número oficial, sem abreviações.</small></div>' +
               '<div class="field"><label>Fornecedor</label><select name="fornecedor" required>' + options("fornecedor") + "</select></div>" +
               '<div class="field"><label>Local</label><select name="local" required>' + options("local") + "</select></div>" +
-              '<div class="field"><label>Pedido</label><select name="pedido">' + options("pedido") + '</select><small class="pedido-auto-hint">Preenchimento automático ao selecionar.</small></div>' +
-              '<div class="field"><label>Expectativa a inspecionar</label><input name="expectativa_inspecionado" type="number" min="0" step="any" required></div>' +
-              '<div class="field"><label>Expectativa a entregar</label><input name="expectativa_entregue" type="number" min="0" step="any" required></div>' +
-              '<div class="field field--wide"><label>Observações</label><input name="observacoes" type="text" maxlength="500" placeholder="Orientações ou contexto da semana"></div>' +
+              '<div class="field"><label>Quantidade total de dormentes</label><input name="quantidade" type="number" min="1" step="1" required><small>Quantidade total contratada no pedido.</small></div>' +
             "</div>" +
-            '<div class="form-foot"><button class="btn btn--primary btn--sm" type="submit">Salvar destino</button><button class="btn btn--ghost btn--sm report-cancel-plan" type="button">Cancelar</button></div>' +
+            '<div class="form-foot"><button class="btn btn--primary" type="submit">Cadastrar e usar no lançamento</button><button class="btn btn--ghost report-cancel-order" type="button">Cancelar</button><span class="form-msg" role="status" aria-live="polite"></span></div>' +
           "</form>" : "") +
-          '<div class="report-plan-list"></div>' +
-        "</section>" +
-        '<section class="report-order-progress">' +
-          '<div class="report-section-head"><div><h3>Progresso total dos pedidos</h3><p>Acumulado de todas as semanas, comparado ao total cadastrado para cada pedido.</p></div><span class="report-total-badge">Todas as semanas</span></div>' +
-          '<div class="report-order-summary"></div>' +
-          '<div class="report-order-layout">' +
-            '<div class="report-order-chart"><canvas id="report-order-chart-' + fiscalKey + '"></canvas></div>' +
-            '<div class="report-order-list"></div>' +
-          "</div>" +
-        "</section>" +
-        '<section class="report-dashboard">' +
-          '<div class="report-section-head"><div><h3>Evolução da semana</h3><p>Realizado comparado à expectativa cadastrada.</p></div></div>' +
-          '<div class="report-kpis"></div>' +
-          '<div class="report-dashboard-grid">' +
-            '<div class="report-chart"><canvas id="report-chart-' + fiscalKey + '"></canvas></div>' +
-            '<div class="report-progress"></div>' +
-          "</div>" +
-        "</section>" +
-        '<section class="report-activities">' +
-          '<div class="report-section-head"><div><h3>Atividades diárias</h3><p>Os lançamentos permanecem aqui depois de enviados para Registros.</p></div>' +
-          '<button class="btn btn--success btn--sm report-toggle-entry" type="button">Novo lançamento</button></div>' +
           '<form class="report-entry-form" hidden>' +
             '<div class="report-form-grid">' +
               '<div class="field"><label>Data</label><input name="data_ref" type="date" min="' + week + '" max="' + weekEnd(week) + '" required></div>' +
               '<div class="field"><label>Fiscal</label><input value="' + attr(fiscal) + '" disabled></div>' +
-              '<div class="field"><label>Fornecedor</label><select name="fornecedor" required>' + options("fornecedor") + "</select></div>" +
-              '<div class="field"><label>Local</label><select name="local" required>' + options("local") + "</select></div>" +
-              '<div class="field"><label>Pedido</label><select name="pedido" required>' + options("pedido") + '</select><small class="pedido-auto-hint">Preenchimento automático ao selecionar.</small></div>' +
-              numberField("vol_pedido", "Volume do Pedido") +
+              '<div class="field field--wide"><label>Pedido padronizado</label><select name="pedido" required>' + orderOptions() + '</select><small class="pedido-auto-hint">Selecione o pedido para preencher os dados automaticamente.</small></div>' +
+              '<div class="field field--autofill"><label>Fornecedor</label><input name="fornecedor" readonly required></div>' +
+              '<div class="field field--autofill"><label>Local</label><input name="local" readonly required></div>' +
+              '<div class="field field--autofill"><label>Volume do Pedido</label><input name="vol_pedido" type="number" readonly required></div>' +
               numberField("vol_fabricar", "Volume a ser Fabricado") +
               numberField("vol_pronto", "Volume Fabricado") +
               numberField("vol_inspecionado", "Volume Inspecionado") +
@@ -177,6 +169,22 @@
             '<div class="form-foot"><button class="btn btn--success" type="submit">Salvar no report</button><button class="btn btn--ghost report-cancel-entry" type="button">Cancelar</button></div>' +
           "</form>" +
           '<div class="report-table"></div>' +
+        "</section>" +
+        '<section class="report-dashboard">' +
+          '<div class="report-section-head"><div><h3>Resumo realizado da semana</h3><p>Indicadores calculados somente com os lançamentos desta semana.</p></div><span class="report-total-badge">Dados realizados</span></div>' +
+          '<div class="report-kpis"></div>' +
+          '<div class="report-dashboard-grid">' +
+            '<div class="report-chart"><canvas id="report-chart-' + fiscalKey + '"></canvas></div>' +
+            '<div class="report-supplier-summary"></div>' +
+          "</div>" +
+        "</section>" +
+        '<section class="report-order-progress">' +
+          '<div class="report-section-head"><div><h3>Progresso total dos pedidos</h3><p>Acumulado real de todas as semanas, comparado à quantidade total padronizada de cada pedido.</p></div><span class="report-total-badge">Todas as semanas</span></div>' +
+          '<div class="report-order-summary"></div>' +
+          '<div class="report-order-layout">' +
+            '<div class="report-order-chart"><canvas id="report-order-chart-' + fiscalKey + '"></canvas></div>' +
+            '<div class="report-order-list"></div>' +
+          "</div>" +
         "</section>" +
       "</article>"
     );
@@ -217,7 +225,7 @@
     }
     var currentMonday = isoLocal(mondayOf(new Date()));
     fiscals.forEach(function (fiscal) {
-      if (!state[fiscal]) state[fiscal] = { week: currentMonday, plans: [], entries: [], orderEntries: [] };
+      if (!state[fiscal]) state[fiscal] = { week: currentMonday, entries: [], orderEntries: [] };
     });
     root.innerHTML = fiscals.map(fiscalCard).join("");
   }
@@ -395,52 +403,25 @@
 
   function loadFiscal(fiscal) {
     var week = state[fiscal].week;
-    var plans = sb().from("report_semanal_planejamentos")
-      .select("id, semana_inicio, fiscal, fornecedor, local, pedido, pedido_id, expectativa_inspecionado, expectativa_entregue, observacoes, created_at, updated_at")
-      .eq("fiscal", fiscal).eq("semana_inicio", week).order("created_at", { ascending: true });
     var entries = sb().from("report_semanal_registros")
       .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at, updated_at")
       .eq("fiscal", fiscal).eq("semana_inicio", week).order("data_ref", { ascending: true }).order("created_at", { ascending: true });
-    return Promise.all([plans, entries, fetchOrderProgress(fiscal, 0, [])]).then(function (results) {
+    return Promise.all([entries, fetchOrderProgress(fiscal, 0, [])]).then(function (results) {
       if (results[0].error) throw results[0].error;
-      if (results[1].error) throw results[1].error;
-      state[fiscal].plans = results[0].data || [];
-      state[fiscal].entries = results[1].data || [];
-      state[fiscal].orderEntries = results[2] || [];
+      state[fiscal].entries = results[0].data || [];
+      state[fiscal].orderEntries = results[1] || [];
       drawFiscal(fiscal);
     }).catch(function (err) {
-      message(fiscal, "Não foi possível carregar: " + (err.message || err) + ". Execute supabase/report-semanal.sql.", true);
+      message(fiscal, "Não foi possível carregar os lançamentos: " + (err.message || err) + ".", true);
     });
   }
 
   function drawFiscal(fiscal) {
     var card = root.querySelector('[data-fiscal-key="' + key(fiscal) + '"]');
     if (!card) return;
-    drawPlans(card, fiscal);
-    drawOrderProgress(card, fiscal);
-    drawDashboard(card, fiscal);
     drawTable(card, fiscal);
-  }
-
-  function drawPlans(card, fiscal) {
-    var plans = state[fiscal].plans;
-    var editablePlans = canManagePlans();
-    var target = card.querySelector(".report-plan-list");
-    if (!plans.length) {
-      target.innerHTML = empty("Nenhum destino e nenhuma expectativa cadastrados para esta semana.");
-      return;
-    }
-    target.innerHTML = '<div class="report-destinations">' + plans.map(function (p) {
-      return (
-        '<article class="report-destination">' +
-          '<div class="report-destination__route"><strong>' + esc(p.fornecedor) + '</strong><span>' + esc(p.local) + (p.pedido ? " · Pedido " + esc(p.pedido) : "") + "</span></div>" +
-          '<div><small>Inspecionar</small><strong>' + fmt.format(num(p.expectativa_inspecionado)) + "</strong></div>" +
-          '<div><small>Entregar</small><strong>' + fmt.format(num(p.expectativa_entregue)) + "</strong></div>" +
-          (p.observacoes ? '<p class="report-destination__note">' + esc(p.observacoes) + "</p>" : "") +
-          (editablePlans ? '<button class="report-plan-delete" data-id="' + p.id + '" type="button" aria-label="Excluir destino">×</button>' : "") +
-        "</article>"
-      );
-    }).join("") + "</div>";
+    drawDashboard(card, fiscal);
+    drawOrderProgress(card, fiscal);
   }
 
   function pedidoStandard(numero, pedidoId) {
@@ -504,11 +485,11 @@
     var totalRemaining = complete.reduce(function (total, group) { return total + group.remainingInspection; }, 0);
 
     summary.innerHTML =
-      kpi("Pedidos acompanhados", fmt.format(groups.length), "Com lançamentos no Report Semanal", null, "") +
-      kpi("Total cadastrado", fmt.format(totalRegistered), complete.length + (complete.length === 1 ? " pedido completo" : " pedidos completos"), null, "") +
-      kpi("Fabricado acumulado", fmt.format(totalFabricated), "Somado em todas as semanas", null, "") +
-      kpi("Inspecionado acumulado", fmt.format(totalInspected), missing ? "Inclui " + missing + (missing === 1 ? " pedido sem total cadastrado" : " pedidos sem total cadastrado") : "Somado em todas as semanas", null, "") +
-      kpi("Falta inspecionar", fmt.format(totalRemaining), "Saldo dos pedidos com total cadastrado", null, "");
+      kpi("Pedidos acompanhados", fmt.format(groups.length), "Com lançamentos no Report Semanal") +
+      kpi("Total cadastrado", fmt.format(totalRegistered), complete.length + (complete.length === 1 ? " pedido completo" : " pedidos completos")) +
+      kpi("Fabricado acumulado", fmt.format(totalFabricated), "Somado em todas as semanas") +
+      kpi("Inspecionado acumulado", fmt.format(totalInspected), missing ? "Inclui " + missing + (missing === 1 ? " pedido sem total cadastrado" : " pedidos sem total cadastrado") : "Somado em todas as semanas") +
+      kpi("Falta inspecionar", fmt.format(totalRemaining), "Saldo dos pedidos com total cadastrado");
 
     if (!groups.length) {
       list.innerHTML = empty("Nenhum pedido foi registrado por este fiscal até o momento.");
@@ -588,54 +569,47 @@
     });
   }
 
-  function grouped(fiscal) {
+  function groupedActual(fiscal) {
     var map = {};
-    state[fiscal].plans.forEach(function (p) {
-      var k = p.fornecedor || "—";
-      if (!map[k]) map[k] = { fornecedor: k, expectedInspection: 0, expectedDelivery: 0, inspection: 0, delivery: 0 };
-      map[k].expectedInspection += num(p.expectativa_inspecionado);
-      map[k].expectedDelivery += num(p.expectativa_entregue);
-    });
     state[fiscal].entries.forEach(function (r) {
       var k = r.fornecedor || "—";
-      if (!map[k]) map[k] = { fornecedor: k, expectedInspection: 0, expectedDelivery: 0, inspection: 0, delivery: 0 };
-      map[k].inspection += num(r.vol_inspecionado);
-      map[k].delivery += num(r.vol_transportado);
+      if (!map[k]) map[k] = { fornecedor: k, entries: 0, fabricated: 0, inspected: 0, stock: 0, transported: 0 };
+      map[k].entries += 1;
+      map[k].fabricated += num(r.vol_pronto);
+      map[k].inspected += num(r.vol_inspecionado);
+      map[k].stock += num(r.vol_liberado);
+      map[k].transported += num(r.vol_transportado);
     });
     return Object.keys(map).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).map(function (k) { return map[k]; });
   }
 
   function drawDashboard(card, fiscal) {
-    var plans = state[fiscal].plans;
     var entries = state[fiscal].entries;
-    var expInspection = sum(plans, "expectativa_inspecionado");
-    var expDelivery = sum(plans, "expectativa_entregue");
-    var inspection = sum(entries, "vol_inspecionado");
-    var delivery = sum(entries, "vol_transportado");
-    var pendingInspection = Math.max(expInspection - inspection, 0);
-    var pendingDelivery = Math.max(expDelivery - delivery, 0);
     card.querySelector(".report-kpis").innerHTML =
-      kpi("Fiscalização concluída", pctText(pct(inspection, expInspection)), fmt.format(inspection) + " de " + fmt.format(expInspection), pendingInspection, "a inspecionar") +
-      kpi("Entrega concluída", pctText(pct(delivery, expDelivery)), fmt.format(delivery) + " de " + fmt.format(expDelivery), pendingDelivery, "a entregar") +
-      kpi("Produção na semana", fmt.format(sum(entries, "vol_pronto")), entries.length + (entries.length === 1 ? " lançamento" : " lançamentos"), null, "") +
-      kpi("Em estoque p/ entrega", fmt.format(sum(entries, "vol_liberado")), "Acumulado nos lançamentos", null, "");
+      kpi("Lançamentos", fmt.format(entries.length), entries.length === 1 ? "atividade registrada" : "atividades registradas") +
+      kpi("Fabricado", fmt.format(sum(entries, "vol_pronto")), "volume realizado na semana") +
+      kpi("Inspecionado", fmt.format(sum(entries, "vol_inspecionado")), "volume realizado na semana") +
+      kpi("Estoque p/ entrega", fmt.format(sum(entries, "vol_liberado")), "informado nos lançamentos") +
+      kpi("Transportado", fmt.format(sum(entries, "vol_transportado")), "volume realizado na semana");
 
-    var groups = grouped(fiscal);
-    var progress = card.querySelector(".report-progress");
-    progress.innerHTML = groups.length ? groups.map(progressRow).join("") : empty("Cadastre o roteiro e os lançamentos para acompanhar por fornecedor.");
+    var groups = groupedActual(fiscal);
+    var supplierSummary = card.querySelector(".report-supplier-summary");
+    supplierSummary.innerHTML = groups.length ? groups.map(supplierActualCard).join("") : empty("Os resultados por fornecedor aparecerão após o primeiro lançamento da semana.");
     drawChart(fiscal);
   }
 
-  function kpi(label, value, detail, pending, pendingLabel) {
-    return '<div class="report-kpi"><span>' + label + "</span><strong>" + value + "</strong><small>" + detail + "</small>" +
-      (pending !== null ? '<em>' + fmt.format(pending) + " " + pendingLabel + "</em>" : "") + "</div>";
+  function kpi(label, value, detail) {
+    return '<div class="report-kpi"><span>' + label + "</span><strong>" + value + "</strong><small>" + detail + "</small></div>";
   }
 
-  function progressRow(g) {
-    return '<article class="report-progress-row"><h4>' + esc(g.fornecedor) + "</h4>" +
-      progressBar("Inspeção", g.inspection, g.expectedInspection) +
-      progressBar("Entrega", g.delivery, g.expectedDelivery) +
-      "</article>";
+  function supplierActualCard(group) {
+    return '<article class="report-supplier-card"><header><div><span>Fornecedor</span><strong>' + esc(group.fornecedor) + '</strong></div><small>' + group.entries + (group.entries === 1 ? " lançamento" : " lançamentos") + "</small></header>" +
+      '<div class="report-supplier-metrics">' +
+        orderMetric("Fabricado", fmt.format(group.fabricated)) +
+        orderMetric("Inspecionado", fmt.format(group.inspected)) +
+        orderMetric("Estoque", fmt.format(group.stock)) +
+        orderMetric("Transportado", fmt.format(group.transported)) +
+      "</div></article>";
   }
 
   function progressBar(label, done, expected) {
@@ -701,21 +675,58 @@
     target.innerHTML = '<div class="table-wrap"><table class="tabela report-table__table"><thead><tr>' + heads.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>";
   }
 
-  function savePlan(fiscal, form) {
-    var row = {
-      semana_inicio: state[fiscal].week,
-      fiscal: fiscal,
+  function orderError(err) {
+    var text = String((err && err.message) || err || "");
+    if (/duplicate|unique|pedidos_numero_key/i.test(text)) return "Esse número de pedido já está cadastrado. Selecione-o na lista de lançamentos.";
+    if (/row-level security|policy/i.test(text)) return "Seu perfil não possui permissão para cadastrar este pedido ou os dados não pertencem à Padronização.";
+    return "Não foi possível cadastrar o pedido: " + text;
+  }
+
+  function selectCreatedOrder(fiscal, numero) {
+    renderShell();
+    getFiscals().forEach(drawFiscal);
+    var card = root.querySelector('[data-fiscal-key="' + key(fiscal) + '"]');
+    if (!card) return;
+    var entryForm = card.querySelector(".report-entry-form");
+    entryForm.hidden = false;
+    entryForm.elements.data_ref.value = state[fiscal].week;
+    entryForm.elements.pedido.value = numero;
+    applyPedidoDetails(entryForm);
+    entryForm.elements.vol_fabricar.focus();
+  }
+
+  function createOrder(fiscal, form) {
+    if (!canCreateOrders() || !window.Padroes || !window.Padroes.criarPedido) {
+      return Promise.reject(new Error("Cadastro de pedidos indisponível para este perfil."));
+    }
+    var numero = form.elements.numero.value.trim();
+    var quantidade = Number(form.elements.quantidade.value);
+    var msg = form.querySelector(".form-msg");
+    if (!numero || !form.elements.fornecedor.value || !form.elements.local.value || !Number.isInteger(quantidade) || quantidade <= 0) {
+      msg.textContent = "Preencha o número, fornecedor, local e uma quantidade inteira maior que zero.";
+      msg.className = "form-msg is-error";
+      return Promise.resolve();
+    }
+    var button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = "Cadastrando…";
+    msg.textContent = "";
+    msg.className = "form-msg";
+    return window.Padroes.criarPedido({
+      numero: numero,
       fornecedor: form.elements.fornecedor.value,
       local: form.elements.local.value,
-      pedido: form.elements.pedido.value || null,
-      expectativa_inspecionado: num(form.elements.expectativa_inspecionado.value),
-      expectativa_entregue: num(form.elements.expectativa_entregue.value),
-      observacoes: form.elements.observacoes.value.trim() || null
-    };
-    return sb().from("report_semanal_planejamentos").insert(row).then(function (res) {
-      if (res.error) throw res.error;
-      form.reset(); form.hidden = true;
-      return loadFiscal(fiscal);
+      quantidade_dormentes: quantidade
+    }).then(function (created) {
+      form.reset();
+      form.hidden = true;
+      selectCreatedOrder(fiscal, created.numero);
+      message(fiscal, "Pedido " + created.numero + " cadastrado e selecionado. Complete agora os volumes do lançamento.", false);
+    }).catch(function (err) {
+      button.disabled = false;
+      button.textContent = "Cadastrar e usar no lançamento";
+      msg.textContent = orderError(err);
+      msg.className = "form-msg is-error";
     });
   }
 
@@ -727,17 +738,6 @@
       if (res.error) throw res.error;
       form.reset(); form.hidden = true;
       return Promise.all([loadFiscal(fiscal), loadHistory()]);
-    });
-  }
-
-  function deletePlan(fiscal, id) {
-    var current = state[fiscal].plans.filter(function (item) { return item.id === id; })[0];
-    if (!current) return Promise.reject(new Error("Destino desatualizado. Recarregue a página."));
-    return sb().from("report_semanal_planejamentos").delete().eq("id", id)
-      .eq("updated_at", current.updated_at).select("id").then(function (res) {
-      if (res.error) throw res.error;
-      if (!res.data || !res.data.length) throw new Error("Este destino foi alterado por outro usuário e não foi excluído.");
-      return loadFiscal(fiscal);
     });
   }
 
@@ -781,7 +781,7 @@
       clearHistoryFilters(historyForm);
     });
     root.addEventListener("change", function (e) {
-      if (e.target.matches('.report-plan-form select[name="pedido"], .report-entry-form select[name="pedido"]')) {
+      if (e.target.matches('.report-entry-form select[name="pedido"]')) {
         applyPedidoDetails(e.target.closest("form"));
         return;
       }
@@ -797,18 +797,20 @@
       var card = e.target.closest(".report-fiscal");
       if (!card) return;
       var fiscal = card.getAttribute("data-fiscal");
-      if (canManagePlans() && e.target.closest(".report-toggle-plan")) card.querySelector(".report-plan-form").hidden = false;
-      if (canManagePlans() && e.target.closest(".report-cancel-plan")) card.querySelector(".report-plan-form").hidden = true;
+      if (canCreateOrders() && e.target.closest(".report-toggle-order")) {
+        card.querySelector(".report-entry-form").hidden = true;
+        card.querySelector(".report-new-order-form").hidden = false;
+        card.querySelector('.report-new-order-form input[name="numero"]').focus();
+      }
+      if (canCreateOrders() && e.target.closest(".report-cancel-order")) card.querySelector(".report-new-order-form").hidden = true;
       if (e.target.closest(".report-toggle-entry")) {
         var form = card.querySelector(".report-entry-form");
+        var orderForm = card.querySelector(".report-new-order-form");
+        if (orderForm) orderForm.hidden = true;
         form.hidden = false;
         form.elements.data_ref.value = state[fiscal].week;
       }
       if (e.target.closest(".report-cancel-entry")) card.querySelector(".report-entry-form").hidden = true;
-      var del = e.target.closest(".report-plan-delete");
-      if (canManagePlans() && del && window.confirm("Excluir este destino e suas expectativas da semana?")) {
-        deletePlan(fiscal, del.getAttribute("data-id")).catch(function (err) { message(fiscal, "Erro ao excluir: " + (err.message || err), true); });
-      }
       var send = e.target.closest(".report-send");
       if (canSendEntries() && send) sendEntry(fiscal, send.getAttribute("data-id"), send).catch(function (err) { message(fiscal, "Erro ao enviar: " + (err.message || err), true); });
       var entryDelete = e.target.closest(".report-entry-delete");
@@ -829,10 +831,9 @@
       var card = e.target.closest(".report-fiscal");
       if (!card) return;
       var fiscal = card.getAttribute("data-fiscal");
-      if (e.target.matches(".report-plan-form")) {
+      if (e.target.matches(".report-new-order-form")) {
         e.preventDefault();
-        if (!canManagePlans()) return;
-        savePlan(fiscal, e.target).catch(function (err) { message(fiscal, "Erro ao salvar destino: " + (err.message || err), true); });
+        createOrder(fiscal, e.target);
       }
       if (e.target.matches(".report-entry-form")) {
         e.preventDefault();

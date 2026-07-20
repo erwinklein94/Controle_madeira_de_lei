@@ -26,10 +26,6 @@ alter table public.comentarios alter column autor_id drop not null;
 alter table public.comentarios drop constraint if exists comentarios_autor_id_fkey;
 alter table public.comentarios add constraint comentarios_autor_id_fkey
   foreign key (autor_id) references auth.users (id) on delete set null;
-alter table public.report_semanal_planejamentos alter column created_by drop not null;
-alter table public.report_semanal_planejamentos drop constraint if exists report_semanal_planejamentos_created_by_fkey;
-alter table public.report_semanal_planejamentos add constraint report_semanal_planejamentos_created_by_fkey
-  foreign key (created_by) references auth.users (id) on delete set null;
 alter table public.report_semanal_registros alter column created_by drop not null;
 alter table public.report_semanal_registros drop constraint if exists report_semanal_registros_created_by_fkey;
 alter table public.report_semanal_registros add constraint report_semanal_registros_created_by_fkey
@@ -217,17 +213,8 @@ create policy comentarios_delete on public.comentarios for delete to authenticat
   autor_id = (select auth.uid()) or (select public.has_full_access())
 );
 
--- Report Semanal: acesso completo gerencia tudo. Fiscal apenas consulta o
--- proprio planejamento e continua registrando atividades no proprio report.
-drop policy if exists report_planejamentos_admin_all on public.report_semanal_planejamentos;
-drop policy if exists report_planejamentos_full_access on public.report_semanal_planejamentos;
-drop policy if exists report_planejamentos_fiscal_own on public.report_semanal_planejamentos;
-drop policy if exists report_planejamentos_fiscal_select on public.report_semanal_planejamentos;
-create policy report_planejamentos_full_access on public.report_semanal_planejamentos for all to authenticated
-  using ((select public.has_full_access())) with check ((select public.has_full_access()));
-create policy report_planejamentos_fiscal_select on public.report_semanal_planejamentos for select to authenticated
-  using ((select public.is_fiscal()) and fiscal = (select public.current_fiscal()));
-
+-- Report Semanal: acesso completo gerencia tudo. Fiscal registra apenas no
+-- proprio report.
 drop policy if exists report_registros_admin_all on public.report_semanal_registros;
 drop policy if exists report_registros_full_access on public.report_semanal_registros;
 drop policy if exists report_registros_fiscal_own on public.report_semanal_registros;
@@ -331,7 +318,7 @@ declare table_name text;
 begin
   foreach table_name in array array[
     'registros', 'pendencias', 'solicitacoes', 'comentarios', 'padroes',
-    'report_semanal_planejamentos', 'report_semanal_registros'
+    'report_semanal_registros'
   ] loop
     if to_regclass('public.' || table_name) is not null then
       execute format('drop trigger if exists audit_changes on public.%I', table_name);
@@ -428,14 +415,14 @@ grant execute on function public.enviar_report_semanal_para_registros(uuid) to a
 -- Grants explicitos para a Data API.
 grant select on public.profiles, public.registros, public.pendencias,
   public.solicitacoes, public.comentarios, public.padroes,
-  public.report_semanal_planejamentos, public.report_semanal_registros
+  public.report_semanal_registros
 to authenticated;
 -- Profiles so mudam pelas Edge Functions, que tambem registram a auditoria
 -- da conta; usuarios autenticados nao podem alterar perfis pela Data API.
 revoke insert, update, delete on public.profiles from authenticated;
 grant insert, update, delete on public.registros,
   public.pendencias, public.solicitacoes, public.comentarios, public.padroes,
-  public.report_semanal_planejamentos, public.report_semanal_registros
+  public.report_semanal_registros
 to authenticated;
 
 -- A funcao de event trigger e interna ao banco e nao deve ficar exposta
@@ -455,8 +442,6 @@ create index if not exists pendencias_created_by_idx
   on public.pendencias (created_by);
 create index if not exists registros_created_by_idx
   on public.registros (created_by);
-create index if not exists report_planejamentos_created_by_idx
-  on public.report_semanal_planejamentos (created_by);
 create index if not exists report_registros_created_by_idx
   on public.report_semanal_registros (created_by);
 create index if not exists solicitacoes_created_by_idx

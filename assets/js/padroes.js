@@ -161,6 +161,19 @@
       if (!res.data || !res.data.length) throw new Error("Este pedido foi alterado por outro usuário. Recarregue a página e tente novamente.");
     });
   }
+  function createPedido(data) {
+    var numero = String(data.numero || "").trim();
+    return savePedido(null, {
+      valor: numero,
+      fornecedor: data.fornecedor,
+      local: data.local,
+      quantidade_dormentes: data.quantidade_dormentes
+    }).then(load).then(function () {
+      var created = pedidoDetails(numero);
+      if (!created) throw new Error("O pedido foi cadastrado, mas não pôde ser carregado. Atualize a página.");
+      return created;
+    });
+  }
   function archivePedido(id) {
     var current = (cache.pedido || []).filter(function (item) { return item.id === id; })[0];
     return sb().from("pedidos").update({ ativo: false }).eq("id", id)
@@ -178,7 +191,8 @@
     pedido: pedidoDetails,
     pedidoDetails: pedidoDetails,
     pedidoPorId: pedidoDetailsById,
-    pedidos: pedidos
+    pedidos: pedidos,
+    criarPedido: createPedido
   };
 
   var PadronizacaoUI = (function () {

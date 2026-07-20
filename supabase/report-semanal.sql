@@ -1,27 +1,8 @@
 -- =====================================================================
--- Report Semanal - planejamento e apontamentos diarios dos fiscais.
+-- Report Semanal - apontamentos diarios e progresso real dos fiscais.
 -- Execute no SQL Editor do projeto Supabase antes de usar a nova pagina.
 -- Projeto: rgafzmmnpjlrxfjkabsl
 -- =====================================================================
-
-create table if not exists public.report_semanal_planejamentos (
-  id                       uuid primary key default gen_random_uuid(),
-  semana_inicio            date not null,
-  fiscal                   text not null,
-  fornecedor               text not null,
-  local                    text not null,
-  pedido                   text,
-  expectativa_inspecionado numeric not null default 0 check (expectativa_inspecionado >= 0),
-  expectativa_entregue     numeric not null default 0 check (expectativa_entregue >= 0),
-  observacoes              text,
-  created_by               uuid not null default auth.uid() references auth.users (id),
-  created_at               timestamptz not null default now(),
-  constraint report_planejamento_semana_segunda
-    check (extract(isodow from semana_inicio) = 1)
-);
-
-create index if not exists report_planejamento_semana_fiscal_idx
-  on public.report_semanal_planejamentos (semana_inicio, fiscal);
 
 create table if not exists public.report_semanal_registros (
   id                uuid primary key default gen_random_uuid(),
@@ -53,7 +34,6 @@ create index if not exists report_registro_semana_fiscal_idx
 create index if not exists report_registro_fornecedor_idx
   on public.report_semanal_registros (fornecedor);
 
-alter table public.report_semanal_planejamentos enable row level security;
 alter table public.report_semanal_registros enable row level security;
 
 -- Compatibilidade para projetos que ainda nao aplicaram a migration de perfis.
@@ -73,20 +53,6 @@ $$;
 
 grant execute on function public.current_fiscal() to authenticated;
 
-drop policy if exists report_planejamentos_admin_all on public.report_semanal_planejamentos;
-create policy report_planejamentos_admin_all
-  on public.report_semanal_planejamentos
-  for all
-  to authenticated
-  using ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'))
-  with check ((select public.current_role_name()) in ('editor', 'coordenador', 'analista'));
-
-drop policy if exists report_planejamentos_fiscal_own on public.report_semanal_planejamentos;
-drop policy if exists report_planejamentos_fiscal_select on public.report_semanal_planejamentos;
-create policy report_planejamentos_fiscal_select on public.report_semanal_planejamentos
-  for select to authenticated
-  using ((select public.current_role_name()) = 'fiscal' and fiscal = (select public.current_fiscal()));
-
 drop policy if exists report_registros_admin_all on public.report_semanal_registros;
 create policy report_registros_admin_all
   on public.report_semanal_registros
@@ -102,7 +68,6 @@ create policy report_registros_fiscal_own on public.report_semanal_registros
   with check (public.current_role_name() = 'fiscal' and fiscal = public.current_fiscal());
 
 -- As tabelas sao usadas pelo frontend via supabase-js/Data API.
-grant select, insert, update, delete on public.report_semanal_planejamentos to authenticated;
 grant select, insert, update, delete on public.report_semanal_registros to authenticated;
 
 -- Envio atomico e idempotente: cria o registro oficial e marca o item do
