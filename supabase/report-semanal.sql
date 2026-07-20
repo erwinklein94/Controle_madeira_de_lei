@@ -34,7 +34,6 @@ create table if not exists public.report_semanal_registros (
   vol_pedido        numeric not null default 0 check (vol_pedido >= 0),
   vol_fabricar      numeric not null default 0 check (vol_fabricar >= 0),
   vol_pronto        numeric not null default 0 check (vol_pronto >= 0),
-  vol_pronto_insp   numeric not null default 0 check (vol_pronto_insp >= 0),
   vol_inspecionado  numeric not null default 0 check (vol_inspecionado >= 0),
   vol_liberado      numeric not null default 0 check (vol_liberado >= 0),
   vol_transportado  numeric not null default 0 check (vol_transportado >= 0),
@@ -137,11 +136,11 @@ begin
 
   insert into public.registros (
     data_ref, fiscal, fornecedor, local, pedido,
-    vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp,
+    vol_pedido, vol_fabricar, vol_pronto,
     vol_inspecionado, vol_liberado, vol_transportado, created_by
   ) values (
     item.data_ref, item.fiscal, item.fornecedor, item.local, item.pedido,
-    item.vol_pedido, item.vol_fabricar, item.vol_pronto, item.vol_pronto_insp,
+    item.vol_pedido, item.vol_fabricar, item.vol_pronto,
     item.vol_inspecionado, item.vol_liberado, item.vol_transportado,
     (select auth.uid())
   )

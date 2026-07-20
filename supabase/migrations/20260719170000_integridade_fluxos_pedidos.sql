@@ -106,7 +106,7 @@ create index if not exists pedidos_fornecedor_ativo_idx on public.pedidos(fornec
 do $$ begin
   if not exists (select 1 from pg_constraint where conname='registros_volumes_nonnegative') then
     alter table public.registros add constraint registros_volumes_nonnegative check (
-      vol_pedido >= 0 and vol_fabricar >= 0 and vol_pronto >= 0 and vol_pronto_insp >= 0 and
+      vol_pedido >= 0 and vol_fabricar >= 0 and vol_pronto >= 0 and
       vol_inspecionado >= 0 and vol_liberado >= 0 and vol_transportado >= 0
     );
   end if;
@@ -234,9 +234,9 @@ begin
   if item.registro_id is not null then return item.registro_id; end if;
   if item.status <> 'enviada' then raise exception 'Esta pendência já foi processada.'; end if;
   select * into order_item from public.pedidos where id=item.pedido_id;
-  insert into public.registros(data_ref,fiscal,fornecedor,local,pedido,pedido_id,vol_pedido,vol_fabricar,vol_pronto,vol_pronto_insp,vol_inspecionado,vol_liberado,vol_transportado,created_by)
+  insert into public.registros(data_ref,fiscal,fornecedor,local,pedido,pedido_id,vol_pedido,vol_fabricar,vol_pronto,vol_inspecionado,vol_liberado,vol_transportado,created_by)
   values(item.data_ref,'',coalesce(order_item.fornecedor,item.fornecedor),coalesce(order_item.local,''),order_item.numero,order_item.id,
-    coalesce(order_item.quantidade_dormentes,item.vol_pedido),item.valor_fabricar,item.vol_fabricado,0,0,item.vol_estoque,item.vol_transportado,auth.uid())
+    coalesce(order_item.quantidade_dormentes,item.vol_pedido),item.valor_fabricar,item.vol_fabricado,0,item.vol_estoque,item.vol_transportado,auth.uid())
   returning id into new_id;
   update public.pendencias set status='aceita', registro_id=new_id where id=item.id;
   return new_id;

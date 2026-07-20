@@ -170,7 +170,6 @@
               numberField("vol_pedido", "Volume do Pedido") +
               numberField("vol_fabricar", "Volume a ser Fabricado") +
               numberField("vol_pronto", "Volume Fabricado") +
-              numberField("vol_pronto_insp", "Volume pronto a ser Inspecionado") +
               numberField("vol_inspecionado", "Volume Inspecionado") +
               numberField("vol_liberado", "Volume em Estoque p/ Entrega") +
               numberField("vol_transportado", "Volume Transportado") +
@@ -266,7 +265,7 @@
 
   function historyQuery(from, to) {
     var query = sb().from("report_semanal_registros")
-      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at");
+      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at");
     if (historyState.start) query = query.gte("data_ref", historyState.start);
     if (historyState.end) query = query.lte("data_ref", historyState.end);
     if (historyState.supplier) query = query.eq("fornecedor", historyState.supplier);
@@ -304,7 +303,7 @@
       target.innerHTML = empty("Nenhum lançamento encontrado para os filtros informados.");
       return;
     }
-    var heads = ["Data", "Semana", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Pronto p/ inspeção", "Inspecionado", "Estoque p/ entrega", "Transportado", "Situação"];
+    var heads = ["Data", "Semana", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Inspecionado", "Estoque p/ entrega", "Transportado", "Situação"];
     var body = entries.map(function (r) {
       return "<tr>" +
         "<td>" + dateBr(r.data_ref) + "</td>" +
@@ -313,7 +312,7 @@
         "<td>" + esc(r.fornecedor) + "</td>" +
         "<td>" + esc(r.local) + "</td>" +
         '<td class="cell-pedido">' + esc(r.pedido) + "</td>" +
-        ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_pronto_insp", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) {
+        ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) {
           return "<td>" + fmt.format(num(r[field])) + "</td>";
         }).join("") +
         '<td class="report-send-cell">' + (r.registro_id
@@ -400,7 +399,7 @@
       .select("id, semana_inicio, fiscal, fornecedor, local, pedido, pedido_id, expectativa_inspecionado, expectativa_entregue, observacoes, created_at, updated_at")
       .eq("fiscal", fiscal).eq("semana_inicio", week).order("created_at", { ascending: true });
     var entries = sb().from("report_semanal_registros")
-      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at, updated_at")
+      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at, updated_at")
       .eq("fiscal", fiscal).eq("semana_inicio", week).order("data_ref", { ascending: true }).order("created_at", { ascending: true });
     return Promise.all([plans, entries, fetchOrderProgress(fiscal, 0, [])]).then(function (results) {
       if (results[0].error) throw results[0].error;
@@ -684,12 +683,12 @@
     var canDelete = canDeleteEntries();
     var target = card.querySelector(".report-table");
     if (!entries.length) { target.innerHTML = empty("Nenhuma atividade registrada nesta semana."); return; }
-    var heads = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Pronto p/ inspeção", "Inspecionado", "Estoque p/ entrega", "Transportado", "Registros", "Ações"];
+    var heads = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Inspecionado", "Estoque p/ entrega", "Transportado", "Registros", "Ações"];
     var body = entries.map(function (r) {
       var sent = !!r.registro_id;
       return "<tr>" +
         "<td>" + dateBr(r.data_ref) + "</td><td>" + esc(r.fiscal) + "</td><td>" + esc(r.fornecedor) + "</td><td>" + esc(r.local) + "</td><td class=\"cell-pedido\">" + esc(r.pedido) + "</td>" +
-        ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_pronto_insp", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) { return "<td>" + fmt.format(num(r[field])) + "</td>"; }).join("") +
+        ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) { return "<td>" + fmt.format(num(r[field])) + "</td>"; }).join("") +
         '<td class="report-send-cell">' + (sent
           ? '<span class="report-sent" title="Enviado em ' + attr(dateTimeBr(r.enviado_em)) + '">Enviado</span>'
           : canSend
@@ -723,7 +722,7 @@
   function saveEntry(fiscal, form) {
     var row = { semana_inicio: state[fiscal].week, fiscal: fiscal };
     ["data_ref", "fornecedor", "local", "pedido"].forEach(function (field) { row[field] = form.elements[field].value; });
-    ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_pronto_insp", "vol_inspecionado", "vol_liberado", "vol_transportado"].forEach(function (field) { row[field] = num(form.elements[field].value); });
+    ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_inspecionado", "vol_liberado", "vol_transportado"].forEach(function (field) { row[field] = num(form.elements[field].value); });
     return sb().from("report_semanal_registros").insert(row).then(function (res) {
       if (res.error) throw res.error;
       form.reset(); form.hidden = true;

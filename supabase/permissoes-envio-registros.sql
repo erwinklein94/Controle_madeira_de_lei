@@ -26,11 +26,11 @@ begin
 
   insert into public.registros (
     data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar,
-    vol_pronto, vol_pronto_insp, vol_inspecionado, vol_liberado,
+    vol_pronto, vol_inspecionado, vol_liberado,
     vol_transportado, created_by
   ) values (
     item.data_ref, item.fiscal, item.fornecedor, item.local, item.pedido,
-    item.vol_pedido, item.vol_fabricar, item.vol_pronto, item.vol_pronto_insp,
+    item.vol_pedido, item.vol_fabricar, item.vol_pronto,
     item.vol_inspecionado, item.vol_liberado, item.vol_transportado,
     (select auth.uid())
   ) returning id into new_id;

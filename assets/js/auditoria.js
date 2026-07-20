@@ -30,7 +30,7 @@
     data_ref: "Data", fiscal: "Fiscal", fornecedor: "Fornecedor", local: "Local", pedido: "Pedido",
     numero: "Número do pedido", quantidade_dormentes: "Quantidade de dormentes", ativo: "Ativo",
     vol_pedido: "Volume do pedido", vol_fabricar: "A fabricar", vol_pronto: "Fabricado",
-    vol_pronto_insp: "Pronto para inspeção", vol_inspecionado: "Inspecionado",
+    vol_inspecionado: "Inspecionado",
     vol_liberado: "Estoque para entrega", vol_transportado: "Transportado",
     status: "Status", texto: "Texto", categoria: "Categoria", valor: "Valor",
     semana_inicio: "Semana", expectativa_inspecionado: "Expectativa de inspeção",
