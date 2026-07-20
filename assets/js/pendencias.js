@@ -30,7 +30,6 @@
         .order("created_at", { ascending: false });
       return somenteEnviadas ? q.eq("status", "enviada") : q;
     },
-    addPendencia: function (rec) { return sb.from("pendencias").insert(rec); },
     updatePendencia: function (id, patch) { return sb.from("pendencias").update(patch).eq("id", id); },
     removePendencia: function (id) { return sb.from("pendencias").delete().eq("id", id); },
 
@@ -40,7 +39,6 @@
         .eq("status", "pendente")
         .order("created_at", { ascending: false });
     },
-    addSolicitacao: function (rec) { return sb.from("solicitacoes").insert(rec); },
     setStatusSolicitacao: function (id, status) { return sb.from("solicitacoes").update({ status: status }).eq("id", id); },
     aceitarPendencia: function (id) { return sb.rpc("aceitar_pendencia", { p_pendencia_id: id }); },
     aprovarSolicitacao: function (id) { return sb.rpc("aprovar_solicitacao", { p_solicitacao_id: id }); }
@@ -54,80 +52,35 @@
     return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : d;
   }
 
+  /* Somente leitura: a entrada de dados acontece no Report dos fiscais. */
   var FornecedorUI = (function () {
-    var form, msg, tabela, count, wired = false;
-    var dataEl, pedidoEl, pedidoDetalhesEl, valorFabEl, fabricadoEl, estoqueEl, transpEl;
-    var linhas = [];        // pendências atuais
-    var solicitados = {};   // pendencia_id -> true (já tem pedido pendente)
+    var tabela, count;
 
     function grab() {
-      form = document.getElementById("forn-form");
-      msg = document.getElementById("forn-msg");
       tabela = document.getElementById("forn-tabela");
       count = document.getElementById("forn-count");
-      dataEl = document.getElementById("forn-data");
-      pedidoEl = document.getElementById("forn-pedido");
-      pedidoDetalhesEl = document.getElementById("forn-pedido-detalhes");
-      valorFabEl = document.getElementById("forn-valorfab");
-      fabricadoEl = document.getElementById("forn-fabricado");
-      estoqueEl = document.getElementById("forn-estoque");
-      transpEl = document.getElementById("forn-transportado");
-    }
-
-    function hoje() {
-      var d = new Date();
-      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    }
-
-    function showMsg(text, ok) {
-      if (!msg) return;
-      msg.textContent = text || "";
-      msg.classList.toggle("is-ok", ok === true);
-      msg.classList.toggle("is-error", ok === false);
-    }
-
-    function drawPedidoDetails() {
-      if (!pedidoDetalhesEl) return;
-      var details = window.Padroes && window.Padroes.pedido(pedidoEl.value);
-      pedidoDetalhesEl.hidden = !details;
-      pedidoDetalhesEl.innerHTML = details
-        ? '<span><strong>Fornecedor</strong>' + esc(details.fornecedor) + '</span><span><strong>Local</strong>' + esc(details.local) + '</span><span><strong>Quantidade do pedido</strong>' + fmt.format(details.quantidade) + ' dormentes</span>'
-        : "";
-    }
-
-    function fillPedidoOptions() {
-      if (!pedidoEl || !window.Padroes) return;
-      var profile = window.currentProfile || {};
-      window.Padroes.fillPedidos(pedidoEl, pedidoEl.value, profile.fornecedor || null, true);
-      drawPedidoDetails();
     }
 
     function render() {
       if (!tabela) grab();
       if (!tabela || !guardSb(tabela)) return;
-      var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
-      Promise.all([Data.listPendencias(), Data.listSolicitacoesPendentes(), padroes]).then(function (out) {
-        var pend = out[0], sol = out[1];
-        fillPedidoOptions();
+      Data.listPendencias().then(function (pend) {
         if (pend.error) {
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(pend.error.message) + ").</p>";
           return;
         }
-        linhas = pend.data || [];
-        solicitados = {};
-        (sol.data || []).forEach(function (s) { if (s.pendencia_id) solicitados[s.pendencia_id] = true; });
-
-        count.textContent = linhas.length ? (linhas.length === 1 ? "1 envio." : linhas.length + " envios.") : "Nenhum envio ainda.";
+        var linhas = pend.data || [];
+        count.textContent = linhas.length ? (linhas.length === 1 ? "1 envio." : linhas.length + " envios.") : "Nenhum envio.";
         if (!linhas.length) {
           tabela.innerHTML =
-            '<div class="empty"><div class="empty__title">Nenhuma informação enviada</div>' +
-            '<div class="empty__txt">Preencha o formulário acima e clique em Enviar.</div></div>';
+            '<div class="empty"><div class="empty__title">Nenhuma informação registrada</div>' +
+            '<div class="empty__txt">Os envios feitos anteriormente aparecem aqui para consulta.</div></div>';
           return;
         }
         var head = "<thead><tr>" +
           '<th class="col-text">Data</th><th class="col-text">Pedido</th>' +
           "<th>Volume a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
-          "<th>Status</th><th>Ações</th></tr></thead>";
+          "<th>Status</th></tr></thead>";
         var rows = linhas.map(function (r) {
           var st = r.status || "enviada";
           var tag = st === "aceita"
@@ -135,12 +88,6 @@
             : st === "recusada"
               ? '<span class="tag-no">Recusada</span>'
               : '<span class="tag-wait">Aguardando</span>';
-          var acao = "—";
-          if (st === "enviada" || st === "aceita") {
-            acao = solicitados[r.id]
-              ? '<span class="tag-pend">Alteração solicitada</span>'
-              : '<button class="btn btn--ghost btn--sm row-request" data-id="' + r.id + '" type="button">Solicitar alteração</button>';
-          }
           return "<tr>" +
             '<td class="col-text">' + fmtData(r.data_ref) + "</td>" +
             '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
@@ -149,99 +96,13 @@
             "<td>" + fmt.format(num(r.vol_estoque)) + "</td>" +
             "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
             "<td>" + tag + "</td>" +
-            '<td><div class="row-actions">' + acao + "</div></td>" +
             "</tr>";
         }).join("");
         tabela.innerHTML = '<div class="table-wrap"><table class="tabela tabela--slim">' + head + "<tbody>" + rows + "</tbody></table></div>";
       });
     }
 
-    function pedirAlteracao(r) {
-      var nvf = window.prompt("Novo Volume a ser Fabricado para o pedido " + r.pedido + " (atual: " + num(r.valor_fabricar) + "):", r.valor_fabricar);
-      if (nvf === null) return;
-      var nfb = window.prompt("Novo Volume Fabricado (atual: " + num(r.vol_fabricado) + "):", r.vol_fabricado);
-      if (nfb === null) return;
-      var nes = window.prompt("Novo Volume em estoque para entrega (atual: " + num(r.vol_estoque) + "):", r.vol_estoque);
-      if (nes === null) return;
-      var nt = window.prompt("Novo Volume Transportado (atual: " + num(r.vol_transportado) + "):", r.vol_transportado);
-      if (nt === null) return;
-      var obs = window.prompt("Observação para a equipe responsável (opcional):", "");
-
-      if ([nvf, nfb, nes, nt].some(function (value) { return num(value) < 0; })) {
-        showMsg("Os volumes não podem ser negativos.", false);
-        return;
-      }
-
-      var rec = {
-        pendencia_id: r.id,
-        fornecedor: r.fornecedor,
-        pedido: r.pedido,
-        valor_fabricar_novo: num(nvf),
-        vol_fabricado_novo: num(nfb),
-        vol_estoque_novo: num(nes),
-        vol_transportado_novo: num(nt),
-        mensagem: obs ? obs : null
-      };
-      Data.addSolicitacao(rec).then(function (res) {
-        if (res.error) { showMsg("Erro ao solicitar: " + res.error.message, false); return; }
-        showMsg("Solicitação enviada à equipe responsável.", true);
-        render();
-      });
-    }
-
-    function wire() {
-      if (wired) return;
-      grab();
-      if (!form) return;
-      if (dataEl && !dataEl.value) dataEl.value = hoje();
-      if (pedidoEl) pedidoEl.addEventListener("change", drawPedidoDetails);
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var prof = window.currentProfile;
-        if (!prof || !prof.fornecedor) { showMsg("Perfil de fornecedor incompleto. Fale com a equipe responsável.", false); return; }
-        var pedido = pedidoEl.value.trim();
-        if (!pedido) { showMsg("Informe o pedido.", false); return; }
-        if (!dataEl.value) { showMsg("Informe a data.", false); return; }
-        if ([valorFabEl, fabricadoEl, estoqueEl, transpEl].some(function (input) { return num(input.value) < 0; })) {
-          showMsg("Os volumes não podem ser negativos.", false);
-          return;
-        }
-
-        var rec = {
-          fornecedor: prof.fornecedor,
-          pedido: pedido,
-          data_ref: dataEl.value,
-          valor_fabricar: num(valorFabEl.value),
-          vol_fabricado: num(fabricadoEl.value),
-          vol_estoque: num(estoqueEl.value),
-          vol_transportado: num(transpEl.value)
-        };
-        var btn = form.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        Data.addPendencia(rec).then(function (res) {
-          btn.disabled = false;
-          if (res.error) { showMsg("Erro ao enviar: " + res.error.message, false); return; }
-          form.reset();
-          dataEl.value = hoje();
-          fillPedidoOptions();
-          showMsg("Enviado!", true);
-          render();
-        });
-      });
-
-      tabela.addEventListener("click", function (e) {
-        var reqBtn = e.target.closest(".row-request");
-        if (!reqBtn) return;
-        var id = reqBtn.getAttribute("data-id");
-        var r = linhas.filter(function (x) { return x.id === id; })[0];
-        if (r) pedirAlteracao(r);
-      });
-
-      wired = true;
-    }
-
-    return { render: function () { wire(); render(); } };
+    return { render: render };
   })();
 
   /* ---------- UI DA EQUIPE: Informações pendentes + solicitações ---------- */

@@ -386,56 +386,21 @@
 })(window);
 
 /* =====================================================================
-   (2) REGISTROS — controlador da tela de Registros
+   (2) REGISTROS — consulta dos registros oficiais (somente leitura).
+   A entrada de dados acontece exclusivamente no Report dos fiscais.
    ===================================================================== */
 (function () {
   "use strict";
 
   var fmt = new Intl.NumberFormat("pt-BR");
   var STAGES = Store.STAGES;
-  var editingId = null;
 
-  var form = document.getElementById("form-registro");
-  var msg = document.getElementById("form-msg");
   var tabelaArea = document.getElementById("tabela-area");
   var contador = document.getElementById("contador");
-  var formTitle = document.getElementById("form-title");
-  var btnSubmit = document.getElementById("btn-submit");
-  var btnCancelEdit = document.getElementById("btn-cancelar-edicao");
   var rfFiscal = document.getElementById("rf-fiscal");
   var rfForn = document.getElementById("rf-fornecedor");
   var rfLocal = document.getElementById("rf-local");
   var rfPedido = document.getElementById("rf-pedido");
-  var pedidoInput = document.getElementById("pedido");
-  var pedidoAutoHint = document.getElementById("pedido-auto-hint");
-
-  function canEditRecords() {
-    return !!(window.AccessControl && window.AccessControl.canEditRecords());
-  }
-
-  function applyPedidoDetails() {
-    if (!pedidoInput || !window.Padroes) return;
-    var details = window.Padroes.pedido(pedidoInput.value);
-    if (!details) {
-      document.getElementById("fornecedor").value = "";
-      document.getElementById("local").value = "";
-      document.getElementById("volPedido").value = "";
-      if (pedidoAutoHint) pedidoAutoHint.classList.remove("is-filled");
-      if (pedidoAutoHint) pedidoAutoHint.textContent = pedidoInput.value
-        ? "Este pedido ainda não possui fornecedor, local e quantidade cadastrados na Padronização."
-        : "Selecione um pedido para preencher fornecedor, local e volume automaticamente.";
-      return;
-    }
-    document.getElementById("fornecedor").value = details.fornecedor;
-    document.getElementById("local").value = details.local;
-    document.getElementById("volPedido").value = details.quantidade;
-    if (pedidoAutoHint) {
-      pedidoAutoHint.textContent = details.fornecedor + " · " + details.local + " · " + fmt.format(details.quantidade) + " dormentes";
-      pedidoAutoHint.classList.add("is-filled");
-    }
-  }
-
-  if (pedidoInput) pedidoInput.addEventListener("change", applyPedidoDetails);
 
   /* ---------- filtros da tabela ---------- */
   function getFiltered() {
@@ -469,7 +434,7 @@
   /* ---------- exportação (CSV compatível com Excel pt-BR) ---------- */
   document.getElementById("btn-exportar").addEventListener("click", function () {
     var list = getFiltered();
-    if (!list.length) { showMsg("Nada para exportar com os filtros atuais.", false); return; }
+    if (!list.length) { window.alert("Nada para exportar com os filtros atuais."); return; }
 
     function cel(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
     function numBr(v) { return String(Number(v) || 0).replace(".", ","); }
@@ -494,26 +459,13 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
-    showMsg(list.length + (list.length === 1 ? " registro exportado." : " registros exportados."), true);
   });
 
-  /* Busca no banco (registros + padronização) e redesenha. */
+  /* Busca no banco e redesenha. */
   function render() {
-    var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
-    Promise.all([Store.refresh(), padroes]).then(function () {
-      fillFormSelects();
-      draw();
-    }).catch(function (err) {
+    Store.refresh().then(draw).catch(function (err) {
       contador.textContent = "";
       tabelaArea.innerHTML = '<p class="card__hint">Não foi possível carregar os registros (' + esc(err.message || err) + ").</p>";
-    });
-  }
-
-  /* Preenche as listas padronizadas do formulário, preservando a seleção atual. */
-  function fillFormSelects() {
-    if (!window.Padroes) return;
-    ["fiscal", "fornecedor", "local", "pedido"].forEach(function (id) {
-      window.Padroes.fill(document.getElementById(id), id);
     });
   }
 
@@ -536,7 +488,7 @@
           '<div class="empty__txt">Ajuste ou limpe os filtros acima.</div></div>'
         : '<div class="empty">' +
           '<div class="empty__title">Nenhum registro ainda</div>' +
-          '<div class="empty__txt">Adicione um registro no formulário acima para alimentar o dashboard.</div>' +
+          '<div class="empty__txt">Os registros são criados a partir dos lançamentos do Report dos fiscais.</div>' +
           "</div>";
       return;
     }
@@ -549,7 +501,6 @@
       '<th class="col-text">Local</th>' +
       '<th class="col-text">Pedido</th>' +
       STAGES.map(function (s) { return "<th>" + s.label + "</th>"; }).join("") +
-      (canEditRecords() ? '<th>Ações</th>' : "") +
       "</tr></thead>";
 
     var rows = list.map(function (r) {
@@ -557,17 +508,13 @@
         return "<td>" + fmt.format(Number(r[s.key]) || 0) + "</td>";
       }).join("");
       return (
-        '<tr class="' + (r.id === editingId ? "is-editing" : "") + '">' +
+        "<tr>" +
         '<td class="col-text">' + fmtDataBr(r.dataRef) + "</td>" +
         '<td class="col-text">' + esc(r.fiscal) + "</td>" +
         '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
         '<td class="col-text">' + esc(r.local) + "</td>" +
         '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
         cells +
-        (canEditRecords() ? '<td><div class="row-actions">' +
-          '<button class="row-edit" data-id="' + r.id + '" type="button" title="Editar" aria-label="Editar registro">Editar</button>' +
-          '<button class="row-del" data-id="' + r.id + '" type="button" title="Excluir" aria-label="Excluir registro">✕</button>' +
-        '</div></td>' : "") +
         "</tr>"
       );
     }).join("");
@@ -579,135 +526,10 @@
         var t = Store.sumStage(list, s.key);
         return "<td>" + fmt.format(t) + "</td>";
       }).join("") +
-      (canEditRecords() ? "<td></td>" : "") + "</tr></tfoot>";
+      "</tr></tfoot>";
 
     tabelaArea.innerHTML =
       '<div class="table-wrap"><table class="tabela">' + head + "<tbody>" + rows + "</tbody>" + foot + "</table></div>";
-  }
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    if (!canEditRecords()) { showMsg("Seu perfil possui acesso somente para leitura em Registros.", false); return; }
-    clearMsg();
-
-    var data = collectFormData();
-    if (!data) return;
-
-    btnSubmit.disabled = true;
-    if (editingId) {
-      Store.update(editingId, data).then(function () {
-        btnSubmit.disabled = false;
-        showMsg("Registro atualizado.", true);
-        stopEditing(true);
-        draw();
-      }).catch(function (err) {
-        btnSubmit.disabled = false;
-        showMsg("Erro ao salvar: " + (err.message || err), false);
-      });
-    } else {
-      Store.add(data).then(function () {
-        btnSubmit.disabled = false;
-        form.reset();
-        setDataPadrao();
-        applyPedidoDetails();
-        showMsg("Registro adicionado.", true);
-        document.getElementById("fiscal").focus();
-        draw();
-      }).catch(function (err) {
-        btnSubmit.disabled = false;
-        showMsg("Erro ao adicionar: " + (err.message || err), false);
-      });
-    }
-  });
-
-  btnCancelEdit.addEventListener("click", function () {
-    stopEditing(true);
-    draw();
-    showMsg("Edição cancelada.", true);
-  });
-
-  tabelaArea.addEventListener("click", function (e) {
-    if (!canEditRecords()) return;
-    var edit = e.target.closest(".row-edit");
-    var del = e.target.closest(".row-del");
-
-    if (edit) {
-      startEditing(edit.getAttribute("data-id"));
-      draw();
-      return;
-    }
-
-    if (del) {
-      var id = del.getAttribute("data-id");
-      if (!confirm("Excluir este registro?")) return;
-      if (editingId === id) stopEditing(true);
-      Store.remove(id).then(draw).catch(function (err) {
-        showMsg("Erro ao excluir: " + (err.message || err), false);
-      });
-    }
-  });
-
-  function collectFormData() {
-    var data = {
-      dataRef: val("dataRef"),
-      fiscal: val("fiscal"),
-      fornecedor: val("fornecedor"),
-      local: val("local"),
-      pedido: val("pedido")
-    };
-
-    if (!data.dataRef || !data.fiscal || !data.fornecedor || !data.local || !data.pedido) {
-      showMsg("Preencha Data, Fiscal, Fornecedor, Local e Pedido.", false);
-      return null;
-    }
-
-    var nums = ["volPedido", "volFabricar", "volPronto", "volInspecionado", "volLiberado", "volTransportado"];
-    for (var i = 0; i < nums.length; i++) {
-      var el = document.getElementById(nums[i]);
-      var n = parseFloat(el.value);
-      if (el.value === "" || isNaN(n) || n < 0) {
-        showMsg("Os volumes precisam ser números maiores ou iguais a zero.", false);
-        return null;
-      }
-      data[nums[i]] = n;
-    }
-    return data;
-  }
-
-  function startEditing(id) {
-    var rec = Store.getAll().filter(function (r) { return r.id === id; })[0];
-    if (!rec) return;
-    editingId = id;
-    // Selects padronizados: garante que o valor do registro apareça mesmo fora do padrão.
-    ["fiscal", "fornecedor", "local", "pedido"].forEach(function (campo) {
-      var el = document.getElementById(campo);
-      if (window.Padroes) window.Padroes.fill(el, campo, rec[campo] || "");
-      else el.value = rec[campo] || "";
-    });
-    setVal("dataRef", rec.dataRef ? String(rec.dataRef).slice(0, 10) : "");
-    STAGES.forEach(function (s) { setVal(s.key, rec[s.key]); });
-    formTitle.textContent = "Editar registro";
-    btnSubmit.textContent = "Salvar alterações";
-    btnCancelEdit.hidden = false;
-    clearMsg();
-    form.scrollIntoView({ behavior: "smooth", block: "start" });
-    document.getElementById("fiscal").focus();
-  }
-
-  function stopEditing(resetForm) {
-    editingId = null;
-    formTitle.textContent = "Novo registro";
-    btnSubmit.textContent = "Adicionar registro";
-    btnCancelEdit.hidden = true;
-    if (resetForm) { form.reset(); setDataPadrao(); applyPedidoDetails(); }
-  }
-
-  /* Data de hoje como sugestão no campo Data. */
-  function setDataPadrao() {
-    var el = document.getElementById("dataRef");
-    if (!el || el.value) return;
-    var d = new Date();
-    el.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
   /* data_ref "aaaa-mm-dd" -> "dd/mm/aaaa" (sem criar Date, evita fuso). */
@@ -717,13 +539,6 @@
     return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : d;
   }
 
-  function val(id) { return document.getElementById(id).value.trim(); }
-  function setVal(id, value) { document.getElementById(id).value = value == null ? "" : value; }
-  function showMsg(text, ok) {
-    msg.textContent = text;
-    msg.className = "form-msg " + (ok ? "is-ok" : "is-error");
-  }
-  function clearMsg() { msg.textContent = ""; msg.className = "form-msg"; }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
@@ -731,7 +546,6 @@
   }
 
   window.RegistrosUI = { render: render };
-  setDataPadrao();
   render();
 })();
 

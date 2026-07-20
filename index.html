@@ -76,7 +76,7 @@
         <a class="nav__item" href="#fornecedor" data-view="fornecedor" data-supplier-nav><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Área do fornecedor</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-dashboard"></use></svg> Dashboard</a>
         <a class="nav__item" href="#fornecedores" data-view="fornecedores"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Detalhes do fornecedor</a>
-        <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report Semanal</a>
+        <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report dos fiscais</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-records"></use></svg> Registros</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-pending"></use></svg> Informações pendentes</a>
@@ -110,72 +110,9 @@
           <div>
             <div class="page-head__eyebrow">Registros</div>
             <h1>Pedidos em inspeção e transporte</h1>
+            <p class="page-head__sub">Consulta dos registros oficiais. A entrada de dados acontece no Report dos fiscais.</p>
           </div>
         </header>
-
-        <!-- Formulário -->
-        <section class="card form-card">
-          <div class="card__head">
-            <h2 class="card__title" id="form-title">Novo registro</h2>
-            <p class="card__hint">Os volumes devem ser números (na mesma unidade — ex.: toneladas).</p>
-          </div>
-          <div class="card__body">
-            <form id="form-registro" novalidate>
-              <div class="form-grid">
-                <div class="field">
-                  <label for="dataRef">Data</label>
-                  <input id="dataRef" name="dataRef" type="date" required />
-                </div>
-                <div class="field">
-                  <label for="fiscal">Fiscal</label>
-                  <select id="fiscal" name="fiscal" required><option value="">Selecione…</option></select>
-                </div>
-                <div class="field">
-                  <label for="fornecedor">Fornecedor</label>
-                  <select id="fornecedor" name="fornecedor" required><option value="">Selecione…</option></select>
-                </div>
-                <div class="field">
-                  <label for="local">Local</label>
-                  <select id="local" name="local" required><option value="">Selecione…</option></select>
-                </div>
-                <div class="field">
-                  <label for="pedido">Pedido</label>
-                  <select id="pedido" name="pedido" required><option value="">Selecione…</option></select>
-                  <small id="pedido-auto-hint" class="pedido-auto-hint">Selecione um pedido para preencher fornecedor, local e volume automaticamente.</small>
-                </div>
-                <div class="field">
-                  <label for="volPedido">Volume do Pedido</label>
-                  <input id="volPedido" name="volPedido" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="volFabricar">Volume a ser Fabricado</label>
-                  <input id="volFabricar" name="volFabricar" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="volPronto">Volume Fabricado</label>
-                  <input id="volPronto" name="volPronto" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="volInspecionado">Volume Inspecionado</label>
-                  <input id="volInspecionado" name="volInspecionado" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="volLiberado">Volume em Estoque para Entrega</label>
-                  <input id="volLiberado" name="volLiberado" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="volTransportado">Volume Transportado</label>
-                  <input id="volTransportado" name="volTransportado" type="number" min="0" step="any" required />
-                </div>
-              </div>
-              <div class="form-foot">
-                <button id="btn-submit" class="btn btn--primary" type="submit">Adicionar registro</button>
-                <button id="btn-cancelar-edicao" class="btn btn--ghost" type="button" hidden>Cancelar edição</button>
-                <span id="form-msg" class="form-msg" role="status" aria-live="polite"></span>
-              </div>
-            </form>
-          </div>
-        </section>
 
         <!-- Filtros da tabela -->
         <section class="card filters">
@@ -446,16 +383,16 @@
         <header class="page-head report-page-head">
           <div>
             <div class="page-head__eyebrow">Coordenação da fiscalização</div>
-            <h1>Report Semanal</h1>
-            <p class="page-head__sub">Lançamentos realizados, evolução semanal e progresso acumulado dos pedidos.</p>
+            <h1>Report dos fiscais</h1>
+            <p class="page-head__sub">Único ponto de entrada de dados: cada fiscal lança as informações dos pedidos e acompanha seu histórico.</p>
           </div>
         </header>
 
-        <section class="report-intro" aria-label="Como usar o Report Semanal">
+        <section class="report-intro" aria-label="Como usar o Report dos fiscais">
           <div class="report-intro__icon">i</div>
           <div>
             <strong>Registre o realizado de forma simples.</strong>
-            <p>Selecione a semana, faça os lançamentos diários e acompanhe os resultados. Se o pedido ainda não existir, o fiscal pode cadastrá-lo no próprio Report e utilizá-lo imediatamente.</p>
+            <p>Faça os lançamentos com a data da visita. Se o pedido ainda não existir, cadastre-o aqui mesmo e use na sequência. Todo o seu histórico fica na tabela abaixo do formulário.</p>
           </div>
         </section>
 
@@ -538,11 +475,11 @@
             <div class="flow-node">
               <strong>Fiscal/Inspetor</strong>
               <p>Registra diariamente onde está e os volumes fabricados, inspecionados e transportados.</p>
-              <em>Report Semanal</em>
+              <em>Report dos fiscais</em>
             </div>
             <div class="flow-node">
               <strong>Gestão da área</strong>
-              <p>Administra contas e padrões; o fiscal também pode cadastrar novos pedidos diretamente no Report Semanal.</p>
+              <p>Administra contas e padrões; o fiscal também pode cadastrar novos pedidos diretamente no Report dos fiscais.</p>
               <em>Coordenador · Analista</em>
             </div>
           </article>
@@ -578,7 +515,7 @@
               <em>Revisão</em>
             </div>
             <div class="flow-node">
-              <strong>Report Semanal</strong>
+              <strong>Report dos fiscais</strong>
               <p>Mantém o histórico diário, resume o realizado na semana e acompanha o saldo total de cada pedido.</p>
               <em>Fiscalização</em>
             </div>
@@ -637,48 +574,6 @@
           </div>
         </header>
 
-        <section class="card form-card">
-          <div class="card__head">
-            <h2 class="card__title">Enviar informação</h2>
-            <p class="card__hint">Preencha e envie. Os dados vão para o painel da equipe responsável.</p>
-          </div>
-          <div class="card__body">
-            <form id="forn-form" novalidate>
-              <div class="form-grid">
-                <div class="field">
-                  <label for="forn-data">Data</label>
-                  <input id="forn-data" type="date" required />
-                </div>
-                <div class="field">
-                  <label for="forn-pedido">Pedido</label>
-                  <select id="forn-pedido" required><option value="">Selecione…</option></select>
-                </div>
-                <div id="forn-pedido-detalhes" class="pedido-auto-details field--wide" hidden></div>
-                <div class="field">
-                  <label for="forn-valorfab">Volume a ser Fabricado</label>
-                  <input id="forn-valorfab" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="forn-fabricado">Volume Fabricado</label>
-                  <input id="forn-fabricado" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="forn-estoque">Volume em estoque para entrega</label>
-                  <input id="forn-estoque" type="number" min="0" step="any" required />
-                </div>
-                <div class="field">
-                  <label for="forn-transportado">Volume Transportado</label>
-                  <input id="forn-transportado" type="number" min="0" step="any" required />
-                </div>
-              </div>
-              <div class="form-foot">
-                <button class="btn btn--success" type="submit">Enviar</button>
-                <span id="forn-msg" class="form-msg" role="status" aria-live="polite"></span>
-              </div>
-            </form>
-          </div>
-        </section>
-
         <section class="card">
           <div class="card__head">
             <div class="chart-head-flex">
@@ -689,6 +584,7 @@
             </div>
           </div>
           <div class="card__body">
+            <p class="card__hint">A entrada de informações agora é feita pelos fiscais da Rumo. Este histórico permanece disponível para consulta.</p>
             <div id="forn-tabela"></div>
           </div>
         </section>
@@ -1033,7 +929,7 @@
           </div>
         </header>
         <p class="card__hint" style="margin: -8px 0 14px;">
-          Cadastre os detalhes de cada pedido e mantenha as listas usadas nos formulários do site. Editor, Coordenador e Analista gerenciam tudo; Fiscal/Inspetor pode consultar e cadastrar novos pedidos pelo Report Semanal.
+          Cadastre os detalhes de cada pedido e mantenha as listas usadas nos formulários do site. Editor, Coordenador e Analista gerenciam tudo; Fiscal/Inspetor pode consultar e cadastrar novos pedidos pelo Report dos fiscais.
         </p>
         <div id="padroes-cards"></div>
       </section>
