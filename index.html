@@ -352,8 +352,8 @@
 
         <section class="card form-card">
           <div class="card__head">
-            <h2 class="card__title">Enviar informação</h2>
-            <p class="card__hint">Selecione o pedido e informe os volumes. O envio aparece para a equipe Rumo em Informações dos Fornecedores.</p>
+            <h2 id="forn-form-title" class="card__title">Enviar informação</h2>
+            <p class="card__hint">Digite o número do pedido, mesmo que ele ainda não esteja cadastrado. Envios, alterações e exclusões ficam visíveis para a equipe Rumo.</p>
           </div>
           <div class="card__body">
             <form id="forn-form" novalidate>
@@ -364,7 +364,8 @@
                 </div>
                 <div class="field field--wide">
                   <label for="forn-pedido">Pedido</label>
-                  <select id="forn-pedido" required><option value="">Selecione…</option></select>
+                  <input id="forn-pedido" type="text" list="forn-pedidos-list" maxlength="100" autocomplete="off" placeholder="Digite o número do pedido" required />
+                  <datalist id="forn-pedidos-list"></datalist>
                 </div>
                 <div id="forn-pedido-detalhes" class="pedido-auto-details field--wide" hidden></div>
                 <div class="field">
@@ -385,7 +386,8 @@
                 </div>
               </div>
               <div class="form-foot">
-                <button class="btn btn--success" type="submit">Enviar</button>
+                <button id="forn-submit" class="btn btn--success" type="submit">Enviar</button>
+                <button id="forn-cancel" class="btn btn--ghost" type="button" hidden>Cancelar alteração</button>
                 <span id="forn-msg" class="form-msg" role="status" aria-live="polite"></span>
               </div>
             </form>
@@ -465,21 +467,8 @@
           <div class="card__head">
             <div class="chart-head-flex">
               <div>
-                <h2 class="card__title">Solicitações de alteração</h2>
-                <p class="card__hint" id="solic-count">—</p>
-              </div>
-            </div>
-          </div>
-          <div class="card__body">
-            <div id="solic-tabela"></div>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="card__head">
-            <div class="chart-head-flex">
-              <div>
-                <h2 class="card__title">Recebido dos fornecedores</h2>
+                <h2 class="card__title">Histórico dos fornecedores</h2>
+                <p class="card__hint">Envios, alterações e exclusões são registrados nesta lista.</p>
                 <p class="card__hint" id="pendentes-count">—</p>
               </div>
             </div>
@@ -783,7 +772,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js?v=realtime-1"></script>
   <script src="assets/js/access-control.js?v=fornecedor-restrito-1"></script>
-  <script src="assets/js/pendencias.js?v=fluxos-atomicos-1"></script>
+  <script src="assets/js/pendencias.js?v=fornecedor-edita-1"></script>
   <script src="assets/js/padroes.js?v=report-realizado-1"></script>
   <script src="assets/js/contas.js"></script>
   <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
@@ -794,6 +783,6 @@
   <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>
   <script src="assets/js/pdf-export.js?v=remove-entregas-pedido-1"></script>
   <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>
-  <script src="assets/js/auth.js?v=realtime-1"></script>
+  <script src="assets/js/auth.js?v=fornecedor-edita-1"></script>
 </body>
 </html>

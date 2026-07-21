@@ -1,8 +1,5 @@
 /* =====================================================================
-   INFORMAÇÕES PENDENTES — fluxo fornecedor -> equipe responsável (Supabase).
-   O fornecedor envia (Pedido, Volume do pedido, Transportado) e vê os
-   próprios envios. Ele NÃO altera o histórico direto: pede alteração
-   (propondo novos valores) e a equipe com acesso completo aprova ou recusa.
+   INFORMACOES DOS FORNECEDORES — envio, edicao e historico no Supabase.
    ===================================================================== */
 (function () {
   "use strict";
@@ -21,52 +18,51 @@
     if (el) el.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>';
     return false;
   }
-
-  /* ---------- camada de dados (RLS filtra fornecedor x equipe) ---------- */
-  var Data = {
-    listPendencias: function (somenteEnviadas) {
-      var q = sb.from("pendencias")
-        .select("id, fornecedor, pedido, pedido_id, data_ref, vol_pedido, vol_fabricado, vol_estoque, vol_transportado, status, created_at")
-        .order("created_at", { ascending: false });
-      return somenteEnviadas ? q.eq("status", "enviada") : q;
-    },
-    addPendencia: function (rec) { return sb.from("pendencias").insert(rec); },
-    updatePendencia: function (id, patch) { return sb.from("pendencias").update(patch).eq("id", id); },
-    removePendencia: function (id) { return sb.from("pendencias").delete().eq("id", id); },
-
-    listSolicitacoesPendentes: function () {
-      return sb.from("solicitacoes")
-        .select("id, pendencia_id, fornecedor, pedido, valor_fabricar_novo, vol_fabricado_novo, vol_estoque_novo, vol_transportado_novo, mensagem, created_at")
-        .eq("status", "pendente")
-        .order("created_at", { ascending: false });
-    },
-    setStatusSolicitacao: function (id, status) { return sb.from("solicitacoes").update({ status: status }).eq("id", id); },
-    aceitarPendencia: function (id) { return sb.rpc("aceitar_pendencia", { p_pendencia_id: id }); },
-    aprovarSolicitacao: function (id) { return sb.rpc("aprovar_solicitacao", { p_solicitacao_id: id }); }
-  };
-
-  /* ---------- UI do FORNECEDOR ---------- */
-  /* data_ref vem como "aaaa-mm-dd"; exibe como dd/mm/aaaa sem fuso. */
   function fmtData(d) {
     if (!d) return "—";
     var p = String(d).slice(0, 10).split("-");
     return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : d;
   }
+  function fmtMomento(d) {
+    if (!d) return "—";
+    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(d));
+  }
 
-  /* O fornecedor envia informações (Data, Pedido, Volume do Pedido,
-     Volume Fabricado, Volume em Estoque, Volume Transportado) e consulta
-     o próprio histórico. Quem aceita/recusa é a equipe. */
+  /* A RLS limita a leitura ao fornecedor da conta e reserva as decisões à equipe. */
+  var Data = {
+    listPendencias: function () {
+      return sb.from("pendencias")
+        .select("id, fornecedor, pedido, pedido_id, data_ref, vol_pedido, vol_fabricado, vol_estoque, vol_transportado, status, acao_fornecedor, created_by, created_at, updated_at")
+        .order("updated_at", { ascending: false });
+    },
+    addPendencia: function (rec) { return sb.from("pendencias").insert(rec); },
+    updateOwnPendencia: function (row, patch) {
+      return sb.from("pendencias").update(patch)
+        .eq("id", row.id).eq("updated_at", row.updated_at)
+        .select("id, updated_at").maybeSingle();
+    },
+    updatePendencia: function (id, patch) { return sb.from("pendencias").update(patch).eq("id", id); },
+    aceitarPendencia: function (id) { return sb.rpc("aceitar_pendencia", { p_pendencia_id: id }); }
+  };
+
+  /* ---------- UI DO FORNECEDOR ---------- */
   var FornecedorUI = (function () {
-    var form, msg, tabela, count, wired = false;
-    var dataEl, pedidoEl, detalhesEl, volPedidoEl, fabricadoEl, estoqueEl, transpEl;
+    var form, msg, tabela, count, title, submitBtn, cancelBtn, wired = false;
+    var dataEl, pedidoEl, listaPedidosEl, detalhesEl, volPedidoEl, fabricadoEl, estoqueEl, transpEl;
+    var linhas = [];
+    var editing = null;
 
     function grab() {
       form = document.getElementById("forn-form");
       msg = document.getElementById("forn-msg");
       tabela = document.getElementById("forn-tabela");
       count = document.getElementById("forn-count");
+      title = document.getElementById("forn-form-title");
+      submitBtn = document.getElementById("forn-submit");
+      cancelBtn = document.getElementById("forn-cancel");
       dataEl = document.getElementById("forn-data");
       pedidoEl = document.getElementById("forn-pedido");
+      listaPedidosEl = document.getElementById("forn-pedidos-list");
       detalhesEl = document.getElementById("forn-pedido-detalhes");
       volPedidoEl = document.getElementById("forn-volpedido");
       fabricadoEl = document.getElementById("forn-fabricado");
@@ -84,29 +80,69 @@
       msg.classList.toggle("is-ok", ok === true);
       msg.classList.toggle("is-error", ok === false);
     }
-
+    function pedidoDigitado() { return String(pedidoEl && pedidoEl.value || "").trim(); }
     function pedidoSelecionado() {
-      return window.Padroes && window.Padroes.pedido ? window.Padroes.pedido(pedidoEl.value) : null;
+      return window.Padroes && window.Padroes.pedido ? window.Padroes.pedido(pedidoDigitado()) : null;
     }
 
-    /* Ao escolher o pedido: mostra fornecedor/local/quantidade e sugere o
-       Volume do Pedido a partir da quantidade cadastrada (editável). */
     function onPedidoChange() {
       var d = pedidoSelecionado();
+      var numero = pedidoDigitado();
       if (detalhesEl) {
-        detalhesEl.hidden = !d;
+        detalhesEl.hidden = !numero;
         detalhesEl.innerHTML = d
           ? '<span><strong>Fornecedor</strong>' + esc(d.fornecedor) + '</span><span><strong>Local</strong>' + esc(d.local) + '</span><span><strong>Quantidade do pedido</strong>' + fmt.format(d.quantidade) + ' dormentes</span>'
-          : "";
+          : '<span><strong>Pedido novo</strong>O número ainda não está cadastrado. Ele será enviado à equipe Rumo para conferência.</span>';
       }
       if (d && volPedidoEl && !volPedidoEl.value) volPedidoEl.value = d.quantidade;
     }
 
     function fillPedidoOptions() {
-      if (!pedidoEl || !window.Padroes) return;
+      if (!listaPedidosEl || !window.Padroes) return;
       var prof = window.currentProfile || {};
-      window.Padroes.fillPedidos(pedidoEl, pedidoEl.value, prof.fornecedor || null, true);
+      var pedidos = window.Padroes.pedidos(prof.fornecedor || null, true);
+      listaPedidosEl.innerHTML = "";
+      pedidos.forEach(function (item) {
+        var option = document.createElement("option");
+        option.value = item.numero;
+        listaPedidosEl.appendChild(option);
+      });
       onPedidoChange();
+    }
+
+    function resetForm() {
+      editing = null;
+      form.reset();
+      dataEl.value = hoje();
+      title.textContent = "Enviar informação";
+      submitBtn.textContent = "Enviar";
+      cancelBtn.hidden = true;
+      showMsg("");
+      onPedidoChange();
+    }
+
+    function startEdit(row) {
+      editing = row;
+      dataEl.value = String(row.data_ref || "").slice(0, 10);
+      pedidoEl.value = row.pedido || "";
+      volPedidoEl.value = num(row.vol_pedido);
+      fabricadoEl.value = num(row.vol_fabricado);
+      estoqueEl.value = num(row.vol_estoque);
+      transpEl.value = num(row.vol_transportado);
+      title.textContent = "Alterar informação enviada";
+      submitBtn.textContent = "Salvar alteração";
+      cancelBtn.hidden = false;
+      showMsg("Altere os campos necessários e salve.");
+      onPedidoChange();
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function statusTag(row) {
+      if (row.status === "aceita") return '<span class="tag-ok">Aceita</span>';
+      if (row.status === "recusada") return '<span class="tag-no">Recusada</span>';
+      if (row.status === "excluida") return '<span class="tag-no">Excluída</span>';
+      if (row.acao_fornecedor === "alterada") return '<span class="tag-wait">Alterada · aguardando</span>';
+      return '<span class="tag-wait">Aguardando</span>';
     }
 
     function render() {
@@ -120,37 +156,37 @@
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(pend.error.message) + ").</p>";
           return;
         }
-        var linhas = pend.data || [];
+        linhas = pend.data || [];
         count.textContent = linhas.length ? (linhas.length === 1 ? "1 envio." : linhas.length + " envios.") : "Nenhum envio ainda.";
         if (!linhas.length) {
-          tabela.innerHTML =
-            '<div class="empty"><div class="empty__title">Nenhuma informação enviada</div>' +
-            '<div class="empty__txt">Preencha o formulário acima e clique em Enviar.</div></div>';
+          tabela.innerHTML = '<div class="empty"><div class="empty__title">Nenhuma informação enviada</div><div class="empty__txt">Preencha o formulário acima e clique em Enviar.</div></div>';
           return;
         }
-        var head = "<thead><tr>" +
-          '<th class="col-text">Data</th><th class="col-text">Pedido</th>' +
-          "<th>Volume do Pedido</th><th>Volume Fabricado</th><th>Volume em Estoque</th><th>Volume Transportado</th>" +
-          "<th>Status</th></tr></thead>";
+        var currentId = String((window.currentProfile || {}).id || "");
+        var head = '<thead><tr><th class="col-text">Data</th><th class="col-text">Pedido</th><th>Volume do Pedido</th><th>Volume Fabricado</th><th>Volume em Estoque</th><th>Volume Transportado</th><th>Status</th><th>Ações</th></tr></thead>';
         var rows = linhas.map(function (r) {
-          var st = r.status || "enviada";
-          var tag = st === "aceita"
-            ? '<span class="tag-ok">Aceita</span>'
-            : st === "recusada"
-              ? '<span class="tag-no">Recusada</span>'
-              : '<span class="tag-wait">Aguardando</span>';
-          return "<tr>" +
-            '<td class="col-text">' + fmtData(r.data_ref) + "</td>" +
-            '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_pedido)) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_fabricado)) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_estoque)) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
-            "<td>" + tag + "</td>" +
-            "</tr>";
+          var canChange = r.status === "enviada" && currentId && String(r.created_by || "") === currentId;
+          var actions = canChange
+            ? '<div class="row-actions"><button class="btn btn--ghost btn--sm forn-edit" data-id="' + esc(r.id) + '" type="button">Alterar</button><button class="btn btn--danger btn--sm forn-delete" data-id="' + esc(r.id) + '" type="button">Excluir</button></div>'
+            : "—";
+          return '<tr><td class="col-text">' + fmtData(r.data_ref) + '</td><td class="col-text cell-pedido">' + esc(r.pedido) + "</td><td>" + fmt.format(num(r.vol_pedido)) + "</td><td>" + fmt.format(num(r.vol_fabricado)) + "</td><td>" + fmt.format(num(r.vol_estoque)) + "</td><td>" + fmt.format(num(r.vol_transportado)) + "</td><td>" + statusTag(r) + "</td><td>" + actions + "</td></tr>";
         }).join("");
         tabela.innerHTML = '<div class="table-wrap"><table class="tabela tabela--slim">' + head + "<tbody>" + rows + "</tbody></table></div>";
       });
+    }
+
+    function payload(prof) {
+      var pedido = pedidoSelecionado();
+      return {
+        fornecedor: prof.fornecedor,
+        pedido: pedidoDigitado(),
+        pedido_id: pedido ? pedido.id : null,
+        data_ref: dataEl.value,
+        vol_pedido: num(volPedidoEl.value),
+        vol_fabricado: num(fabricadoEl.value),
+        vol_estoque: num(estoqueEl.value),
+        vol_transportado: num(transpEl.value)
+      };
     }
 
     function wire() {
@@ -158,211 +194,141 @@
       grab();
       if (!form) return;
       if (dataEl && !dataEl.value) dataEl.value = hoje();
-      if (pedidoEl) pedidoEl.addEventListener("change", onPedidoChange);
+      if (pedidoEl) {
+        pedidoEl.addEventListener("input", onPedidoChange);
+        pedidoEl.addEventListener("change", onPedidoChange);
+      }
+      cancelBtn.addEventListener("click", resetForm);
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         var prof = window.currentProfile;
         if (!prof || !prof.fornecedor) { showMsg("Perfil de fornecedor incompleto. Fale com a equipe Rumo.", false); return; }
         if (!dataEl.value) { showMsg("Informe a data.", false); return; }
-        var pedido = pedidoSelecionado();
-        if (!pedido) { showMsg("Selecione um pedido.", false); return; }
-        if ([volPedidoEl, fabricadoEl, estoqueEl, transpEl].some(function (el) { return num(el.value) < 0; })) {
-          showMsg("Os volumes não podem ser negativos.", false);
-          return;
+        if (!pedidoDigitado()) { showMsg("Digite o número do pedido.", false); return; }
+        if ([volPedidoEl, fabricadoEl, estoqueEl, transpEl].some(function (el) { return el.value === "" || num(el.value) < 0; })) {
+          showMsg("Preencha todos os volumes com valores iguais ou maiores que zero.", false); return;
         }
-        var rec = {
-          fornecedor: prof.fornecedor,
-          pedido: pedido.numero,
-          pedido_id: pedido.id,
-          data_ref: dataEl.value,
-          vol_pedido: num(volPedidoEl.value),
-          vol_fabricado: num(fabricadoEl.value),
-          vol_estoque: num(estoqueEl.value),
-          vol_transportado: num(transpEl.value)
-        };
-        var btn = form.querySelector('button[type="submit"]');
-        btn.disabled = true;
-        Data.addPendencia(rec).then(function (res) {
-          btn.disabled = false;
-          if (res.error) { showMsg("Erro ao enviar: " + res.error.message, false); return; }
-          form.reset();
-          dataEl.value = hoje();
-          fillPedidoOptions();
-          showMsg("Enviado! A equipe Rumo verá em Informações dos Fornecedores.", true);
+        var rec = payload(prof);
+        var op;
+        if (editing) {
+          rec.acao_fornecedor = "alterada";
+          op = Data.updateOwnPendencia(editing, rec);
+        } else {
+          rec.acao_fornecedor = "enviada";
+          op = Data.addPendencia(rec);
+        }
+        submitBtn.disabled = true;
+        op.then(function (res) {
+          submitBtn.disabled = false;
+          if (res.error) { showMsg("Erro ao salvar: " + res.error.message, false); return; }
+          if (editing && !res.data) { showMsg("Este envio foi modificado em outra sessão. Atualize a lista e tente novamente.", false); return; }
+          var changed = !!editing;
+          resetForm();
+          showMsg(changed ? "Alteração salva e informada à equipe Rumo." : "Enviado! A equipe Rumo verá em Informações dos Fornecedores.", true);
           render();
         });
       });
 
+      tabela.addEventListener("click", function (e) {
+        var edit = e.target.closest(".forn-edit");
+        var del = e.target.closest(".forn-delete");
+        if (!edit && !del) return;
+        var id = (edit || del).getAttribute("data-id");
+        var row = linhas.filter(function (item) { return item.id === id; })[0];
+        if (!row) return;
+        if (edit) { startEdit(row); return; }
+        if (!window.confirm("Excluir o envio do pedido " + row.pedido + "? A exclusão ficará registrada para a equipe Rumo.")) return;
+        Data.updateOwnPendencia(row, { status: "excluida", acao_fornecedor: "excluida" }).then(function (res) {
+          if (res.error) { window.alert("Erro ao excluir: " + res.error.message); return; }
+          if (!res.data) { window.alert("Este envio foi modificado em outra sessão. Atualize a lista e tente novamente."); return; }
+          if (editing && editing.id === row.id) resetForm();
+          showMsg("Envio excluído. A exclusão foi registrada para a equipe Rumo.", true);
+          render();
+        });
+      });
       wired = true;
     }
 
     return { render: function () { wire(); render(); } };
   })();
 
-  /* ---------- UI DA EQUIPE: Informações pendentes + solicitações ---------- */
+  /* ---------- UI DA EQUIPE: histórico completo dos fornecedores ---------- */
   var PendentesUI = (function () {
-    var tabela, count, refreshBtn, solicTabela, solicCount, wired = false;
-    var solicitacoes = [];
+    var tabela, count, refreshBtn, wired = false;
     var pendencias = [];
 
     function grab() {
       tabela = document.getElementById("pendentes-tabela");
       count = document.getElementById("pendentes-count");
       refreshBtn = document.getElementById("pendentes-refresh");
-      solicTabela = document.getElementById("solic-tabela");
-      solicCount = document.getElementById("solic-count");
     }
-
-    function renderPendencias() {
-      Data.listPendencias(true).then(function (res) {
+    function movement(row) {
+      if (row.acao_fornecedor === "alterada") return '<span class="tag-wait">Alterado pelo fornecedor</span>';
+      if (row.acao_fornecedor === "excluida" || row.status === "excluida") return '<span class="tag-no">Excluído pelo fornecedor</span>';
+      return '<span class="tag-ok">Enviado pelo fornecedor</span>';
+    }
+    function situation(row) {
+      if (row.status === "aceita") return "Aceita";
+      if (row.status === "recusada") return "Recusada";
+      if (row.status === "excluida") return "Excluída";
+      return "Aguardando decisão";
+    }
+    function render() {
+      if (!tabela) grab();
+      if (!tabela || !guardSb(tabela)) return;
+      Data.listPendencias().then(function (res) {
         if (res.error) {
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + ").</p>";
           return;
         }
         pendencias = res.data || [];
-        var list = pendencias;
-        count.textContent = list.length ? (list.length === 1 ? "1 informação." : list.length + " informações.") : "Nada recebido.";
-        if (!list.length) {
-          tabela.innerHTML =
-            '<div class="empty"><div class="empty__title">Nada recebido</div>' +
-            '<div class="empty__txt">Quando um fornecedor enviar dados, eles aparecem aqui.</div></div>';
+        count.textContent = pendencias.length ? (pendencias.length === 1 ? "1 informação no histórico." : pendencias.length + " informações no histórico.") : "Nada recebido.";
+        if (!pendencias.length) {
+          tabela.innerHTML = '<div class="empty"><div class="empty__title">Nada recebido</div><div class="empty__txt">Envios, alterações e exclusões dos fornecedores aparecerão aqui.</div></div>';
           return;
         }
-        var head = "<thead><tr>" +
-          '<th class="col-text">Fornecedor</th><th class="col-text">Data</th><th class="col-text">Pedido</th>' +
-          "<th>Volume do Pedido</th><th>Volume Fabricado</th><th>Volume em Estoque</th><th>Volume Transportado</th>" +
-          "<th>Ações</th></tr></thead>";
-        var rows = list.map(function (r) {
-          return "<tr>" +
-            '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
-            '<td class="col-text">' + fmtData(r.data_ref) + "</td>" +
-            '<td class="col-text cell-pedido">' + esc(r.pedido) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_pedido)) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_fabricado)) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_estoque)) + "</td>" +
-            "<td>" + fmt.format(num(r.vol_transportado)) + "</td>" +
-            '<td><div class="row-actions">' +
-              '<button class="btn btn--success btn--sm pend-ok" data-id="' + r.id + '" type="button">Aceitar</button>' +
-              '<button class="btn btn--danger btn--sm pend-no" data-id="' + r.id + '" type="button">Recusar</button>' +
-            "</div></td>" +
-            "</tr>";
+        var head = '<thead><tr><th class="col-text">Fornecedor</th><th class="col-text">Data</th><th class="col-text">Pedido</th><th>Volume do Pedido</th><th>Volume Fabricado</th><th>Volume em Estoque</th><th>Volume Transportado</th><th>Modificação</th><th class="col-text">Atualizado em</th><th>Situação</th><th>Ações</th></tr></thead>';
+        var rows = pendencias.map(function (r) {
+          var actions = r.status === "enviada"
+            ? '<div class="row-actions"><button class="btn btn--success btn--sm pend-ok" data-id="' + esc(r.id) + '" type="button">Aceitar</button><button class="btn btn--danger btn--sm pend-no" data-id="' + esc(r.id) + '" type="button">Recusar</button></div>'
+            : "—";
+          return '<tr><td class="col-text">' + esc(r.fornecedor) + '</td><td class="col-text">' + fmtData(r.data_ref) + '</td><td class="col-text cell-pedido">' + esc(r.pedido) + "</td><td>" + fmt.format(num(r.vol_pedido)) + "</td><td>" + fmt.format(num(r.vol_fabricado)) + "</td><td>" + fmt.format(num(r.vol_estoque)) + "</td><td>" + fmt.format(num(r.vol_transportado)) + "</td><td>" + movement(r) + '</td><td class="col-text">' + fmtMomento(r.updated_at) + "</td><td>" + situation(r) + "</td><td>" + actions + "</td></tr>";
         }).join("");
         tabela.innerHTML = '<div class="table-wrap"><table class="tabela tabela--slim">' + head + "<tbody>" + rows + "</tbody></table></div>";
       });
     }
-
-    function renderSolicitacoes() {
-      Data.listSolicitacoesPendentes().then(function (res) {
-        if (res.error) {
-          solicTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + ").</p>";
-          return;
-        }
-        solicitacoes = res.data || [];
-        solicCount.textContent = solicitacoes.length
-          ? (solicitacoes.length === 1 ? "1 solicitação." : solicitacoes.length + " solicitações.")
-          : "Nenhuma solicitação.";
-        if (!solicitacoes.length) {
-          solicTabela.innerHTML =
-            '<div class="empty"><div class="empty__title">Nenhuma solicitação</div>' +
-            '<div class="empty__txt">Pedidos de alteração dos fornecedores aparecem aqui para aprovação.</div></div>';
-          return;
-        }
-        var head = "<thead><tr>" +
-          '<th class="col-text">Fornecedor</th><th class="col-text">Pedido</th>' +
-          "<th>Volume a ser Fabricado</th><th>Volume Fabricado</th><th>Volume em estoque</th><th>Volume Transportado</th>" +
-          '<th class="col-text">Observação</th><th>Ações</th></tr></thead>';
-        var rows = solicitacoes.map(function (s) {
-          return "<tr>" +
-            '<td class="col-text">' + esc(s.fornecedor) + "</td>" +
-            '<td class="col-text cell-pedido">' + esc(s.pedido) + "</td>" +
-            "<td>" + fmt.format(num(s.valor_fabricar_novo)) + "</td>" +
-            "<td>" + fmt.format(num(s.vol_fabricado_novo)) + "</td>" +
-            "<td>" + fmt.format(num(s.vol_estoque_novo)) + "</td>" +
-            "<td>" + fmt.format(num(s.vol_transportado_novo)) + "</td>" +
-            '<td class="col-text">' + esc(s.mensagem || "—") + "</td>" +
-            '<td><div class="row-actions">' +
-              '<button class="btn btn--success btn--sm solic-ok" data-id="' + s.id + '" type="button">Aprovar</button>' +
-              '<button class="btn btn--danger btn--sm solic-no" data-id="' + s.id + '" type="button">Recusar</button>' +
-            "</div></td>" +
-            "</tr>";
-        }).join("");
-        solicTabela.innerHTML = '<div class="table-wrap"><table class="tabela tabela--slim">' + head + "<tbody>" + rows + "</tbody></table></div>";
-      });
-    }
-
-    function render() {
-      if (!tabela) grab();
-      if (!tabela || !guardSb(tabela)) return;
-      renderPendencias();
-      renderSolicitacoes();
-    }
-
-    function aceitarPendencia(r) {
-      Data.aceitarPendencia(r.id).then(function (res) {
+    function aceitar(row) {
+      Data.aceitarPendencia(row.id).then(function (res) {
         if (res.error) throw res.error;
         render();
         if (window.RegistrosUI) window.RegistrosUI.render();
       }).catch(function (err) {
-        window.alert("Erro ao aceitar a pendência: " + (err.message || err));
+        window.alert("Erro ao aceitar: " + (err.message || err));
       });
     }
-
-    function recusarPendencia(r) {
-      Data.updatePendencia(r.id, { status: "recusada" }).then(function (res) {
+    function recusar(row) {
+      Data.updatePendencia(row.id, { status: "recusada" }).then(function (res) {
         if (res.error) { window.alert("Erro ao recusar: " + res.error.message); return; }
         render();
       });
     }
-
-    function aprovar(s) {
-      Data.aprovarSolicitacao(s.id).then(function (res) {
-        if (res.error) throw res.error;
-        render();
-        if (window.RegistrosUI) window.RegistrosUI.render();
-      }).catch(function (err) {
-        window.alert("Erro ao aprovar a solicitação: " + (err.message || err));
-      });
-    }
-
-    function recusar(s) {
-      Data.setStatusSolicitacao(s.id, "recusada").then(function (res) {
-        if (res.error) { window.alert("Erro ao recusar: " + res.error.message); return; }
-        render();
-      });
-    }
-
     function wire() {
       if (wired) return;
       grab();
       if (refreshBtn) refreshBtn.addEventListener("click", render);
-      if (tabela) {
-        tabela.addEventListener("click", function (e) {
-          var ok = e.target.closest(".pend-ok");
-          var no = e.target.closest(".pend-no");
-          if (!ok && !no) return;
-          var id = (ok || no).getAttribute("data-id");
-          var r = pendencias.filter(function (x) { return x.id === id; })[0];
-          if (!r) return;
-          if (ok) { if (window.confirm("Aceitar o pedido " + r.pedido + " de " + r.fornecedor + "? Ele vira um registro oficial e fica como Aceita no histórico do fornecedor.")) aceitarPendencia(r); }
-          else { if (window.confirm("Recusar o envio do pedido " + r.pedido + "? Ele fica como Recusada no histórico do fornecedor.")) recusarPendencia(r); }
-        });
-      }
-      if (solicTabela) {
-        solicTabela.addEventListener("click", function (e) {
-          var ok = e.target.closest(".solic-ok");
-          var no = e.target.closest(".solic-no");
-          if (!ok && !no) return;
-          var id = (ok || no).getAttribute("data-id");
-          var s = solicitacoes.filter(function (x) { return x.id === id; })[0];
-          if (!s) return;
-          if (ok) { if (window.confirm("Aprovar e aplicar os valores solicitados ao pedido " + s.pedido + "?")) aprovar(s); }
-          else { if (window.confirm("Recusar a solicitação do pedido " + s.pedido + "?")) recusar(s); }
-        });
-      }
+      if (tabela) tabela.addEventListener("click", function (e) {
+        var ok = e.target.closest(".pend-ok");
+        var no = e.target.closest(".pend-no");
+        if (!ok && !no) return;
+        var id = (ok || no).getAttribute("data-id");
+        var row = pendencias.filter(function (item) { return item.id === id; })[0];
+        if (!row) return;
+        if (ok && window.confirm("Aceitar o pedido " + row.pedido + " de " + row.fornecedor + "?")) aceitar(row);
+        if (no && window.confirm("Recusar o envio do pedido " + row.pedido + "?")) recusar(row);
+      });
       wired = true;
     }
-
     return { render: function () { wire(); render(); } };
   })();
 

@@ -135,6 +135,7 @@
           sb.auth.signOut();
           return;
         }
+        p.data.id = user.id;
         showApp(p.data);
       }).catch(function (error) {
         sessionFailure(msgEl, "O servidor demorou para responder. Tente entrar novamente.", error);
