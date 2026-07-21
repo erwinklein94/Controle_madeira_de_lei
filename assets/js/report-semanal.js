@@ -9,8 +9,6 @@
   var root;
   var wired = false;
   var state = {};
-  var historyState = { start: "", end: "", supplier: "", entries: [], suppliers: [] };
-  var HISTORY_PAGE_SIZE = 1000;
   var ENTRIES_PAGE_SIZE = 1000;
   var fmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 
@@ -26,7 +24,6 @@
     var role = window.currentProfile && window.currentProfile.role;
     return !!(window.AccessControl && (window.AccessControl.isFull(role) || window.AccessControl.isFiscal(role)));
   }
-  function canViewHistory() { return canSendEntries(); }
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -62,9 +59,6 @@
   function dateTimeBr(s) {
     var d = new Date(s);
     return isNaN(d.getTime()) ? "—" : d.toLocaleString("pt-BR");
-  }
-  function sum(list, field) {
-    return list.reduce(function (total, item) { return total + num(item[field]); }, 0);
   }
   function options(category, selected) {
     var values = window.Padroes ? window.Padroes.options(category) : [];
@@ -194,142 +188,6 @@
     });
   }
 
-  function historyEl(id) { return document.getElementById(id); }
-
-  function historyMessage(text, error) {
-    var el = historyEl("report-history-msg");
-    if (!el) return;
-    el.textContent = text || "";
-    el.classList.toggle("is-error", !!error);
-  }
-
-  function historySupplierOptions() {
-    var selected = historyState.supplier;
-    var standardValues = window.Padroes ? window.Padroes.options("fornecedor") : [];
-    var values = standardValues.concat(historyState.suppliers);
-    var unique = [];
-    values.forEach(function (value) {
-      value = String(value || "").trim();
-      if (value && unique.indexOf(value) === -1) unique.push(value);
-    });
-    unique.sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
-    var select = historyEl("report-history-supplier");
-    if (!select) return;
-    select.innerHTML = '<option value="">Todos os fornecedores</option>' + unique.map(function (value) {
-      return '<option value="' + attr(value) + '"' + (value === selected ? " selected" : "") + ">" + esc(value) + "</option>";
-    }).join("");
-  }
-
-  function historyQuery(from, to) {
-    var query = sb().from("report_semanal_registros")
-      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at");
-    if (historyState.start) query = query.gte("data_ref", historyState.start);
-    if (historyState.end) query = query.lte("data_ref", historyState.end);
-    if (historyState.supplier) query = query.eq("fornecedor", historyState.supplier);
-    return query.order("data_ref", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(from, to);
-  }
-
-  function fetchHistoryPage(from, collected) {
-    return historyQuery(from, from + HISTORY_PAGE_SIZE - 1).then(function (res) {
-      if (res.error) throw res.error;
-      var rows = res.data || [];
-      var all = collected.concat(rows);
-      if (rows.length === HISTORY_PAGE_SIZE) return fetchHistoryPage(from + HISTORY_PAGE_SIZE, all);
-      return all;
-    });
-  }
-
-  function drawHistorySummary() {
-    var target = historyEl("report-history-summary");
-    if (!target) return;
-    var entries = historyState.entries;
-    target.innerHTML =
-      '<div class="report-history-kpi"><span>Lançamentos encontrados</span><strong>' + fmt.format(entries.length) + "</strong></div>" +
-      '<div class="report-history-kpi"><span>Volume inspecionado</span><strong>' + fmt.format(sum(entries, "vol_inspecionado")) + "</strong></div>" +
-      '<div class="report-history-kpi"><span>Estoque para entrega</span><strong>' + fmt.format(sum(entries, "vol_liberado")) + "</strong></div>" +
-      '<div class="report-history-kpi"><span>Volume transportado</span><strong>' + fmt.format(sum(entries, "vol_transportado")) + "</strong></div>";
-  }
-
-  function drawHistoryTable() {
-    var target = historyEl("report-history-table");
-    if (!target) return;
-    var entries = historyState.entries;
-    if (!entries.length) {
-      target.innerHTML = empty("Nenhum lançamento encontrado para os filtros informados.");
-      return;
-    }
-    var heads = ["Data", "Semana", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Inspecionado", "Estoque p/ entrega", "Transportado", "Situação"];
-    var body = entries.map(function (r) {
-      return "<tr>" +
-        "<td>" + dateBr(r.data_ref) + "</td>" +
-        "<td>" + dateBr(r.semana_inicio) + "</td>" +
-        "<td>" + esc(r.fiscal) + "</td>" +
-        "<td>" + esc(r.fornecedor) + "</td>" +
-        "<td>" + esc(r.local) + "</td>" +
-        '<td class="cell-pedido">' + esc(r.pedido) + "</td>" +
-        ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) {
-          return "<td>" + fmt.format(num(r[field])) + "</td>";
-        }).join("") +
-        '<td class="report-send-cell">' + (r.registro_id
-          ? '<span class="report-sent" title="Enviado em ' + attr(dateTimeBr(r.enviado_em)) + '">Enviado</span>'
-          : '<span class="report-pending">No report</span>') + "</td></tr>";
-    }).join("");
-    target.innerHTML = '<div class="table-wrap"><table class="tabela report-history-table__table"><thead><tr>' + heads.map(function (head) {
-      return "<th>" + head + "</th>";
-    }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>";
-  }
-
-  function loadHistory() {
-    if (!canViewHistory()) return Promise.resolve();
-    var target = historyEl("report-history-table");
-    if (!target) return Promise.resolve();
-    target.innerHTML = empty("Carregando histórico…");
-    historyMessage("", false);
-    return fetchHistoryPage(0, []).then(function (entries) {
-      historyState.entries = entries;
-      entries.forEach(function (entry) {
-        if (entry.fornecedor && historyState.suppliers.indexOf(entry.fornecedor) === -1) historyState.suppliers.push(entry.fornecedor);
-      });
-      historySupplierOptions();
-      drawHistorySummary();
-      drawHistoryTable();
-      var filterText = [];
-      if (historyState.start) filterText.push("a partir de " + dateBr(historyState.start));
-      if (historyState.end) filterText.push("até " + dateBr(historyState.end));
-      if (historyState.supplier) filterText.push("fornecedor " + historyState.supplier);
-      historyMessage(entries.length + (entries.length === 1 ? " lançamento exibido" : " lançamentos exibidos") + (filterText.length ? " · " + filterText.join(" · ") : " · todas as semanas"), false);
-    }).catch(function (err) {
-      historyState.entries = [];
-      drawHistorySummary();
-      target.innerHTML = empty("Não foi possível carregar o histórico.");
-      historyMessage("Erro ao consultar: " + (err.message || err), true);
-    });
-  }
-
-  function applyHistoryFilters(form) {
-    var start = form.elements.start.value;
-    var end = form.elements.end.value;
-    if (start && end && start > end) {
-      historyMessage("A data inicial não pode ser posterior à data final.", true);
-      return Promise.resolve();
-    }
-    historyState.start = start;
-    historyState.end = end;
-    historyState.supplier = form.elements.supplier.value;
-    return loadHistory();
-  }
-
-  function clearHistoryFilters(form) {
-    form.reset();
-    historyState.start = "";
-    historyState.end = "";
-    historyState.supplier = "";
-    historySupplierOptions();
-    return loadHistory();
-  }
-
   /* Histórico completo do fiscal (todas as semanas), paginado. */
   function entriesQuery(fiscal, from, to) {
     return sb().from("report_semanal_registros")
@@ -455,7 +313,7 @@
     return sb().from("report_semanal_registros").insert(row).then(function (res) {
       if (res.error) throw res.error;
       form.reset(); form.hidden = true;
-      return Promise.all([loadFiscal(fiscal), loadHistory()]);
+      return loadFiscal(fiscal);
     });
   }
 
@@ -467,7 +325,7 @@
       .eq("updated_at", current.updated_at).select("id").then(function (res) {
       if (res.error) throw res.error;
       if (!res.data || !res.data.length) throw new Error("O lançamento não foi encontrado ou seu perfil não possui permissão para excluí-lo.");
-      return Promise.all([loadFiscal(fiscal), loadHistory()]);
+      return loadFiscal(fiscal);
     }).then(function () {
       message(fiscal, "Lançamento excluído do Report dos fiscais.", false);
     });
@@ -478,7 +336,7 @@
     button.disabled = true; button.textContent = "Enviando…";
     return sb().rpc("enviar_report_semanal_para_registros", { p_report_id: id }).then(function (res) {
       if (res.error) throw res.error;
-      return Promise.all([loadFiscal(fiscal), loadHistory(), window.Store ? Store.refresh() : Promise.resolve()]);
+      return Promise.all([loadFiscal(fiscal), window.Store ? Store.refresh() : Promise.resolve()]);
     }).then(function () {
       message(fiscal, "Lançamento enviado para Registros. O histórico semanal foi preservado.", false);
     }).catch(function (err) {
@@ -489,15 +347,6 @@
 
   function wire() {
     if (wired || !root) return;
-    var historyForm = historyEl("report-history-filters");
-    var historyClear = historyEl("report-history-clear");
-    if (historyForm) historyForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      applyHistoryFilters(historyForm);
-    });
-    if (historyClear && historyForm) historyClear.addEventListener("click", function () {
-      clearHistoryFilters(historyForm);
-    });
     root.addEventListener("change", function (e) {
       if (e.target.matches('.report-entry-form select[name="pedido"]')) {
         applyPedidoDetails(e.target.closest("form"));
@@ -560,12 +409,7 @@
     var standards = window.Padroes ? window.Padroes.load() : Promise.resolve();
     standards.then(function () {
       renderShell(); wire();
-      var loads = getFiscals().map(loadFiscal);
-      if (canViewHistory()) {
-        historySupplierOptions();
-        loads.push(loadHistory());
-      }
-      return Promise.all(loads);
+      return Promise.all(getFiscals().map(loadFiscal));
     }).catch(function (err) {
       root.innerHTML = empty("Não foi possível abrir o Report dos fiscais: " + (err.message || err));
     });

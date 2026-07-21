@@ -885,58 +885,6 @@ body.dashboard-mode { overflow-y: scroll; }
 .report-intro p { margin: 2px 0 0; color: var(--txt-suave); font-size: 13px; }
 :root[data-theme="dark"] .report-intro strong { color: #e6eff6; }
 
-.report-history { margin-bottom: 26px; }
-.report-history__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-.report-readonly-badge {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  border: 1px solid rgba(50, 166, 230, 0.28);
-  border-radius: 999px;
-  background: rgba(50, 166, 230, 0.09);
-  color: var(--rumo-azul);
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-:root[data-theme="dark"] .report-readonly-badge { color: var(--rumo-azul-claro); }
-.report-history-filters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(170px, 1fr)) auto;
-  align-items: end;
-  gap: 13px;
-}
-.report-history-actions { display: flex; align-items: center; gap: 8px; padding-bottom: 1px; }
-.report-history #report-history-msg { min-height: 18px; margin-top: 9px; }
-.report-history-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin: 14px 0;
-}
-.report-history-kpi {
-  min-width: 0;
-  padding: 12px 13px;
-  border: 1px solid var(--borda);
-  border-radius: var(--rumo-raio-sm);
-  background: var(--rumo-cinza-50);
-}
-.report-history-kpi span,
-.report-history-kpi strong { display: block; }
-.report-history-kpi span { color: var(--txt-suave); font-size: 10.5px; font-weight: 700; }
-.report-history-kpi strong { margin-top: 3px; color: var(--rumo-azul); font-size: 20px; font-variant-numeric: tabular-nums; }
-:root[data-theme="dark"] .report-history-kpi strong { color: #e6eff6; }
-.report-history-table__table { min-width: 1640px; }
-.report-history-table__table th,
-.report-history-table__table td { white-space: nowrap; }
-.report-history-table__table th { font-size: 11px; }
 .report-pending {
   display: inline-flex;
   align-items: center;
@@ -1226,8 +1174,6 @@ body.dashboard-mode { overflow-y: scroll; }
 }
 
 @media (max-width: 1250px) {
-  .report-history-filters { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
-  .report-history-actions { grid-column: 1 / -1; }
   .report-form-grid { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
   .report-order-layout { grid-template-columns: 1fr; }
   .report-order-list { max-height: none; }
@@ -1236,7 +1182,6 @@ body.dashboard-mode { overflow-y: scroll; }
 }
 @media (max-width: 900px) {
   .report-page-head { align-items: flex-start; }
-  .report-history-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-form-grid,
   .report-form-grid--order { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
   .report-order-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1247,10 +1192,6 @@ body.dashboard-mode { overflow-y: scroll; }
   .report-activities { padding: 17px; }
 }
 @media (max-width: 620px) {
-  .report-history__head { flex-direction: column; }
-  .report-history-filters { grid-template-columns: 1fr; }
-  .report-history-actions { grid-column: auto; align-items: stretch; flex-direction: column; }
-  .report-history-summary { grid-template-columns: 1fr; }
   .report-fiscal__head { align-items: flex-start; flex-direction: column; }
   .report-week { width: 100%; justify-content: space-between; }
   .report-week input { min-width: 0; width: 170px; }
@@ -1927,8 +1868,7 @@ body.role-analista #view-auditoria { display: none !important; }
 .kpi,
 .report-fiscal,
 .report-order-card,
-.report-kpi,
-.report-history-kpi {
+.report-kpi {
   border-radius: var(--rumo-raio);
   box-shadow: var(--rumo-sombra);
 }
@@ -1957,8 +1897,7 @@ body.role-analista #view-auditoria { display: none !important; }
   clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
 }
 .kpi::after { height: 4px; right: 11px; }
-.report-kpi,
-.report-history-kpi {
+.report-kpi {
   border-radius: var(--rumo-raio) 0 var(--rumo-raio) var(--rumo-raio);
 }
 
