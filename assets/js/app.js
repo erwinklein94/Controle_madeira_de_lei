@@ -1143,7 +1143,10 @@
     return {
       display: function (ctx) {
         var saldo = d[ctx.dataIndex].saldo;
-        return ctx.dataset.label === "Falta concluir" ? saldo > 0 : saldo <= 0;
+        var segmentoDoTopo = ctx.dataset.label === "Falta concluir" ? saldo > 0 : saldo <= 0;
+        // "auto" preserva o rótulo quando há espaço e oculta somente os que
+        // colidiriam com outro percentual. O valor continua no tooltip.
+        return segmentoDoTopo ? "auto" : false;
       },
       anchor: "end", align: "top", offset: expanded ? 6 : 3, clamp: true, clip: false,
       color: C.azul, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
