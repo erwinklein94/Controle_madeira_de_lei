@@ -1743,8 +1743,7 @@
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
     padronizacao: document.getElementById("view-padronizacao"),
-    fornecedor: document.getElementById("view-fornecedor"),
-    "fluxo-dados": document.getElementById("view-fluxo-dados")
+    fornecedor: document.getElementById("view-fornecedor")
   };
 
   function show(view, preserveScroll) {
