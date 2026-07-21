@@ -16,7 +16,7 @@
   var ACTION_CLASS = { INSERT: "audit-action--insert", UPDATE: "audit-action--update", DELETE: "audit-action--delete" };
   var ENTITY = {
     registros: "Registros",
-    pendencias: "Informações pendentes",
+    pendencias: "Informações dos Fornecedores",
     solicitacoes: "Solicitações",
     comentarios: "Comentários",
     pedidos: "Pedidos",

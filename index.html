@@ -78,7 +78,7 @@
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report dos fiscais</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-records"></use></svg> Registros</a>
-        <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-pending"></use></svg> Informações pendentes</a>
+        <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-pending"></use></svg> Informações dos Fornecedores</a>
         <div class="nav__sep"></div>
         <a class="nav__item" href="#contas" data-view="contas" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-accounts"></use></svg> Contas</a>
         <a class="nav__item" href="#auditoria" data-view="auditoria" data-requires-audit><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-audit"></use></svg> Auditoria</a>
@@ -358,6 +358,48 @@
           </div>
         </header>
 
+        <section class="card form-card">
+          <div class="card__head">
+            <h2 class="card__title">Enviar informação</h2>
+            <p class="card__hint">Selecione o pedido e informe os volumes. O envio aparece para a equipe Rumo em Informações dos Fornecedores.</p>
+          </div>
+          <div class="card__body">
+            <form id="forn-form" novalidate>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="forn-data">Data</label>
+                  <input id="forn-data" type="date" required />
+                </div>
+                <div class="field field--wide">
+                  <label for="forn-pedido">Pedido</label>
+                  <select id="forn-pedido" required><option value="">Selecione…</option></select>
+                </div>
+                <div id="forn-pedido-detalhes" class="pedido-auto-details field--wide" hidden></div>
+                <div class="field">
+                  <label for="forn-volpedido">Volume do Pedido</label>
+                  <input id="forn-volpedido" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="forn-fabricado">Volume Fabricado</label>
+                  <input id="forn-fabricado" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="forn-estoque">Volume em Estoque Para Entregar</label>
+                  <input id="forn-estoque" type="number" min="0" step="any" required />
+                </div>
+                <div class="field">
+                  <label for="forn-transportado">Volume Transportado</label>
+                  <input id="forn-transportado" type="number" min="0" step="any" required />
+                </div>
+              </div>
+              <div class="form-foot">
+                <button class="btn btn--success" type="submit">Enviar</button>
+                <span id="forn-msg" class="form-msg" role="status" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+        </section>
+
         <section class="card">
           <div class="card__head">
             <div class="chart-head-flex">
@@ -368,7 +410,6 @@
             </div>
           </div>
           <div class="card__body">
-            <p class="card__hint">A entrada de informações agora é feita pelos fiscais da Rumo. Este histórico permanece disponível para consulta.</p>
             <div id="forn-tabela"></div>
           </div>
         </section>
@@ -422,7 +463,7 @@
         <header class="page-head">
           <div>
             <div class="page-head__eyebrow">Equipe</div>
-            <h1>Informações pendentes</h1>
+            <h1>Informações dos Fornecedores</h1>
           </div>
           <div class="page-head__actions">
             <button id="pendentes-refresh" class="btn btn--ghost" type="button">Atualizar</button>
@@ -496,7 +537,7 @@
               <option value="">Todas</option>
               <option value="registros">Registros</option>
               <option value="report_semanal_registros">Report · Atividades</option>
-              <option value="pendencias">Informações pendentes</option>
+              <option value="pendencias">Informações dos Fornecedores</option>
               <option value="solicitacoes">Solicitações</option>
               <option value="comentarios">Comentários</option>
               <option value="pedidos">Pedidos</option>
