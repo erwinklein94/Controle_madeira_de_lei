@@ -42,7 +42,9 @@
 
   function chartCanvases(view) {
     if (!view) return [];
-    return Array.prototype.filter.call(view.querySelectorAll("canvas"), visible);
+    return Array.prototype.filter.call(view.querySelectorAll("canvas"), function (canvas) {
+      return canvas.id !== "chart-entregasped" && visible(canvas);
+    });
   }
 
   function hasExportableCharts(view) {

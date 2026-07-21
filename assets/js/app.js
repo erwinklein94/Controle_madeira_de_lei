@@ -579,7 +579,7 @@
     volPedido: "#fff", volPronto: "#fff", volInspecionado: "#0c2c3f",
     volLiberado: "#fff", volTransportado: "#0c2c3f"
   };
-  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-entregasped", "chart-entregasforn"];
+  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-entregasforn"];
 
   var charts = {};
   var modalChart = null;
@@ -692,7 +692,6 @@
       historico: { title: "Transportado acumulado", hint: "Evolução do total entregue + projeção no ritmo atual." },
       ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
       conclforn: { title: "Conclusão por fornecedor", hint: "% do pedido já transportado." },
-      entregasped: { title: "Entregas semanais por pedido", hint: "Dormentes entregues por semana, por pedido." },
       entregasforn: { title: "Entregas semanais por fornecedor", hint: "Dormentes entregues por semana, por fornecedor." }
     };
     return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
@@ -1004,7 +1003,6 @@
     chartHistorico(list);
     mount("chart-ritmo", buildChartConfig("ritmo", list, false));
     mount("chart-conclforn", buildChartConfig("conclforn", list, false));
-    mount("chart-entregasped", buildChartConfig("entregasped", list, false));
     mount("chart-entregasforn", buildChartConfig("entregasforn", list, false));
   }
 
@@ -1040,7 +1038,6 @@
     if (kind === "historico") return historicoConfig(list, expanded);
     if (kind === "ritmo") return ritmoConfig(list, expanded);
     if (kind === "conclforn") return conclFornConfig(list, expanded);
-    if (kind === "entregasped") return entregasSemanaisConfig(list, "pedido", expanded);
     if (kind === "entregasforn") return entregasSemanaisConfig(list, "fornecedor", expanded);
     return fornecedorConfig(list, expanded);
   }
