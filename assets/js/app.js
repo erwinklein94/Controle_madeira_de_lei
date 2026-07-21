@@ -559,15 +559,17 @@
   var C = {
     azul: "#003865", azulClaro: "#32A6E6", verde: "#1E9F7F", verdeClaro: "#7FE06C",
     azul2: "#1F6FA5", laranja: "#F78344", amarelo: "#FBD300", cinza: "#BDCCD4",
-    texto: "#4D626F", grid: "rgba(0,56,101,0.08)"
+    azulNoite: "#001E36", texto: "#4D626F", grid: "rgba(0,56,101,0.08)"
   };
 
-  // Cores de eixo/grade/legenda que acompanham o tema (datalabels ficam em
-  // pílulas brancas, então mantêm C.texto escuro sempre).
+  // Cores dos eixos, grades, legendas e rótulos acompanham o tema ativo.
   function isDark() { return document.documentElement.getAttribute("data-theme") === "dark"; }
-  function tickColor() { return isDark() ? "#a9bece" : C.texto; }
-  function gridColor() { return isDark() ? "rgba(255,255,255,0.10)" : C.grid; }
-  function legendInk() { return isDark() ? "#cdddea" : C.texto; }
+  function tickColor() { return isDark() ? C.cinza : C.texto; }
+  function gridColor() { return isDark() ? "rgba(50,166,230,0.18)" : C.grid; }
+  function legendInk() { return isDark() ? "#e6eff6" : C.texto; }
+  function dataLabelInk(lightInk) { return isDark() ? "#e6eff6" : (lightInk || C.texto); }
+  function dataLabelBg(opacity) { return isDark() ? "rgba(0,30,54,0.94)" : "rgba(255,255,255," + opacity + ")"; }
+  function dataLabelBorder() { return isDark() ? "rgba(50,166,230,0.72)" : "rgba(0,56,101,0.12)"; }
   var DOUGHNUT = [C.azul, C.azulClaro, C.verde, C.verdeClaro, C.azul2, C.laranja, C.cinza, C.amarelo];
 
   var fmt = new Intl.NumberFormat("pt-BR");
@@ -583,6 +585,7 @@
 
   var charts = {};
   var modalChart = null;
+  var modalKind = null;
   var wired = false;
   var defaultsSet = false;
   var els = {};
@@ -702,6 +705,7 @@
 
     var info = getChartInfo(kind);
     var list = getFiltered();
+    modalKind = kind;
 
     modal.title.textContent = info.title;
     modal.hint.textContent = info.hint + " Os filtros atuais do dashboard foram mantidos.";
@@ -750,6 +754,7 @@
     modal.root.hidden = true;
     modal.root.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
+    modalKind = null;
   }
 
   function resetSelect(sel, values) {
@@ -955,6 +960,14 @@
   function ensureDefaults() {
     if (typeof Chart === "undefined") return;
     Chart.defaults.color = legendInk(); // segue o tema mesmo após o 1º ajuste
+    Chart.defaults.plugins.legend.labels.color = legendInk();
+    Chart.defaults.plugins.tooltip.backgroundColor = C.azulNoite;
+    Chart.defaults.plugins.tooltip.titleColor = "#ffffff";
+    Chart.defaults.plugins.tooltip.bodyColor = "#e6eff6";
+    Chart.defaults.plugins.tooltip.borderColor = C.azulClaro;
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.cornerRadius = 6;
+    Chart.defaults.plugins.tooltip.padding = 10;
     if (defaultsSet) return;
     Chart.defaults.font.family = '"Cera Pro", Verdana, Geneva, Tahoma, sans-serif';
     Chart.defaults.font.size = 10;
@@ -1149,7 +1162,7 @@
         return segmentoDoTopo ? "auto" : false;
       },
       anchor: "end", align: "top", offset: expanded ? 6 : 3, clamp: true, clip: false,
-      color: C.azul, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+      color: dataLabelInk(C.azul), backgroundColor: dataLabelBg(0.9), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
       font: { size: expanded ? 12 : 9, weight: "700" },
       formatter: function (v, ctx) { return pct(pcts[ctx.dataIndex]); }
     };
@@ -1289,7 +1302,7 @@
           tooltip: { callbacks: { label: function (c) { return " Concluído: " + pct(c.parsed.x); } } },
           datalabels: {
             anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
-            color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+            color: dataLabelInk(), backgroundColor: dataLabelBg(0.9), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
             font: { size: expanded ? 12 : 9, weight: "700" },
             formatter: function (v) { return pct(v); }
           }
@@ -1370,7 +1383,7 @@
     return {
       display: function (ctx) { return Number(ctx.dataset.data[ctx.dataIndex]) > 0; },
       anchor: "end", align: "top", offset: expanded ? 6 : 3, clamp: true, clip: false,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 4 : 2,
+      color: dataLabelInk(), backgroundColor: dataLabelBg(0.9), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 4 : 2,
       font: { size: expanded ? 11 : 9, weight: "700" },
       formatter: fmtFn
     };
@@ -1379,14 +1392,14 @@
   function legendConfig(expanded) {
     return {
       position: "top",
-      labels: { boxWidth: expanded ? 13 : 9, boxHeight: expanded ? 13 : 9, font: { size: expanded ? 13 : 10 } }
+      labels: { color: legendInk(), boxWidth: expanded ? 13 : 9, boxHeight: expanded ? 13 : 9, font: { size: expanded ? 13 : 10 } }
     };
   }
 
   function barEndLabels(expanded) {
     return {
       anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 4, padding: expanded ? 5 : 3,
+      color: dataLabelInk(), backgroundColor: dataLabelBg(0.9), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
       font: { size: expanded ? 12 : 9, weight: "700" },
       formatter: function (v) { return v > 0 ? fmtC.format(v) : ""; }
     };
@@ -1395,7 +1408,7 @@
   function barEndLabelsExact(expanded) {
     return {
       anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 4, padding: expanded ? 5 : 3,
+      color: dataLabelInk(), backgroundColor: dataLabelBg(0.92), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
       font: { size: expanded ? 12 : 9, weight: "700" },
       formatter: function (v, ctx) {
         if (v <= 0) return "";
@@ -1414,7 +1427,7 @@
         return ctx.dataIndex === 0 || ctx.dataIndex === total - 1 || ctx.dataIndex % step === 0;
       },
       anchor: "end", align: "top", offset: expanded ? 7 : 4, clamp: true, clip: false,
-      color: C.texto, backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 4, padding: expanded ? 4 : 2,
+      color: dataLabelInk(), backgroundColor: dataLabelBg(0.86), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 4 : 2,
       font: { size: expanded ? 11 : 9, weight: "700" },
       formatter: formatter
     };
@@ -1427,8 +1440,16 @@
 
   function onThemeChange() {
     ensureDefaults(); // atualiza a cor da legenda
-    // Redesenha os gráficos (eixos/grade) só da tela que estiver aberta.
+    // Redesenha os gráficos (eixos/grade) e também o modal que estiver aberto.
     if (document.body.classList.contains("dashboard-mode")) refresh();
+    if (modal.root && !modal.root.hidden && modalKind) {
+      if (modalKind === "funnel") {
+        requestAnimationFrame(function () { placeFunnelLabelsIn(modal.funnel); });
+      } else if (chartsAvailable() && modal.canvas) {
+        if (modalChart) modalChart.destroy();
+        modalChart = new Chart(modal.canvas, buildChartConfig(modalKind, getFiltered(), true));
+      }
+    }
   }
 
   window.DashboardUI = {

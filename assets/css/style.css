@@ -1640,8 +1640,8 @@ body.role-analista #view-auditoria { display: none !important; }
   position: relative;
   width: min(1180px, 96vw);
   height: min(760px, 92vh);
-  background: #fff;
-  border: 1px solid rgba(215, 224, 229, 0.98);
+  background: var(--surface);
+  border: 1px solid var(--borda);
   border-radius: 18px;
   box-shadow: 0 24px 70px rgba(0, 30, 54, 0.28);
   display: flex;
@@ -1666,7 +1666,7 @@ body.role-analista #view-auditoria { display: none !important; }
   height: 38px;
   border: 1px solid var(--borda);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: var(--rumo-azul);
   cursor: pointer;
   font-weight: 800;
@@ -1701,6 +1701,29 @@ body.role-analista #view-auditoria { display: none !important; }
   flex: 1 1 auto;
   min-height: 0;
   padding: 22px 28px 28px;
+}
+:root[data-theme="dark"] .chart-modal__overlay {
+  background: rgba(0, 19, 33, 0.80);
+}
+:root[data-theme="dark"] .chart-modal__panel {
+  border-color: rgba(50, 166, 230, 0.34);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+}
+:root[data-theme="dark"] .chart-modal__head {
+  background: var(--surface);
+  border-bottom-color: rgba(50, 166, 230, 0.22);
+}
+:root[data-theme="dark"] .chart-modal__head h2 { color: #e6eff6; }
+:root[data-theme="dark"] .chart-modal__head p { color: var(--rumo-cinza); }
+:root[data-theme="dark"] .chart-modal__body { background: var(--rumo-azul-profundo); }
+:root[data-theme="dark"] .chart-modal__close {
+  background: var(--rumo-cinza-50);
+  border-color: rgba(50, 166, 230, 0.45);
+  color: var(--rumo-azul-claro);
+}
+:root[data-theme="dark"] .chart-modal__close:hover {
+  background: var(--rumo-azul);
+  color: #ffffff;
 }
 .chart-modal__box {
   position: relative;
