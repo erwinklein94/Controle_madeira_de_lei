@@ -35,7 +35,9 @@
   function fromDb(r) {
     return {
       id: r.id,
+      excelId: r.excel_id || "",
       dataRef: r.data_ref || "",
+      semana: r.semana || null,
       fiscal: r.fiscal || "",
       fornecedor: r.fornecedor || "",
       local: r.local || "",
@@ -52,9 +54,20 @@
     };
   }
 
+  /* Linhas incompletas da planilha não entram na tabela nem nos gráficos.
+     Mantemos os dados no banco para evitar uma exclusão automática destrutiva. */
+  function isUsefulRecord(rec) {
+    function filled(value) {
+      var text = String(value == null ? "" : value).trim();
+      return text !== "" && text !== "0";
+    }
+    return filled(rec.fornecedor) && filled(rec.pedido);
+  }
+
   function toDb(rec) {
     var row = {
       data_ref: rec.dataRef || null,
+      semana: rec.semana || null,
       fiscal: rec.fiscal || null,
       fornecedor: rec.fornecedor,
       local: rec.local || null,
@@ -73,6 +86,7 @@
 
   var PATCH_MAP = {
     dataRef: "data_ref",
+    semana: "semana",
     fiscal: "fiscal", fornecedor: "fornecedor", local: "local", pedido: "pedido",
     volPedido: "vol_pedido", volFabricar: "vol_fabricar", volPronto: "vol_pronto",
     volInspecionado: "vol_inspecionado",
@@ -92,11 +106,11 @@
   function refresh() {
     if (!sb()) return Promise.resolve(cache);
     return sb().from("registros")
-      .select("id, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
+      .select("id, excel_id, data_ref, semana, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, created_at, updated_at")
       .order("created_at", { ascending: true })
       .then(function (res) {
         if (res.error) throw res.error;
-        cache = (res.data || []).map(fromDb);
+        cache = (res.data || []).map(fromDb).filter(isUsefulRecord);
         return migrateLegacy().then(function () { return cache; });
       });
   }
@@ -130,7 +144,7 @@
         console.error("Falha ao importar registros locais para o Supabase:", res.error.message);
         return;
       }
-      cache = (res.data || []).map(fromDb);
+      cache = (res.data || []).map(fromDb).filter(isUsefulRecord);
       LEGACY_KEYS.forEach(function (k) { global.localStorage.removeItem(k); });
     });
   }
@@ -439,12 +453,12 @@
     function cel(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
     function numBr(v) { return String(Number(v) || 0).replace(".", ","); }
 
-    var header = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido"]
+    var header = ["ID", "Data", "Semana", "Fiscal", "Fornecedor", "Local", "Pedido"]
       .concat(STAGES.map(function (s) { return s.label; }))
       .concat(["Data de cadastro"]);
 
     var linhas = list.map(function (r) {
-      return [cel(fmtDataBr(r.dataRef)), cel(r.fiscal), cel(r.fornecedor), cel(r.local), cel(r.pedido)]
+      return [cel(r.excelId), cel(fmtDataBr(r.dataRef)), cel(r.semana), cel(r.fiscal), cel(r.fornecedor), cel(r.local), cel(r.pedido)]
         .concat(STAGES.map(function (s) { return numBr(r[s.key]); }))
         .concat([cel(r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "")])
         .join(";");
@@ -495,7 +509,9 @@
 
     var head =
       "<thead><tr>" +
+      '<th class="col-text">ID</th>' +
       '<th class="col-text">Data</th>' +
+      '<th>Semana</th>' +
       '<th class="col-text">Fiscal</th>' +
       '<th class="col-text">Fornecedor</th>' +
       '<th class="col-text">Local</th>' +
@@ -509,7 +525,9 @@
       }).join("");
       return (
         "<tr>" +
+        '<td class="col-text">' + esc(r.excelId || "—") + "</td>" +
         '<td class="col-text">' + fmtDataBr(r.dataRef) + "</td>" +
+        "<td>" + esc(r.semana || "—") + "</td>" +
         '<td class="col-text">' + esc(r.fiscal) + "</td>" +
         '<td class="col-text">' + esc(r.fornecedor) + "</td>" +
         '<td class="col-text">' + esc(r.local) + "</td>" +
@@ -521,7 +539,7 @@
 
     var foot =
       "<tfoot><tr>" +
-      '<td class="col-text">Total</td><td></td><td></td><td></td><td></td>' +
+      '<td class="col-text">Total</td><td></td><td></td><td></td><td></td><td></td><td></td>' +
       STAGES.map(function (s) {
         var t = Store.sumStage(list, s.key);
         return "<td>" + fmt.format(t) + "</td>";

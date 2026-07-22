@@ -366,7 +366,7 @@ body.sidebar-collapsed .main {
    Tabela de registros
    ===================================================================== */
 .table-wrap { overflow-x: auto; }
-.tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 920px; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 1120px; }
 .tabela--slim { min-width: 0; }
 .tag-pend, .tag-ok, .tag-no, .tag-wait {
   display: inline-block;

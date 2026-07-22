@@ -1,0 +1,6 @@
+project_id = "rgafzmmnpjlrxfjkabsl"
+
+# O Power Automate não possui JWT do Supabase. A função valida o segredo
+# POWER_AUTOMATE_INTEGRATION_KEY no cabeçalho x-integration-key.
+[functions.receber-controle-estoque]
+verify_jwt = false
