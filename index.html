@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=graficos-dark-rumo-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=report-leitura-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -26,7 +26,7 @@
         <h1 class="auth__title">Acessar o sistema</h1>
       </div>
       <div class="auth__cards">
-        <!-- Equipe Rumo e fiscais/inspetores -->
+        <!-- Equipe Rumo -->
         <div class="auth__card auth__card--admin">
           <div class="auth__card-eyebrow">Acesso da equipe</div>
           <h2 class="auth__card-title">Equipe Rumo</h2>
@@ -108,7 +108,7 @@
           <div>
             <div class="page-head__eyebrow">Registros</div>
             <h1>Pedidos em inspeção e transporte</h1>
-            <p class="page-head__sub">Consulta dos registros oficiais. A entrada de dados acontece no Report dos fiscais.</p>
+            <p class="page-head__sub">Consulta dos registros oficiais sincronizados da planilha Excel Online.</p>
           </div>
         </header>
 
@@ -159,7 +159,7 @@
             <h1>Visão geral da operação</h1>
           </div>
           <div class="page-head__actions">
-            <a class="btn btn--ghost" href="#registros" data-view="registros">Editar registros</a>
+            <a class="btn btn--ghost" href="#registros" data-view="registros">Ver registros</a>
           </div>
         </header>
 
@@ -167,7 +167,7 @@
         <div id="empty-state" class="card" hidden>
           <div class="empty">
             <div class="empty__title">Sem dados para exibir</div>
-            <div class="empty__txt">Cadastre registros na tela de Registros.</div>
+            <div class="empty__txt">Aguarde a próxima sincronização da planilha Excel Online.</div>
             <a class="btn btn--success" href="#registros" data-view="registros">Ir para Registros</a>
           </div>
         </div>
@@ -286,15 +286,16 @@
           <div>
             <div class="page-head__eyebrow">Coordenação da fiscalização</div>
             <h1>Report dos fiscais</h1>
-            <p class="page-head__sub">Único ponto de entrada de dados: cada fiscal lança as informações dos pedidos e acompanha seu histórico.</p>
+            <p class="page-head__sub">Acompanhamento individual dos resultados de cada fiscal, com dados importados da planilha Excel Online.</p>
           </div>
+          <div class="page-head__actions"><button id="report-refresh" class="btn btn--ghost" type="button">Atualizar dados</button></div>
         </header>
 
-        <section class="report-intro" aria-label="Como usar o Report dos fiscais">
+        <section class="report-intro" aria-label="Origem dos dados do Report dos fiscais">
           <div class="report-intro__icon">i</div>
           <div>
-            <strong>Registre o realizado de forma simples.</strong>
-            <p>Faça os lançamentos com a data da visita. Se o pedido ainda não existir, cadastre-o aqui mesmo e use na sequência. Todo o seu histórico fica na tabela abaixo do formulário.</p>
+            <strong>Painel somente de leitura.</strong>
+            <p>Os fiscais alimentam a planilha Excel Online. O Power Automate sincroniza os dados com Registros e esta página separa automaticamente os resultados por fiscal.</p>
           </div>
         </section>
 
@@ -525,7 +526,6 @@
                   <label for="conta-papel">Papel</label>
                   <select id="conta-papel">
                     <option value="fornecedor">Fornecedor</option>
-                    <option value="fiscal">Fiscal/Inspetor</option>
                     <option value="analista">Analista</option>
                     <option value="coordenador">Coordenador</option>
                     <option value="editor">Editor</option>
@@ -538,10 +538,6 @@
                 <div class="field" id="conta-fornecedor-field">
                   <label for="conta-fornecedor">Fornecedor (igual ao usado nos registros)</label>
                   <select id="conta-fornecedor"><option value="">Selecione…</option></select>
-                </div>
-                <div class="field" id="conta-fiscal-field" hidden>
-                  <label for="conta-fiscal">Fiscal/Inspetor vinculado</label>
-                  <select id="conta-fiscal"><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
                   <label for="conta-email">E-mail</label>
@@ -573,15 +569,6 @@
           <div class="card__body">
             <div id="contas-equipe-tabela"></div>
           </div>
-        </section>
-
-        <section class="card">
-          <div class="card__head">
-            <div class="chart-head-flex">
-              <div><h2 class="card__title">Fiscais/Inspetores</h2><p class="card__hint" id="contas-fiscais-count">—</p></div>
-            </div>
-          </div>
-          <div class="card__body"><div id="contas-fiscais-tabela"></div></div>
         </section>
 
         <section class="card">
@@ -697,7 +684,7 @@
           </div>
         </header>
         <p class="card__hint" style="margin: -8px 0 14px;">
-          Cadastre os detalhes de cada pedido e mantenha as listas usadas nos formulários do site. Editor, Coordenador e Analista gerenciam tudo; Fiscal/Inspetor pode consultar e cadastrar novos pedidos pelo Report dos fiscais.
+          Cadastre os detalhes de cada pedido e mantenha as listas administrativas do site. Os dados operacionais dos fiscais vêm exclusivamente da planilha Excel Online.
         </p>
         <div id="padroes-cards"></div>
       </section>
@@ -736,12 +723,12 @@
   <script src="assets/js/access-control.js?v=fornecedor-restrito-1"></script>
   <script src="assets/js/pendencias.js?v=fornecedor-edita-1"></script>
   <script src="assets/js/padroes.js?v=report-realizado-1"></script>
-  <script src="assets/js/contas.js"></script>
+  <script src="assets/js/contas.js?v=sem-contas-fiscais-1"></script>
   <script src="assets/js/comentarios.js?v=pedidos-detalhes-1"></script>
-  <script src="assets/js/report-semanal.js?v=remove-consulta-geral-1"></script>
+  <script src="assets/js/report-semanal.js?v=registros-por-fiscal-1"></script>
   <script src="assets/js/auditoria.js?v=report-realizado-1"></script>
 
-  <script src="assets/js/app.js?v=integracao-excel-3"></script>
+  <script src="assets/js/app.js?v=integracao-excel-4"></script>
   <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>
   <script src="assets/js/pdf-export.js?v=remove-entregas-pedido-1"></script>
   <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>

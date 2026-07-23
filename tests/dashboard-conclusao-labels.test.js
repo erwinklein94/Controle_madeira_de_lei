@@ -15,5 +15,5 @@ test("rótulos da Conclusão por Pedido evitam sobreposição", () => {
   assert.ok(start >= 0 && end > start, "configuração dos percentuais deve existir");
   assert.match(labelsConfig, /segmentoDoTopo \? "auto" : false/);
   assert.match(labelsConfig, /formatter:[\s\S]*pct\(pcts\[ctx\.dataIndex\]\)/);
-  assert.match(html, /app\.js\?v=integracao-excel-3/);
+  assert.match(html, /app\.js\?v=integracao-excel-4/);
 });

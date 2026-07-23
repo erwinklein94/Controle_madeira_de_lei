@@ -1,5 +1,6 @@
 /* =====================================================================
-   CONTAS - gerenciamento dos cinco perfis do site.
+   CONTAS - gerenciamento dos perfis com acesso ao site.
+   Fiscais/Inspetores trabalham somente na planilha Excel Online.
    A pagina e as Edge Functions sao restritas a acesso completo.
    ===================================================================== */
 (function () {
@@ -17,16 +18,14 @@
   function label(role) { return window.AccessControl ? AccessControl.label(role) : role; }
 
   var ContasUI = (function () {
-    var equipeTabela, equipeCount, fiscaisTabela, fiscaisCount, fornTabela, fornCount, orfSection, orfTabela, refreshBtn, wired = false;
-    var form, formTitle, formMsg, submitBtn, cancelBtn, papelEl, nomeEl, fornEl, fornField, fiscalEl, fiscalField, emailEl, senhaEl;
+    var equipeTabela, equipeCount, fornTabela, fornCount, orfSection, orfTabela, refreshBtn, wired = false;
+    var form, formTitle, formMsg, submitBtn, cancelBtn, papelEl, nomeEl, fornEl, fornField, emailEl, senhaEl;
     var contas = [];
     var editingId = null;
 
     function grab() {
       equipeTabela = document.getElementById("contas-equipe-tabela");
       equipeCount = document.getElementById("contas-equipe-count");
-      fiscaisTabela = document.getElementById("contas-fiscais-tabela");
-      fiscaisCount = document.getElementById("contas-fiscais-count");
       fornTabela = document.getElementById("contas-forn-tabela");
       fornCount = document.getElementById("contas-forn-count");
       orfSection = document.getElementById("contas-orfas");
@@ -41,8 +40,6 @@
       nomeEl = document.getElementById("conta-nome");
       fornEl = document.getElementById("conta-fornecedor");
       fornField = document.getElementById("conta-fornecedor-field");
-      fiscalEl = document.getElementById("conta-fiscal");
-      fiscalField = document.getElementById("conta-fiscal-field");
       emailEl = document.getElementById("conta-email");
       senhaEl = document.getElementById("conta-senha");
     }
@@ -90,25 +87,22 @@
       if (window.Padroes) {
         window.Padroes.load().then(function () {
           window.Padroes.fill(fornEl, "fornecedor");
-          window.Padroes.fill(fiscalEl, "fiscal");
         }).catch(function () {});
       }
 
       sb.rpc("list_accounts").then(function (res) {
         if (res.error) {
           equipeTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Execute supabase/auditoria-perfis.sql.</p>";
-          fiscaisTabela.innerHTML = ""; fornTabela.innerHTML = "";
+          fornTabela.innerHTML = "";
           return;
         }
         contas = res.data || [];
         var equipe = contas.filter(function (c) { return AccessControl.isFull(c.role); });
-        var fiscais = contas.filter(function (c) { return AccessControl.isFiscal(c.role); });
         var forns = contas.filter(function (c) { return AccessControl.isFornecedor(c.role); });
         var orfas = contas.filter(function (c) { return !c.role; });
 
-        equipeCount.textContent = countText(equipe); fiscaisCount.textContent = countText(fiscais); fornCount.textContent = countText(forns);
+        equipeCount.textContent = countText(equipe); fornCount.textContent = countText(forns);
         equipeTabela.innerHTML = equipe.length ? tabelaContas(equipe, null) : vazio("Nenhuma conta com acesso completo");
-        fiscaisTabela.innerHTML = fiscais.length ? tabelaContas(fiscais, "fiscal") : vazio("Nenhuma conta de Fiscal/Inspetor");
         fornTabela.innerHTML = forns.length ? tabelaContas(forns, "fornecedor") : vazio("Nenhuma conta de fornecedor");
         orfSection.hidden = !orfas.length;
         if (orfas.length) orfTabela.innerHTML = tabelaContas(orfas, null);
@@ -121,7 +115,6 @@
       nomeEl.value = c.nome || "";
       if (window.Padroes) {
         window.Padroes.fill(fornEl, "fornecedor", c.fornecedor || "");
-        window.Padroes.fill(fiscalEl, "fiscal", c.fiscal || "");
       }
       emailEl.value = c.email || ""; senhaEl.value = "";
       syncLinkedFields();
@@ -138,12 +131,11 @@
       return {
         email: emailEl.value.trim(), password: senhaEl.value, role: role, nome: nomeEl.value.trim(),
         fornecedor: role === "fornecedor" ? fornEl.value.trim() : null,
-        fiscal: role === "fiscal" ? fiscalEl.value.trim() : null
+        fiscal: null
       };
     }
     function validate(body, creating) {
       if (body.role === "fornecedor" && !body.fornecedor) return "Informe o nome do fornecedor.";
-      if (body.role === "fiscal" && !body.fiscal) return "Vincule a conta a um Fiscal/Inspetor.";
       if (creating && (!body.email || !body.password)) return "Informe e-mail e senha.";
       if (body.password && body.password.length < 6) return "A senha precisa ter pelo menos 6 caracteres.";
       return null;
@@ -193,7 +185,6 @@
     }
     function syncLinkedFields() {
       if (fornField) fornField.hidden = papelEl.value !== "fornecedor";
-      if (fiscalField) fiscalField.hidden = papelEl.value !== "fiscal";
     }
     function wire() {
       if (wired) return;
@@ -203,7 +194,7 @@
         form.addEventListener("submit", function (e) { e.preventDefault(); submeter(); });
         papelEl.addEventListener("change", syncLinkedFields); cancelBtn.addEventListener("click", cancelEdit); syncLinkedFields();
       }
-      [equipeTabela, fiscaisTabela, fornTabela, orfTabela].forEach(function (table) { if (table) table.addEventListener("click", onTabelaClick); });
+      [equipeTabela, fornTabela, orfTabela].forEach(function (table) { if (table) table.addEventListener("click", onTabelaClick); });
       wired = true;
     }
     return { render: function () { wire(); render(); } };

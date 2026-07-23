@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const FULL_ROLES = ["editor", "coordenador", "analista", "admin"];
-const VALID_ROLES = ["editor", "coordenador", "analista", "fiscal", "fornecedor"];
+const VALID_ROLES = ["editor", "coordenador", "analista", "fornecedor"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -80,9 +80,8 @@ Deno.serve(async (req) => {
       };
       if (!merged.role) return json({ error: "Defina o perfil da conta." }, 400);
       if (merged.role !== "fornecedor") merged.fornecedor = null;
-      if (merged.role !== "fiscal") merged.fiscal = null;
+      merged.fiscal = null;
       if (merged.role === "fornecedor" && !merged.fornecedor) return json({ error: "Informe o nome do fornecedor." }, 400);
-      if (merged.role === "fiscal" && !merged.fiscal) return json({ error: "Vincule a conta a um Fiscal/Inspetor." }, 400);
 
       const { error: profileErr } = await admin.from("profiles").upsert(merged);
       if (profileErr) return json({ error: "Erro ao salvar o perfil: " + profileErr.message }, 400);

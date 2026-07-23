@@ -1,4 +1,4 @@
-// Edge Function: create-account - cria contas dos cinco perfis.
+// Edge Function: create-account - cria contas da equipe e fornecedores.
 // A service role permanece somente no servidor.
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 
@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const FULL_ROLES = ["editor", "coordenador", "analista", "admin"];
-const VALID_ROLES = ["editor", "coordenador", "analista", "fiscal", "fornecedor"];
+const VALID_ROLES = ["editor", "coordenador", "analista", "fornecedor"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -29,12 +29,11 @@ Deno.serve(async (req) => {
       return json({ error: "Apenas Editor, Coordenador ou Analista podem criar contas." }, 403);
     }
 
-    const { email, password, role, nome, fornecedor, fiscal } = await req.json();
+    const { email, password, role, nome, fornecedor } = await req.json();
     if (!email || !password) return json({ error: "Informe e-mail e senha." }, 400);
     if (String(password).length < 6) return json({ error: "A senha precisa ter pelo menos 6 caracteres." }, 400);
     if (!VALID_ROLES.includes(role)) return json({ error: "Perfil inválido." }, 400);
     if (role === "fornecedor" && !fornecedor) return json({ error: "Informe o nome do fornecedor." }, 400);
-    if (role === "fiscal" && !fiscal) return json({ error: "Vincule a conta a um Fiscal/Inspetor." }, 400);
 
     const { data: created, error: createErr } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
     if (createErr) return json({ error: createErr.message }, 400);
@@ -42,9 +41,9 @@ Deno.serve(async (req) => {
     const profile = {
       id: created.user.id,
       role,
-      nome: nome || (role === "fornecedor" ? fornecedor : role === "fiscal" ? fiscal : email),
+      nome: nome || (role === "fornecedor" ? fornecedor : email),
       fornecedor: role === "fornecedor" ? fornecedor : null,
-      fiscal: role === "fiscal" ? fiscal : null,
+      fiscal: null,
     };
     const { error: profileErr } = await admin.from("profiles").insert(profile);
     if (profileErr) {

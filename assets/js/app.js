@@ -401,7 +401,7 @@
 
 /* =====================================================================
    (2) REGISTROS — consulta dos registros oficiais (somente leitura).
-   A entrada de dados acontece exclusivamente no Report dos fiscais.
+   A entrada de dados acontece exclusivamente pelo Excel/Power Automate.
    ===================================================================== */
 (function () {
   "use strict";
@@ -502,7 +502,7 @@
           '<div class="empty__txt">Ajuste ou limpe os filtros acima.</div></div>'
         : '<div class="empty">' +
           '<div class="empty__title">Nenhum registro ainda</div>' +
-          '<div class="empty__txt">Os registros são criados a partir dos lançamentos do Report dos fiscais.</div>' +
+          '<div class="empty__txt">Os registros são sincronizados da planilha Excel Online pelo Power Automate.</div>' +
           "</div>";
       return;
     }

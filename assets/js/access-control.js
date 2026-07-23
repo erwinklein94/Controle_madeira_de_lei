@@ -7,7 +7,7 @@
 
   var FULL = ["editor", "coordenador", "analista"];
   var AUDIT = ["editor", "coordenador"];
-  var TEAM = FULL.concat(["fiscal"]);
+  var TEAM = FULL.slice();
   var LABELS = {
     editor: "Editor",
     coordenador: "Coordenador",

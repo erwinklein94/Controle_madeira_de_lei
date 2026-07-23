@@ -1,6 +1,6 @@
 /* =====================================================================
-   AUTENTICACAO - Equipe/Fiscal e Fornecedor usando Supabase Auth.
-   O primeiro card aceita Editor, Coordenador, Analista e Fiscal/Inspetor.
+   AUTENTICACAO - Equipe e Fornecedor usando Supabase Auth.
+   Fiscais alimentam somente a planilha Excel Online e não possuem login.
    ===================================================================== */
 (function () {
   "use strict";

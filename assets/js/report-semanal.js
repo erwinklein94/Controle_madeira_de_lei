@@ -1,417 +1,228 @@
 /* =====================================================================
-   REPORT DOS FISCAIS - unico ponto de entrada de dados do site.
-   Cada fiscal lanca as informacoes dos pedidos e ve seu historico
-   completo. Os fiscais vem da categoria "fiscal" em Padronizacao.
+   REPORT DOS FISCAIS - painel somente de leitura.
+   A fonte exclusiva é public.registros, alimentada pelo Excel Online.
    ===================================================================== */
 (function () {
   "use strict";
 
   var root;
   var wired = false;
-  var state = {};
-  var ENTRIES_PAGE_SIZE = 1000;
+  var charts = {};
   var fmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+  var STAGES = [
+    { key: "volFabricar", label: "A fabricar", color: "#15507B" },
+    { key: "volPronto", label: "Fabricado", color: "#1F6FA5" },
+    { key: "volInspecionado", label: "Inspecionado", color: "#32A6E6" },
+    { key: "volLiberado", label: "Estoque p/ entrega", color: "#1E9F7F" },
+    { key: "volTransportado", label: "Transportado", color: "#7FE06C" }
+  ];
 
-  function sb() { return window.sbClient; }
-  function canCreateOrders() {
-    var role = window.currentProfile && window.currentProfile.role;
-    return !!(window.AccessControl && (window.AccessControl.isFull(role) || window.AccessControl.isFiscal(role)));
+  function num(value) {
+    var parsed = Number(value);
+    return isFinite(parsed) ? parsed : 0;
   }
-  function canSendEntries() {
-    return !!(window.AccessControl && window.AccessControl.isFull(window.currentProfile && window.currentProfile.role));
-  }
-  function canDeleteEntries() {
-    var role = window.currentProfile && window.currentProfile.role;
-    return !!(window.AccessControl && (window.AccessControl.isFull(role) || window.AccessControl.isFiscal(role)));
-  }
-  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  function esc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
     });
   }
-  function attr(s) { return esc(s); }
-  function key(fiscal) {
-    var out = "";
-    for (var i = 0; i < fiscal.length; i++) out += fiscal.charCodeAt(i).toString(36) + "-";
-    return out.slice(0, -1);
+  function key(value) {
+    var source = String(value || "fiscal");
+    var output = "";
+    for (var index = 0; index < source.length; index += 1) output += source.charCodeAt(index).toString(36) + "-";
+    return output.slice(0, -1);
   }
-  function isoLocal(d) {
-    var y = d.getFullYear();
-    var m = String(d.getMonth() + 1).padStart(2, "0");
-    var day = String(d.getDate()).padStart(2, "0");
-    return y + "-" + m + "-" + day;
+  function dateBr(value) {
+    var parts = String(value || "").slice(0, 10).split("-");
+    return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : "—";
   }
-  function parseIso(s) {
-    var p = String(s || "").slice(0, 10).split("-");
-    return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : new Date(NaN);
+  function sum(records, field) {
+    return records.reduce(function (total, record) { return total + num(record[field]); }, 0);
   }
-  function mondayOf(d) {
-    var copy = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    var day = copy.getDay();
-    copy.setDate(copy.getDate() - (day === 0 ? 6 : day - 1));
-    return copy;
-  }
-  function dateBr(s) {
-    var p = String(s || "").slice(0, 10).split("-");
-    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : "—";
-  }
-  function dateTimeBr(s) {
-    var d = new Date(s);
-    return isNaN(d.getTime()) ? "—" : d.toLocaleString("pt-BR");
-  }
-  function options(category, selected) {
-    var values = window.Padroes ? window.Padroes.options(category) : [];
-    var html = '<option value="">Selecione…</option>';
-    values.forEach(function (value) {
-      html += '<option value="' + attr(value) + '"' + (value === selected ? " selected" : "") + ">" + esc(value) + "</option>";
+  function uniqueCount(records, field) {
+    var seen = {};
+    records.forEach(function (record) {
+      var value = String(record[field] || "").trim();
+      if (value) seen[value] = true;
     });
-    return html;
-  }
-  function orderOptions(selected) {
-    var items = window.Padroes && window.Padroes.pedidos ? window.Padroes.pedidos("", true) : [];
-    var html = '<option value="">Selecione um pedido…</option>';
-    items.forEach(function (item) {
-      html += '<option value="' + attr(item.numero) + '"' + (item.numero === selected ? " selected" : "") + ">Pedido " + esc(item.numero) + " · " + esc(item.fornecedor) + "</option>";
-    });
-    return html;
+    return Object.keys(seen).length;
   }
   function empty(message) {
     return '<div class="report-empty">' + esc(message) + "</div>";
   }
-  function message(fiscal, text, error) {
-    var card = root.querySelector('[data-fiscal-key="' + key(fiscal) + '"]');
-    var el = card ? card.querySelector(".report-fiscal-msg") : null;
-    if (!el) return;
-    el.textContent = text || "";
-    el.classList.toggle("is-error", !!error);
+
+  function destroyCharts() {
+    Object.keys(charts).forEach(function (id) {
+      if (charts[id]) charts[id].destroy();
+    });
+    charts = {};
   }
 
-  function fiscalCard(fiscal) {
+  function kpi(label, value, detail) {
+    return '<div class="report-kpi"><span>' + esc(label) + "</span><strong>" + esc(value) +
+      "</strong><small>" + esc(detail || "Dados importados do Excel") + "</small></div>";
+  }
+
+  function fiscalCard(fiscal, records) {
     var fiscalKey = key(fiscal);
-    var canAddOrder = canCreateOrders();
+    var ordered = records.slice().sort(function (a, b) {
+      return String(b.dataRef || b.createdAt || "").localeCompare(String(a.dataRef || a.createdAt || ""));
+    });
+    var lastDate = ordered.length ? dateBr(ordered[0].dataRef) : "—";
     return (
-      '<article class="report-fiscal" data-fiscal="' + attr(fiscal) + '" data-fiscal-key="' + fiscalKey + '">' +
-        '<header class="report-fiscal__head">' +
-          '<div><span class="report-fiscal__eyebrow">Fiscal</span><h2>' + esc(fiscal) + "</h2></div>" +
-        "</header>" +
-        '<div class="report-fiscal-msg form-msg" role="status" aria-live="polite"></div>' +
-        '<section class="report-activities">' +
-          '<div class="report-section-head"><div><h3>Lançamentos</h3><p>Registre as informações trazidas das visitas. Todo o seu histórico fica na tabela abaixo.</p></div>' +
-          '<div class="report-section-actions">' +
-            (canAddOrder ? '<button class="btn btn--ghost btn--sm report-toggle-order" type="button">Cadastrar novo pedido</button>' : "") +
-            '<button class="btn btn--success btn--sm report-toggle-entry" type="button">Novo lançamento</button>' +
-          "</div></div>" +
-          (canAddOrder ? '<form class="report-new-order-form" hidden>' +
-            '<div class="report-new-order-intro"><span>Pedido novo</span><div><strong>Cadastre uma vez e use em todo o site.</strong><p>Informe os quatro dados abaixo. O pedido entrará automaticamente na Padronização e ficará selecionado no novo lançamento.</p></div></div>' +
-            '<div class="report-form-grid report-form-grid--order">' +
-              '<div class="field"><label>Número do pedido</label><input name="numero" type="text" inputmode="numeric" autocomplete="off" placeholder="Ex.: 4500123456" required><small>Use o número oficial, sem abreviações.</small></div>' +
-              '<div class="field"><label>Fornecedor</label><select name="fornecedor" required>' + options("fornecedor") + "</select></div>" +
-              '<div class="field"><label>Local</label><select name="local" required>' + options("local") + "</select></div>" +
-              '<div class="field"><label>Quantidade total de dormentes</label><input name="quantidade" type="number" min="1" step="1" required><small>Quantidade total contratada no pedido.</small></div>' +
-            "</div>" +
-            '<div class="form-foot"><button class="btn btn--primary" type="submit">Cadastrar e usar no lançamento</button><button class="btn btn--ghost report-cancel-order" type="button">Cancelar</button><span class="form-msg" role="status" aria-live="polite"></span></div>' +
-          "</form>" : "") +
-          '<form class="report-entry-form" hidden>' +
-            '<div class="report-form-grid">' +
-              '<div class="field"><label>Data</label><input name="data_ref" type="date" required></div>' +
-              '<div class="field"><label>Fiscal</label><input value="' + attr(fiscal) + '" disabled></div>' +
-              '<div class="field field--wide"><label>Pedido padronizado</label><select name="pedido" required>' + orderOptions() + '</select><small class="pedido-auto-hint">Selecione o pedido para preencher os dados automaticamente.</small></div>' +
-              '<div class="field field--autofill"><label>Fornecedor</label><input name="fornecedor" readonly required></div>' +
-              '<div class="field field--autofill"><label>Local</label><input name="local" readonly required></div>' +
-              '<div class="field field--autofill"><label>Volume do Pedido</label><input name="vol_pedido" type="number" readonly required></div>' +
-              numberField("vol_fabricar", "Volume a ser Fabricado") +
-              numberField("vol_pronto", "Volume Fabricado") +
-              numberField("vol_inspecionado", "Volume Inspecionado") +
-              numberField("vol_liberado", "Volume em Estoque p/ Entrega") +
-              numberField("vol_transportado", "Volume Transportado") +
-            "</div>" +
-            '<div class="form-foot"><button class="btn btn--success" type="submit">Salvar no report</button><button class="btn btn--ghost report-cancel-entry" type="button">Cancelar</button></div>' +
-          "</form>" +
-          '<div class="report-table"></div>' +
+      '<article class="report-fiscal" data-fiscal-key="' + fiscalKey + '">' +
+        '<header class="report-fiscal__head"><div><span class="report-fiscal__eyebrow">Fiscal/Inspetor</span><h2>' + esc(fiscal) +
+        '</h2></div><span class="report-source-badge">Fonte: Excel Online</span></header>' +
+        '<section class="report-dashboard">' +
+          '<div class="report-kpis">' +
+            kpi("Registros", fmt.format(records.length), "Último: " + lastDate) +
+            kpi("Pedidos", fmt.format(uniqueCount(records, "pedido")), "Pedidos acompanhados") +
+            kpi("Fabricado", fmt.format(sum(records, "volPronto")), "Volume acumulado") +
+            kpi("Inspecionado", fmt.format(sum(records, "volInspecionado")), "Volume acumulado") +
+            kpi("Transportado", fmt.format(sum(records, "volTransportado")), "Volume acumulado") +
+          "</div>" +
+          '<div class="report-dashboard-grid">' +
+            '<section class="report-chart-card"><div class="report-chart-title"><strong>Progresso por etapa</strong><span>Totais deste fiscal</span></div><div class="report-chart"><canvas id="report-stage-' + fiscalKey + '"></canvas></div></section>' +
+            '<section class="report-chart-card"><div class="report-chart-title"><strong>Evolução por data</strong><span>Últimas atividades</span></div><div class="report-chart"><canvas id="report-timeline-' + fiscalKey + '"></canvas></div></section>' +
+          "</div>" +
+        "</section>" +
+        '<section class="report-activities"><div class="report-section-head"><div><h3>Registros de ' + esc(fiscal) +
+          "</h3><p>Somente informações sincronizadas da planilha Excel Online.</p></div></div>" +
+          drawTable(ordered) +
         "</section>" +
       "</article>"
     );
   }
 
-  function numberField(name, label) {
-    return '<div class="field"><label>' + label + '</label><input name="' + name + '" type="number" min="0" step="any" value="0" required></div>';
-  }
-
-  function applyPedidoDetails(form) {
-    if (!form || !window.Padroes) return;
-    var details = window.Padroes.pedido(form.elements.pedido.value);
-    var hint = form.querySelector(".pedido-auto-hint");
-    if (!details) {
-      form.elements.fornecedor.value = "";
-      form.elements.local.value = "";
-      if (form.elements.vol_pedido) form.elements.vol_pedido.value = 0;
-      if (hint) {
-        hint.textContent = form.elements.pedido.value ? "Detalhes pendentes na Padronização." : "Preenchimento automático ao selecionar.";
-        hint.classList.remove("is-filled");
-      }
-      return;
-    }
-    form.elements.fornecedor.value = details.fornecedor;
-    form.elements.local.value = details.local;
-    if (form.elements.vol_pedido) form.elements.vol_pedido.value = details.quantidade;
-    if (hint) {
-      hint.textContent = details.fornecedor + " · " + details.local + " · " + fmt.format(details.quantidade) + " dormentes";
-      hint.classList.add("is-filled");
-    }
-  }
-
-  function renderShell() {
-    var fiscals = getFiscals();
-    if (!fiscals.length) {
-      root.innerHTML = empty("Cadastre pelo menos um fiscal em Padronização.");
-      return;
-    }
-    fiscals.forEach(function (fiscal) {
-      if (!state[fiscal]) state[fiscal] = { entries: [] };
-    });
-    root.innerHTML = fiscals.map(fiscalCard).join("");
-  }
-
-  function getFiscals() {
-    var profile = window.currentProfile || {};
-    if (window.AccessControl && window.AccessControl.isFiscal(profile.role)) {
-      return profile.fiscal ? [profile.fiscal] : [];
-    }
-    var values = window.Padroes ? window.Padroes.options("fiscal") : [];
-    if (!values.length) values = ["Walter", "Ivan Souza"];
-    return values.slice().sort(function (a, b) {
-      var preferred = { "Walter": 0, "Ivan Souza": 1 };
-      var ai = preferred[a] !== undefined ? preferred[a] : 99;
-      var bi = preferred[b] !== undefined ? preferred[b] : 99;
-      return ai === bi ? a.localeCompare(b, "pt-BR") : ai - bi;
-    });
-  }
-
-  /* Histórico completo do fiscal (todas as semanas), paginado. */
-  function entriesQuery(fiscal, from, to) {
-    return sb().from("report_semanal_registros")
-      .select("id, semana_inicio, data_ref, fiscal, fornecedor, local, pedido, pedido_id, vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, vol_transportado, registro_id, enviado_em, created_at, updated_at")
-      .eq("fiscal", fiscal)
-      .order("data_ref", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(from, to);
-  }
-
-  function fetchEntries(fiscal, from, collected) {
-    return entriesQuery(fiscal, from, from + ENTRIES_PAGE_SIZE - 1).then(function (res) {
-      if (res.error) throw res.error;
-      var rows = res.data || [];
-      var all = collected.concat(rows);
-      if (rows.length === ENTRIES_PAGE_SIZE) return fetchEntries(fiscal, from + ENTRIES_PAGE_SIZE, all);
-      return all;
-    });
-  }
-
-  function loadFiscal(fiscal) {
-    return fetchEntries(fiscal, 0, []).then(function (entries) {
-      state[fiscal].entries = entries;
-      drawFiscal(fiscal);
-    }).catch(function (err) {
-      message(fiscal, "Não foi possível carregar os lançamentos: " + (err.message || err) + ".", true);
-    });
-  }
-
-  function drawFiscal(fiscal) {
-    var card = root.querySelector('[data-fiscal-key="' + key(fiscal) + '"]');
-    if (!card) return;
-    drawTable(card, fiscal);
-  }
-
-  function drawTable(card, fiscal) {
-    var entries = state[fiscal].entries;
-    var canSend = canSendEntries();
-    var canDelete = canDeleteEntries();
-    var target = card.querySelector(".report-table");
-    if (!entries.length) { target.innerHTML = empty("Nenhuma atividade registrada nesta semana."); return; }
-    var heads = ["Data", "Fiscal", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Inspecionado", "Estoque p/ entrega", "Transportado", "Registros", "Ações"];
-    var body = entries.map(function (r) {
-      var sent = !!r.registro_id;
+  function drawTable(records) {
+    if (!records.length) return empty("Nenhum registro importado para este fiscal.");
+    var heads = ["ID", "Data", "Semana", "Fornecedor", "Local", "Pedido", "Vol. pedido", "A fabricar", "Fabricado", "Inspecionado", "Estoque p/ entrega", "Transportado"];
+    var body = records.map(function (record) {
       return "<tr>" +
-        "<td>" + dateBr(r.data_ref) + "</td><td>" + esc(r.fiscal) + "</td><td>" + esc(r.fornecedor) + "</td><td>" + esc(r.local) + "</td><td class=\"cell-pedido\">" + esc(r.pedido) + "</td>" +
-        ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_inspecionado", "vol_liberado", "vol_transportado"].map(function (field) { return "<td>" + fmt.format(num(r[field])) + "</td>"; }).join("") +
-        '<td class="report-send-cell">' + (sent
-          ? '<span class="report-sent" title="Enviado em ' + attr(dateTimeBr(r.enviado_em)) + '">Enviado</span>'
-          : canSend
-            ? '<button class="btn btn--primary btn--sm report-send" data-id="' + r.id + '" type="button">Enviar</button>'
-            : '<span class="report-pending">Pendente</span>') + "</td>" +
-        '<td class="report-action-cell">' + (canDelete
-          ? '<button class="btn btn--danger btn--sm report-entry-delete" data-id="' + r.id + '" data-sent="' + (sent ? "true" : "false") + '" type="button">Excluir</button>'
-          : "—") + "</td></tr>";
+        '<td class="col-text">' + esc(record.excelId || "—") + "</td>" +
+        "<td>" + dateBr(record.dataRef) + "</td>" +
+        "<td>" + esc(record.semana || "—") + "</td>" +
+        '<td class="col-text">' + esc(record.fornecedor) + "</td>" +
+        '<td class="col-text">' + esc(record.local) + "</td>" +
+        '<td class="col-text cell-pedido">' + esc(record.pedido) + "</td>" +
+        ["volPedido", "volFabricar", "volPronto", "volInspecionado", "volLiberado", "volTransportado"].map(function (field) {
+          return "<td>" + fmt.format(num(record[field])) + "</td>";
+        }).join("") +
+        "</tr>";
     }).join("");
-    target.innerHTML = '<div class="table-wrap"><table class="tabela report-table__table"><thead><tr>' + heads.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table></div>";
+    return '<div class="table-wrap"><table class="tabela report-table__table"><thead><tr>' +
+      heads.map(function (head) { return "<th>" + head + "</th>"; }).join("") +
+      "</tr></thead><tbody>" + body + "</tbody></table></div>";
   }
 
-  function orderError(err) {
-    var text = String((err && err.message) || err || "");
-    if (/duplicate|unique|pedidos_numero_key/i.test(text)) return "Esse número de pedido já está cadastrado. Selecione-o na lista de lançamentos.";
-    if (/row-level security|policy/i.test(text)) return "Seu perfil não possui permissão para cadastrar este pedido ou os dados não pertencem à Padronização.";
-    return "Não foi possível cadastrar o pedido: " + text;
+  function dailySeries(records) {
+    var byDate = {};
+    records.forEach(function (record) {
+      var date = String(record.dataRef || "").slice(0, 10);
+      if (!date) return;
+      if (!byDate[date]) byDate[date] = { fabricado: 0, inspecionado: 0, transportado: 0 };
+      byDate[date].fabricado += num(record.volPronto);
+      byDate[date].inspecionado += num(record.volInspecionado);
+      byDate[date].transportado += num(record.volTransportado);
+    });
+    var dates = Object.keys(byDate).sort().slice(-14);
+    return {
+      labels: dates.map(dateBr),
+      fabricado: dates.map(function (date) { return byDate[date].fabricado; }),
+      inspecionado: dates.map(function (date) { return byDate[date].inspecionado; }),
+      transportado: dates.map(function (date) { return byDate[date].transportado; })
+    };
   }
 
-  function selectCreatedOrder(fiscal, numero) {
-    renderShell();
-    getFiscals().forEach(drawFiscal);
-    var card = root.querySelector('[data-fiscal-key="' + key(fiscal) + '"]');
-    if (!card) return;
-    var entryForm = card.querySelector(".report-entry-form");
-    entryForm.hidden = false;
-    entryForm.elements.data_ref.value = isoLocal(new Date());
-    entryForm.elements.pedido.value = numero;
-    applyPedidoDetails(entryForm);
-    entryForm.elements.vol_fabricar.focus();
+  function chartOptions() {
+    var dark = document.documentElement.getAttribute("data-theme") === "dark";
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { labels: { color: dark ? "#e6eff6" : "#425466", boxWidth: 12 } },
+        datalabels: { display: false },
+        tooltip: { callbacks: { label: function (context) { return context.dataset.label + ": " + fmt.format(num(context.raw)); } } }
+      },
+      scales: {
+        x: { ticks: { color: dark ? "#c6d4df" : "#526778" }, grid: { color: dark ? "rgba(255,255,255,.08)" : "rgba(0,56,101,.08)" } },
+        y: { beginAtZero: true, ticks: { color: dark ? "#c6d4df" : "#526778" }, grid: { color: dark ? "rgba(255,255,255,.08)" : "rgba(0,56,101,.08)" } }
+      }
+    };
   }
 
-  function createOrder(fiscal, form) {
-    if (!canCreateOrders() || !window.Padroes || !window.Padroes.criarPedido) {
-      return Promise.reject(new Error("Cadastro de pedidos indisponível para este perfil."));
+  function drawCharts(fiscal, records) {
+    if (typeof window.Chart !== "function") return;
+    var fiscalKey = key(fiscal);
+    var stageCanvas = document.getElementById("report-stage-" + fiscalKey);
+    var timelineCanvas = document.getElementById("report-timeline-" + fiscalKey);
+    if (stageCanvas) {
+      charts["stage-" + fiscalKey] = new Chart(stageCanvas, {
+        type: "bar",
+        data: {
+          labels: STAGES.map(function (stage) { return stage.label; }),
+          datasets: [{ label: "Volume", data: STAGES.map(function (stage) { return sum(records, stage.key); }), backgroundColor: STAGES.map(function (stage) { return stage.color; }), borderRadius: 4 }]
+        },
+        options: chartOptions()
+      });
     }
-    var numero = form.elements.numero.value.trim();
-    var quantidade = Number(form.elements.quantidade.value);
-    var msg = form.querySelector(".form-msg");
-    if (!numero || !form.elements.fornecedor.value || !form.elements.local.value || !Number.isInteger(quantidade) || quantidade <= 0) {
-      msg.textContent = "Preencha o número, fornecedor, local e uma quantidade inteira maior que zero.";
-      msg.className = "form-msg is-error";
-      return Promise.resolve();
+    if (timelineCanvas) {
+      var daily = dailySeries(records);
+      charts["timeline-" + fiscalKey] = new Chart(timelineCanvas, {
+        type: "line",
+        data: {
+          labels: daily.labels,
+          datasets: [
+            { label: "Fabricado", data: daily.fabricado, borderColor: "#1F6FA5", backgroundColor: "rgba(31,111,165,.12)", tension: 0.25 },
+            { label: "Inspecionado", data: daily.inspecionado, borderColor: "#32A6E6", backgroundColor: "rgba(50,166,230,.12)", tension: 0.25 },
+            { label: "Transportado", data: daily.transportado, borderColor: "#1E9F7F", backgroundColor: "rgba(30,159,127,.12)", tension: 0.25 }
+          ]
+        },
+        options: chartOptions()
+      });
     }
-    var button = form.querySelector('button[type="submit"]');
-    button.disabled = true;
-    button.textContent = "Cadastrando…";
-    msg.textContent = "";
-    msg.className = "form-msg";
-    return window.Padroes.criarPedido({
-      numero: numero,
-      fornecedor: form.elements.fornecedor.value,
-      local: form.elements.local.value,
-      quantidade_dormentes: quantidade
-    }).then(function (created) {
-      form.reset();
-      form.hidden = true;
-      selectCreatedOrder(fiscal, created.numero);
-      message(fiscal, "Pedido " + created.numero + " cadastrado e selecionado. Complete agora os volumes do lançamento.", false);
-    }).catch(function (err) {
-      button.disabled = false;
-      button.textContent = "Cadastrar e usar no lançamento";
-      msg.textContent = orderError(err);
-      msg.className = "form-msg is-error";
-    });
   }
 
-  function saveEntry(fiscal, form) {
-    var dataRef = form.elements.data_ref.value;
-    var dia = parseIso(dataRef);
-    if (isNaN(dia.getTime())) return Promise.reject(new Error("Informe a data do lançamento."));
-    // A semana é derivada da data informada (segunda-feira correspondente).
-    var row = { semana_inicio: isoLocal(mondayOf(dia)), fiscal: fiscal };
-    ["data_ref", "fornecedor", "local", "pedido"].forEach(function (field) { row[field] = form.elements[field].value; });
-    ["vol_pedido", "vol_fabricar", "vol_pronto", "vol_inspecionado", "vol_liberado", "vol_transportado"].forEach(function (field) { row[field] = num(form.elements[field].value); });
-    return sb().from("report_semanal_registros").insert(row).then(function (res) {
-      if (res.error) throw res.error;
-      form.reset(); form.hidden = true;
-      return loadFiscal(fiscal);
+  function draw(records) {
+    destroyCharts();
+    var grouped = {};
+    records.forEach(function (record) {
+      var fiscal = String(record.fiscal || "").trim();
+      if (!fiscal) return;
+      if (!grouped[fiscal]) grouped[fiscal] = [];
+      grouped[fiscal].push(record);
     });
-  }
-
-  function deleteEntry(fiscal, id) {
-    if (!canDeleteEntries()) return Promise.reject(new Error("Seu perfil não possui permissão para excluir lançamentos."));
-    var current = state[fiscal].entries.filter(function (item) { return item.id === id; })[0];
-    if (!current) return Promise.reject(new Error("Lançamento desatualizado. Recarregue a página."));
-    return sb().from("report_semanal_registros").delete().eq("id", id)
-      .eq("updated_at", current.updated_at).select("id").then(function (res) {
-      if (res.error) throw res.error;
-      if (!res.data || !res.data.length) throw new Error("O lançamento não foi encontrado ou seu perfil não possui permissão para excluí-lo.");
-      return loadFiscal(fiscal);
-    }).then(function () {
-      message(fiscal, "Lançamento excluído do Report dos fiscais.", false);
-    });
-  }
-
-  function sendEntry(fiscal, id, button) {
-    if (!canSendEntries()) return Promise.reject(new Error("Seu perfil não possui permissão para enviar lançamentos a Registros."));
-    button.disabled = true; button.textContent = "Enviando…";
-    return sb().rpc("enviar_report_semanal_para_registros", { p_report_id: id }).then(function (res) {
-      if (res.error) throw res.error;
-      return Promise.all([loadFiscal(fiscal), window.Store ? Store.refresh() : Promise.resolve()]);
-    }).then(function () {
-      message(fiscal, "Lançamento enviado para Registros. O histórico semanal foi preservado.", false);
-    }).catch(function (err) {
-      button.disabled = false; button.textContent = "Enviar";
-      throw err;
-    });
+    var fiscals = Object.keys(grouped).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
+    if (!fiscals.length) {
+      root.innerHTML = empty("Nenhum fiscal foi encontrado nos registros importados.");
+      return;
+    }
+    root.innerHTML = fiscals.map(function (fiscal) { return fiscalCard(fiscal, grouped[fiscal]); }).join("");
+    fiscals.forEach(function (fiscal) { drawCharts(fiscal, grouped[fiscal]); });
   }
 
   function wire() {
-    if (wired || !root) return;
-    root.addEventListener("change", function (e) {
-      if (e.target.matches('.report-entry-form select[name="pedido"]')) {
-        applyPedidoDetails(e.target.closest("form"));
-      }
-    });
-    root.addEventListener("click", function (e) {
-      var card = e.target.closest(".report-fiscal");
-      if (!card) return;
-      var fiscal = card.getAttribute("data-fiscal");
-      if (canCreateOrders() && e.target.closest(".report-toggle-order")) {
-        card.querySelector(".report-entry-form").hidden = true;
-        card.querySelector(".report-new-order-form").hidden = false;
-        card.querySelector('.report-new-order-form input[name="numero"]').focus();
-      }
-      if (canCreateOrders() && e.target.closest(".report-cancel-order")) card.querySelector(".report-new-order-form").hidden = true;
-      if (e.target.closest(".report-toggle-entry")) {
-        var form = card.querySelector(".report-entry-form");
-        var orderForm = card.querySelector(".report-new-order-form");
-        if (orderForm) orderForm.hidden = true;
-        form.hidden = false;
-        if (!form.elements.data_ref.value) form.elements.data_ref.value = isoLocal(new Date());
-      }
-      if (e.target.closest(".report-cancel-entry")) card.querySelector(".report-entry-form").hidden = true;
-      var send = e.target.closest(".report-send");
-      if (canSendEntries() && send) sendEntry(fiscal, send.getAttribute("data-id"), send).catch(function (err) { message(fiscal, "Erro ao enviar: " + (err.message || err), true); });
-      var entryDelete = e.target.closest(".report-entry-delete");
-      if (canDeleteEntries() && entryDelete) {
-        var sentNotice = entryDelete.getAttribute("data-sent") === "true"
-          ? " Este lançamento já foi enviado: o registro oficial na página Registros será preservado."
-          : "";
-        if (window.confirm("Excluir este lançamento do Report dos fiscais?" + sentNotice)) {
-          entryDelete.disabled = true;
-          deleteEntry(fiscal, entryDelete.getAttribute("data-id")).catch(function (err) {
-            entryDelete.disabled = false;
-            message(fiscal, "Erro ao excluir lançamento: " + (err.message || err), true);
-          });
-        }
-      }
-    });
-    root.addEventListener("submit", function (e) {
-      var card = e.target.closest(".report-fiscal");
-      if (!card) return;
-      var fiscal = card.getAttribute("data-fiscal");
-      if (e.target.matches(".report-new-order-form")) {
-        e.preventDefault();
-        createOrder(fiscal, e.target);
-      }
-      if (e.target.matches(".report-entry-form")) {
-        e.preventDefault();
-        saveEntry(fiscal, e.target).catch(function (err) { message(fiscal, "Erro ao salvar lançamento: " + (err.message || err), true); });
-      }
-    });
+    if (wired) return;
+    var refresh = document.getElementById("report-refresh");
+    if (refresh) refresh.addEventListener("click", render);
     wired = true;
   }
 
   function render() {
     root = root || document.getElementById("report-fiscais");
     if (!root) return;
-    if (!sb()) { root.innerHTML = empty("Sem conexão com o servidor."); return; }
-    var standards = window.Padroes ? window.Padroes.load() : Promise.resolve();
-    standards.then(function () {
-      renderShell(); wire();
-      return Promise.all(getFiscals().map(loadFiscal));
-    }).catch(function (err) {
-      root.innerHTML = empty("Não foi possível abrir o Report dos fiscais: " + (err.message || err));
+    wire();
+    root.innerHTML = empty("Atualizando dados importados do Excel…");
+    if (!window.Store) {
+      root.innerHTML = empty("A fonte de Registros não está disponível.");
+      return;
+    }
+    Store.refresh().then(function () {
+      draw(Store.getAll());
+    }).catch(function (error) {
+      root.innerHTML = empty("Não foi possível carregar os registros: " + (error.message || error));
     });
   }
 
