@@ -740,7 +740,7 @@
       tendencia: { title: "Conclusão por Pedido", hint: "Volume, saldo a concluir e % de conclusão por pedido." },
       historico: { title: "Transportado acumulado", hint: "Evolução do volume transportado acumulado." },
       ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
-      conclforn: { title: "Distribuição e conclusão por fornecedor", hint: "Legenda: volume total · % concluído." },
+      conclforn: { title: "Distribuição e conclusão por fornecedor", hint: "Barra: volume do pedido · rótulo: % concluído." },
       entregasforn: { title: "Entregas semanais por fornecedor", hint: "Dormentes entregues por semana, por fornecedor." }
     };
     return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
@@ -1270,67 +1270,63 @@
     };
   }
 
-  /* Distribuição do volume total por fornecedor. A legenda informa, para
-     cada fornecedor, o volume total e a respectiva conclusão. */
+  /* Uma barra horizontal por fornecedor. O comprimento representa o volume
+     total dos pedidos e o rótulo externo mostra a respectiva conclusão. */
   function conclFornConfig(list, expanded) {
     var d = Store.pedidoVsTransportado(list, "fornecedor");
     var pcts = d.map(function (x) {
       return x.pedido > 0 ? Math.round(Math.min(100, (x.transportado / x.pedido) * 100) * 10) / 10 : 0;
     });
     var colors = d.map(function (_, i) { return DOUGHNUT[i % DOUGHNUT.length]; });
+    var volumes = d.map(function (x) { return x.pedido; });
+    var scales = baseScales(expanded);
+    scales.x.beginAtZero = true;
+    scales.x.suggestedMax = paddedMax(volumes, expanded ? 1.2 : 1.28);
+    scales.x.ticks.callback = function (v) { return fmtC.format(v); };
+    scales.y.grid.display = false;
+    scales.y.ticks.autoSkip = false;
     return {
-      type: "doughnut",
+      type: "bar",
       data: {
         labels: d.map(function (x) { return x.label; }),
         datasets: [{
-          label: "Volume total",
-          data: d.map(function (x) { return x.pedido; }),
+          label: "Volume do pedido",
+          data: volumes,
           backgroundColor: colors,
-          borderColor: isDark() ? C.azulNoite : "#ffffff",
-          borderWidth: expanded ? 3 : 2
+          borderRadius: expanded ? 7 : 4,
+          barPercentage: expanded ? 0.72 : 0.66,
+          categoryPercentage: 0.82
         }]
       },
       options: {
+        indexAxis: "y",
         responsive: true, maintainAspectRatio: false,
-        cutout: expanded ? "50%" : "56%",
-        layout: { padding: expanded ? 16 : 6 },
+        layout: { padding: { right: expanded ? 82 : 48, top: expanded ? 12 : 4, bottom: expanded ? 8 : 2, left: expanded ? 8 : 0 } },
+        scales: scales,
         plugins: {
-          legend: {
-            position: "top",
-            labels: {
-              color: legendInk(),
-              boxWidth: expanded ? 14 : 10,
-              boxHeight: expanded ? 14 : 10,
-              padding: expanded ? 16 : 10,
-              font: { size: expanded ? 13 : 10 },
-              generateLabels: function (chart) {
-                return d.map(function (item, i) {
-                  return {
-                    text: item.label + " · " + (expanded ? fmt.format(Math.round(item.pedido)) : fmtC.format(item.pedido)) + " · " + pct(pcts[i]),
-                    fillStyle: colors[i],
-                    strokeStyle: colors[i],
-                    fontColor: legendInk(),
-                    hidden: !chart.getDataVisibility(i),
-                    index: i
-                  };
-                });
-              }
-            }
-          },
+          legend: { display: false },
           tooltip: {
             callbacks: {
               label: function (c) {
                 var item = d[c.dataIndex];
-                return " Total: " + withUnit(item.pedido);
+                return " Volume do pedido: " + withUnit(item.pedido);
               },
               afterLabel: function (c) {
                 var item = d[c.dataIndex];
                 return " Concluído: " + withUnit(item.transportado) + " · " + pct(pcts[c.dataIndex]);
               }
             }
+          },
+          datalabels: {
+            display: true,
+            anchor: "end", align: "right", offset: expanded ? 8 : 5, clamp: true, clip: false,
+            color: dataLabelInk(C.azul), backgroundColor: dataLabelBg(0.92), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
+            font: { size: expanded ? 12 : 9, weight: "700" },
+            formatter: function (_, ctx) { return pct(pcts[ctx.dataIndex]); }
           }
         }
-      }
+      },
+      plugins: [ChartDataLabels]
     };
   }
 

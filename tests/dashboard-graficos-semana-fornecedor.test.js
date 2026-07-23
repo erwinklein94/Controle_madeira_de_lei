@@ -35,9 +35,11 @@ test("gráficos semanais usam o número da semana e entregas são barras agrupad
 test("distribuição e conclusão foram unidas por fornecedor", () => {
   const block = functionBlock("conclFornConfig", "weeklyDeliveredSeries");
   assert.match(html, /Distribuição e conclusão por fornecedor/);
-  assert.match(html, /Legenda: volume total · % concluído/);
+  assert.match(html, /Barra: volume do pedido · rótulo: % concluído/);
   assert.doesNotMatch(html, /chart-local|Distribuição por local/);
-  assert.match(block, /type: "doughnut"/);
-  assert.match(block, /label: "Volume total"/);
-  assert.match(block, /item\.label \+ " · ".*item\.pedido.*pct\(pcts\[i\]\)/s);
+  assert.match(block, /type: "bar"/);
+  assert.match(block, /indexAxis: "y"/);
+  assert.match(block, /label: "Volume do pedido"/);
+  assert.match(block, /data: volumes/);
+  assert.match(block, /formatter: function \(_, ctx\) \{ return pct\(pcts\[ctx\.dataIndex\]\); \}/);
 });
