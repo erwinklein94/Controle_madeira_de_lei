@@ -9,12 +9,13 @@ const root = path.resolve(__dirname, "..");
 test("interface permite digitar pedido e mostra ações do fornecedor", () => {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert.match(html, /id="forn-pedido" type="text" list="forn-pedidos-list"/);
+  assert.doesNotMatch(html, /forn-pedido-detalhes/);
   assert.match(html, /id="forn-cancel"[^>]*hidden/);
   assert.match(html, /Histórico dos fornecedores/);
   assert.doesNotMatch(html, /id="solic-tabela"/);
 });
 
-test("script de fornecedores carrega e contém edição e exclusão lógica", () => {
+test("script mantém avisos livres sem depender de pedidos padronizados", () => {
   const source = fs.readFileSync(path.join(root, "assets", "js", "pendencias.js"), "utf8");
   const sandbox = { window: { sbClient: {} }, Intl, console };
   vm.runInNewContext(source, sandbox, { filename: "pendencias.js" });
@@ -26,16 +27,18 @@ test("script de fornecedores carrega e contém edição e exclusão lógica", ()
   assert.match(source, /Alterado pelo fornecedor/);
   assert.match(source, /Excluído pelo fornecedor/);
   assert.match(source, /Atualizado em/);
+  assert.match(source, /pedido_id: null/);
+  assert.match(source, /Marcar como analisada/);
+  assert.doesNotMatch(source, /Padroes/);
 });
 
-test("migração aceita pedido sem vínculo e protege autoria", () => {
+test("migração mantém o aviso sem transformá-lo em registro operacional", () => {
   const migration = fs.readFileSync(
-    path.join(root, "supabase", "migrations", "20260721015750_fornecedor_edita_exclui_pedido_livre.sql"),
+    path.join(root, "supabase", "migrations", "20260723094628_remover_padronizacao_pedidos.sql"),
     "utf8"
   );
-  assert.match(migration, /alter column pedido_id drop not null/);
   assert.match(migration, /normalize_pending_order_reference/);
-  assert.match(migration, /old\.created_by is distinct from auth\.uid\(\)/);
-  assert.match(migration, /status in \('enviada', 'aceita', 'recusada', 'excluida'\)/);
-  assert.match(migration, /Cadastre primeiro o pedido/);
+  assert.match(migration, /set status = 'aceita'/);
+  assert.doesNotMatch(migration, /insert into public\.registros/i);
+  assert.doesNotMatch(migration, /new\.vol_pedido\s*:=/);
 });

@@ -59,6 +59,26 @@
     }
     function vazio(texto) { return '<div class="empty"><div class="empty__title">' + texto + "</div></div>"; }
     function countText(list) { return list.length === 1 ? "1 conta." : list.length + " contas."; }
+    function fillFornecedorOptions(selected) {
+      if (!fornEl) return;
+      var values = window.Store
+        ? Store.distinct(Store.getAll(), "fornecedor")
+        : [];
+      contas.forEach(function (conta) {
+        var value = String(conta.fornecedor || "").trim();
+        if (value && values.indexOf(value) < 0) values.push(value);
+      });
+      selected = String(selected || fornEl.value || "").trim();
+      if (selected && values.indexOf(selected) < 0) values.push(selected);
+      fornEl.innerHTML = '<option value="">Selecione…</option>';
+      values.sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).forEach(function (value) {
+        var option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        fornEl.appendChild(option);
+      });
+      fornEl.value = selected;
+    }
 
     function tabelaContas(list, linkedField) {
       var linkedTitle = linkedField === "fornecedor" ? "Fornecedor" : linkedField === "fiscal" ? "Fiscal/Inspetor" : null;
@@ -84,19 +104,18 @@
       if (!sb) { equipeTabela.innerHTML = '<p class="card__hint">Sem conexão com o servidor.</p>'; return; }
       if (!window.AccessControl || !AccessControl.isFull(window.currentProfile && window.currentProfile.role)) return;
 
-      if (window.Padroes) {
-        window.Padroes.load().then(function () {
-          window.Padroes.fill(fornEl, "fornecedor");
-        }).catch(function () {});
-      }
-
-      sb.rpc("list_accounts").then(function (res) {
+      var recordsReady = window.Store
+        ? Store.refresh().catch(function () { return null; })
+        : Promise.resolve();
+      Promise.all([sb.rpc("list_accounts"), recordsReady]).then(function (out) {
+        var res = out[0];
         if (res.error) {
           equipeTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Execute supabase/auditoria-perfis.sql.</p>";
           fornTabela.innerHTML = "";
           return;
         }
         contas = res.data || [];
+        fillFornecedorOptions();
         var equipe = contas.filter(function (c) { return AccessControl.isFull(c.role); });
         var forns = contas.filter(function (c) { return AccessControl.isFornecedor(c.role); });
         var orfas = contas.filter(function (c) { return !c.role; });
@@ -113,9 +132,7 @@
       editingId = c.id;
       papelEl.value = c.role === "admin" ? "editor" : (c.role || "fornecedor");
       nomeEl.value = c.nome || "";
-      if (window.Padroes) {
-        window.Padroes.fill(fornEl, "fornecedor", c.fornecedor || "");
-      }
+      fillFornecedorOptions(c.fornecedor || "");
       emailEl.value = c.email || ""; senhaEl.value = "";
       syncLinkedFields();
       formTitle.textContent = "Editar conta"; submitBtn.textContent = "Salvar alterações"; cancelBtn.hidden = false;

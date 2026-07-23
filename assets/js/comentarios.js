@@ -90,11 +90,6 @@
     if (wired) return;
     grab();
     els.forn.addEventListener("change", fillPedidos);
-    els.pedido.addEventListener("change", function () {
-      if (!window.Padroes) return;
-      var details = window.Padroes.pedido(els.pedido.value);
-      if (details) els.forn.value = details.fornecedor;
-    });
     els.form.addEventListener("submit", onSubmit);
     els.refresh.addEventListener("click", render);
     els.listaEquipe.addEventListener("click", onListClick);
@@ -116,8 +111,7 @@
       return;
     }
     // Selects de fornecedor/pedido vêm dos registros cadastrados.
-    var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
-    Promise.all([Store.refresh().catch(function () { return null; }), padroes]).then(function () {
+    Store.refresh().catch(function () { return null; }).then(function () {
       fillFornecedores();
       fillPedidos();
     });
@@ -137,9 +131,6 @@
 
   function fillFornecedores() {
     var values = Store.distinct(Store.getAll(), "fornecedor");
-    if (window.Padroes) window.Padroes.options("fornecedor").forEach(function (value) {
-      if (values.indexOf(value) < 0) values.push(value);
-    });
     fillSelect(els.forn, values);
   }
 
@@ -148,9 +139,6 @@
     var forn = els.forn.value;
     var base = Store.getAll().filter(function (r) { return !forn || r.fornecedor === forn; });
     var values = Store.distinct(base, "pedido");
-    if (window.Padroes) window.Padroes.pedidos(forn || null, false).forEach(function (item) {
-      if (values.indexOf(item.numero) < 0) values.push(item.numero);
-    });
     fillSelect(els.pedido, values);
   }
 
@@ -280,18 +268,13 @@
   /* Pedidos do PRÓPRIO fornecedor: registros + envios dele. O RLS já
      devolve só as linhas do fornecedor logado nas duas tabelas. */
   function fillPedidos() {
-    var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
     Promise.all([
       sb.from("registros").select("pedido"),
-      sb.from("pendencias").select("pedido"),
-      padroes
+      sb.from("pendencias").select("pedido")
     ]).then(function (out) {
       var seen = {};
-      out.slice(0, 2).forEach(function (res) {
+      out.forEach(function (res) {
         (res.data || []).forEach(function (r) { if (r.pedido) seen[r.pedido] = true; });
-      });
-      if (window.Padroes) window.Padroes.pedidos((window.currentProfile || {}).fornecedor || null, true).forEach(function (item) {
-        seen[item.numero] = true;
       });
       var prev = els.pedido.value;
       els.pedido.innerHTML = '<option value="">Selecione…</option>';

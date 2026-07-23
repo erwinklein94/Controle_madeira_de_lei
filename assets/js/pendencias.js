@@ -48,7 +48,7 @@
   /* ---------- UI DO FORNECEDOR ---------- */
   var FornecedorUI = (function () {
     var form, msg, tabela, count, title, submitBtn, cancelBtn, wired = false;
-    var dataEl, pedidoEl, listaPedidosEl, detalhesEl, volPedidoEl, fabricadoEl, estoqueEl, transpEl;
+    var dataEl, pedidoEl, listaPedidosEl, volPedidoEl, fabricadoEl, estoqueEl, transpEl;
     var linhas = [];
     var editing = null;
 
@@ -63,7 +63,6 @@
       dataEl = document.getElementById("forn-data");
       pedidoEl = document.getElementById("forn-pedido");
       listaPedidosEl = document.getElementById("forn-pedidos-list");
-      detalhesEl = document.getElementById("forn-pedido-detalhes");
       volPedidoEl = document.getElementById("forn-volpedido");
       fabricadoEl = document.getElementById("forn-fabricado");
       estoqueEl = document.getElementById("forn-estoque");
@@ -81,33 +80,20 @@
       msg.classList.toggle("is-error", ok === false);
     }
     function pedidoDigitado() { return String(pedidoEl && pedidoEl.value || "").trim(); }
-    function pedidoSelecionado() {
-      return window.Padroes && window.Padroes.pedido ? window.Padroes.pedido(pedidoDigitado()) : null;
-    }
 
-    function onPedidoChange() {
-      var d = pedidoSelecionado();
-      var numero = pedidoDigitado();
-      if (detalhesEl) {
-        detalhesEl.hidden = !numero;
-        detalhesEl.innerHTML = d
-          ? '<span><strong>Fornecedor</strong>' + esc(d.fornecedor) + '</span><span><strong>Local</strong>' + esc(d.local) + '</span><span><strong>Quantidade do pedido</strong>' + fmt.format(d.quantidade) + ' dormentes</span>'
-          : '<span><strong>Pedido novo</strong>O número ainda não está cadastrado. Ele será enviado à equipe Rumo para conferência.</span>';
-      }
-      if (d && volPedidoEl && !volPedidoEl.value) volPedidoEl.value = d.quantidade;
-    }
-
-    function fillPedidoOptions() {
-      if (!listaPedidosEl || !window.Padroes) return;
-      var prof = window.currentProfile || {};
-      var pedidos = window.Padroes.pedidos(prof.fornecedor || null, true);
+    function fillPedidoOptions(registros, pendencias) {
+      if (!listaPedidosEl) return;
+      var seen = {};
+      (registros || []).concat(pendencias || []).forEach(function (item) {
+        var numero = String(item && item.pedido || "").trim();
+        if (numero) seen[numero] = true;
+      });
       listaPedidosEl.innerHTML = "";
-      pedidos.forEach(function (item) {
+      Object.keys(seen).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).forEach(function (numero) {
         var option = document.createElement("option");
-        option.value = item.numero;
+        option.value = numero;
         listaPedidosEl.appendChild(option);
       });
-      onPedidoChange();
     }
 
     function resetForm() {
@@ -118,7 +104,6 @@
       submitBtn.textContent = "Enviar";
       cancelBtn.hidden = true;
       showMsg("");
-      onPedidoChange();
     }
 
     function startEdit(row) {
@@ -133,7 +118,6 @@
       submitBtn.textContent = "Salvar alteração";
       cancelBtn.hidden = false;
       showMsg("Altere os campos necessários e salve.");
-      onPedidoChange();
       form.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
@@ -148,10 +132,12 @@
     function render() {
       if (!tabela) grab();
       if (!tabela || !guardSb(tabela)) return;
-      var padroes = window.Padroes ? window.Padroes.load().catch(function () { return null; }) : Promise.resolve();
-      Promise.all([Data.listPendencias(), padroes]).then(function (out) {
+      Promise.all([
+        Data.listPendencias(),
+        sb.from("registros").select("pedido")
+      ]).then(function (out) {
         var pend = out[0];
-        fillPedidoOptions();
+        fillPedidoOptions(out[1].data || [], pend.data || []);
         if (pend.error) {
           tabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(pend.error.message) + ").</p>";
           return;
@@ -176,11 +162,10 @@
     }
 
     function payload(prof) {
-      var pedido = pedidoSelecionado();
       return {
         fornecedor: prof.fornecedor,
         pedido: pedidoDigitado(),
-        pedido_id: pedido ? pedido.id : null,
+        pedido_id: null,
         data_ref: dataEl.value,
         vol_pedido: num(volPedidoEl.value),
         vol_fabricado: num(fabricadoEl.value),
@@ -194,10 +179,6 @@
       grab();
       if (!form) return;
       if (dataEl && !dataEl.value) dataEl.value = hoje();
-      if (pedidoEl) {
-        pedidoEl.addEventListener("input", onPedidoChange);
-        pedidoEl.addEventListener("change", onPedidoChange);
-      }
       cancelBtn.addEventListener("click", resetForm);
 
       form.addEventListener("submit", function (e) {
@@ -269,7 +250,7 @@
       return '<span class="tag-ok">Enviado pelo fornecedor</span>';
     }
     function situation(row) {
-      if (row.status === "aceita") return "Aceita";
+      if (row.status === "aceita") return "Analisada";
       if (row.status === "recusada") return "Recusada";
       if (row.status === "excluida") return "Excluída";
       return "Aguardando decisão";
@@ -291,7 +272,7 @@
         var head = '<thead><tr><th class="col-text">Fornecedor</th><th class="col-text">Data</th><th class="col-text">Pedido</th><th>Volume do Pedido</th><th>Volume Fabricado</th><th>Volume em Estoque</th><th>Volume Transportado</th><th>Modificação</th><th class="col-text">Atualizado em</th><th>Situação</th><th>Ações</th></tr></thead>';
         var rows = pendencias.map(function (r) {
           var actions = r.status === "enviada"
-            ? '<div class="row-actions"><button class="btn btn--success btn--sm pend-ok" data-id="' + esc(r.id) + '" type="button">Aceitar</button><button class="btn btn--danger btn--sm pend-no" data-id="' + esc(r.id) + '" type="button">Recusar</button></div>'
+            ? '<div class="row-actions"><button class="btn btn--success btn--sm pend-ok" data-id="' + esc(r.id) + '" type="button">Marcar como analisada</button><button class="btn btn--danger btn--sm pend-no" data-id="' + esc(r.id) + '" type="button">Descartar</button></div>'
             : "—";
           return '<tr><td class="col-text">' + esc(r.fornecedor) + '</td><td class="col-text">' + fmtData(r.data_ref) + '</td><td class="col-text cell-pedido">' + esc(r.pedido) + "</td><td>" + fmt.format(num(r.vol_pedido)) + "</td><td>" + fmt.format(num(r.vol_fabricado)) + "</td><td>" + fmt.format(num(r.vol_estoque)) + "</td><td>" + fmt.format(num(r.vol_transportado)) + "</td><td>" + movement(r) + '</td><td class="col-text">' + fmtMomento(r.updated_at) + "</td><td>" + situation(r) + "</td><td>" + actions + "</td></tr>";
         }).join("");
@@ -324,8 +305,8 @@
         var id = (ok || no).getAttribute("data-id");
         var row = pendencias.filter(function (item) { return item.id === id; })[0];
         if (!row) return;
-        if (ok && window.confirm("Aceitar o pedido " + row.pedido + " de " + row.fornecedor + "?")) aceitar(row);
-        if (no && window.confirm("Recusar o envio do pedido " + row.pedido + "?")) recusar(row);
+        if (ok && window.confirm("Marcar como analisado o aviso do pedido " + row.pedido + " de " + row.fornecedor + "? Os registros do site continuam sendo atualizados somente pelo Excel.")) aceitar(row);
+        if (no && window.confirm("Descartar o aviso do pedido " + row.pedido + "?")) recusar(row);
       });
       wired = true;
     }

@@ -109,19 +109,15 @@ async function findOrCreatePedido(
   payload: ControleEstoquePayload,
 ): Promise<Pedido> {
   let query = admin.from("pedidos")
-    .select("id, numero, fornecedor, local, quantidade_dormentes");
-  query = payload.pedido_id
-    ? query.eq("id", payload.pedido_id)
-    : query.eq("numero", payload.pedido);
+    .select("id, numero, fornecedor, local, quantidade_dormentes")
+    .eq("numero", payload.pedido);
 
   const { data: existing, error: findError } = await query.maybeSingle();
   if (findError) throw new Error(`Falha ao localizar o pedido: ${findError.message}`);
   if (existing) return existing as Pedido;
 
-  if (payload.pedido_id) {
-    throw new PayloadError("pedido_id", "O pedido_id informado não existe no Supabase.");
-  }
-
+  // A tabela pedidos permanece apenas como vínculo técnico. Nenhum valor dela
+  // substitui as informações operacionais recebidas do Excel.
   const masterRow = {
     numero: payload.pedido,
     fornecedor: payload.fornecedor,
@@ -202,11 +198,11 @@ Deno.serve(async (req: Request) => {
       data_ref: payload.data_ref,
       semana: payload.semana,
       fiscal: payload.fiscal,
-      fornecedor: pedido.fornecedor ?? payload.fornecedor,
-      local: pedido.local ?? payload.local,
-      pedido: pedido.numero,
+      fornecedor: payload.fornecedor,
+      local: payload.local,
+      pedido: payload.pedido,
       pedido_id: pedido.id,
-      vol_pedido: pedido.quantidade_dormentes ?? payload.vol_pedido,
+      vol_pedido: payload.vol_pedido,
       vol_fabricar: payload.vol_fabricar,
       vol_pronto: payload.vol_pronto,
       vol_inspecionado: payload.vol_inspecionado,

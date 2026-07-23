@@ -216,29 +216,13 @@
     return id ? "id:" + id : "__registro__" + String(r && r.id ? r.id : "sem-id");
   }
 
-  function pedidoOfficialTotal(r) {
-    if (!global.Padroes || typeof global.Padroes.pedidoDetails !== "function") return null;
-    var pedidoId = r && (r.pedidoId || r.pedido_id);
-    var details = pedidoId && typeof global.Padroes.pedidoPorId === "function"
-      ? global.Padroes.pedidoPorId(pedidoId)
-      : null;
-    if (!details) details = global.Padroes.pedidoDetails(r && r.pedido);
-    var total = details ? num(details.quantidade) : 0;
-    return total > 0 ? total : null;
-  }
-
-  /* Regra operacional: o total contratado pertence ao pedido e entra uma vez.
-     pedido_id é a identidade principal; o texto fica somente como
-     compatibilidade para registros legados. */
+  /* A planilha Excel é a fonte única do volume do pedido. Quando o mesmo
+     pedido aparece em várias linhas, o maior total informado entra uma vez. */
   function pedidoTotals(list) {
     var totals = {};
     list.forEach(function (r) {
       var key = pedidoKey(r);
-      var official = pedidoOfficialTotal(r);
-      var fallback = Math.max(num(r.volPedido), 0);
-      if (!totals[key]) totals[key] = { official: null, fallback: 0 };
-      if (official !== null) totals[key].official = official;
-      totals[key].fallback = Math.max(totals[key].fallback, fallback);
+      totals[key] = Math.max(totals[key] || 0, num(r.volPedido), 0);
     });
     return totals;
   }
@@ -246,8 +230,7 @@
   function totalPedidos(list) {
     var totals = pedidoTotals(list);
     return Object.keys(totals).reduce(function (sum, key) {
-      var item = totals[key];
-      return sum + (item.official !== null ? item.official : item.fallback);
+      return sum + totals[key];
     }, 0);
   }
 
@@ -336,8 +319,7 @@
       .sort(function (a, b) { return refDate(a) - refDate(b); })
       .map(function (r) {
         var key = pedidoKey(r);
-        var item = totals[key];
-        var total = item ? (item.official !== null ? item.official : item.fallback) : 0;
+        var total = totals[key] || 0;
         accumulated[key] = Math.max(accumulated[key] || 0, num(r.volTransportado));
         var pct = total > 0 ? (accumulated[key] / total) * 100 : 0;
         return { pedido: r.pedido, date: refDate(r), pct: Math.round(pct * 10) / 10 };
@@ -1583,7 +1565,6 @@
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
-    padronizacao: document.getElementById("view-padronizacao"),
     fornecedor: document.getElementById("view-fornecedor")
   };
 
@@ -1612,7 +1593,6 @@
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();
     if (view === "comentarios" && window.ComentariosUI) window.ComentariosUI.render();
-    if (view === "padronizacao" && window.PadronizacaoUI) window.PadronizacaoUI.render();
     if (view === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
     if (window.PDFExport && window.PDFExport.sync) window.setTimeout(window.PDFExport.sync, 80);
 
