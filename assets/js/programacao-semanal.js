@@ -9,6 +9,7 @@
   var defaultsApplied = false;
   var el = {};
   var intFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+  var dateFmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
   function esc(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
@@ -19,6 +20,18 @@
   function text(value) {
     var normalized = String(value == null ? "" : value).trim();
     return normalized && normalized !== "0" ? normalized : "";
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+    var date = new Date(String(value).slice(0, 10) + "T00:00:00Z");
+    return Number.isNaN(date.getTime()) ? "—" : dateFmt.format(date);
+  }
+
+  function formatPeriod(row) {
+    var start = formatDate(row.data_inicio);
+    var end = formatDate(row.data_fim);
+    return start === end ? start : start + " a " + end;
   }
 
   function distinct(rows, field) {
@@ -37,7 +50,8 @@
     el.semana = document.getElementById("programacao-semana");
     el.fiscal = document.getElementById("programacao-fiscal");
     el.fornecedor = document.getElementById("programacao-fornecedor");
-    el.local = document.getElementById("programacao-local");
+    el.pedido = document.getElementById("programacao-pedido");
+    el.statusFiltro = document.getElementById("programacao-status-filtro");
     el.limpar = document.getElementById("programacao-limpar");
     el.refresh = document.getElementById("programacao-refresh");
     el.status = document.getElementById("programacao-status");
@@ -46,20 +60,22 @@
     el.contador = document.getElementById("programacao-contador");
     el.kpiRegistros = document.getElementById("programacao-kpi-registros");
     el.kpiFiscais = document.getElementById("programacao-kpi-fiscais");
-    el.kpiExpectativa = document.getElementById("programacao-kpi-expectativa");
-    el.kpiLocais = document.getElementById("programacao-kpi-locais");
+    el.kpiPecas = document.getElementById("programacao-kpi-pecas");
+    el.kpiFornecedores = document.getElementById("programacao-kpi-fornecedores");
+  }
+
+  function filters() {
+    return [el.ano, el.semana, el.fiscal, el.fornecedor, el.pedido, el.statusFiltro];
   }
 
   function setup() {
     if (wired) return;
     grab();
-    [el.ano, el.semana, el.fiscal, el.fornecedor, el.local].forEach(function (select) {
+    filters().forEach(function (select) {
       select.addEventListener("change", draw);
     });
     el.limpar.addEventListener("click", function () {
-      [el.ano, el.semana, el.fiscal, el.fornecedor, el.local].forEach(function (select) {
-        select.value = "";
-      });
+      filters().forEach(function (select) { select.value = ""; });
       draw();
     });
     el.refresh.addEventListener("click", function () { load(true); });
@@ -116,7 +132,8 @@
     fillSelect(el.semana, distinct(all, "semana"), "Todas");
     fillSelect(el.fiscal, distinct(all, "fiscal"), "Todos");
     fillSelect(el.fornecedor, distinct(all, "fornecedor"), "Todos");
-    fillSelect(el.local, distinct(all, "local"), "Todos");
+    fillSelect(el.pedido, distinct(all, "pedido"), "Todos");
+    fillSelect(el.statusFiltro, distinct(all, "status"), "Todos");
     chooseDefaultPeriod();
   }
 
@@ -126,30 +143,33 @@
         (!el.semana.value || String(row.semana) === el.semana.value) &&
         (!el.fiscal.value || row.fiscal === el.fiscal.value) &&
         (!el.fornecedor.value || row.fornecedor === el.fornecedor.value) &&
-        (!el.local.value || row.local === el.local.value);
+        (!el.pedido.value || row.pedido === el.pedido.value) &&
+        (!el.statusFiltro.value || row.status === el.statusFiltro.value);
     });
   }
 
-  function expectation(rows) {
+  function pieces(rows) {
     return rows.reduce(function (sum, row) {
-      return sum + (Number(row.expectativa_pecas) || 0);
+      return sum + (Number(row.qtde_pecas) || 0);
     }, 0);
   }
 
   function assignmentCard(row) {
-    var supplier = text(row.fornecedor);
     var note = text(row.observacoes);
     return '<article class="programacao-card">' +
       '<div class="programacao-card__top">' +
         '<div><div class="programacao-card__eyebrow">Fiscal</div>' +
         '<h3>' + esc(row.fiscal) + "</h3></div>" +
         '<div class="programacao-card__expectativa"><strong>' +
-          intFmt.format(Number(row.expectativa_pecas) || 0) +
+          intFmt.format(Number(row.qtde_pecas) || 0) +
         '</strong><span>peças</span></div>' +
       "</div>" +
       '<dl class="programacao-card__details">' +
-        '<div><dt>Local</dt><dd>' + esc(row.local) + "</dd></div>" +
-        (supplier ? '<div><dt>Fornecedor</dt><dd>' + esc(supplier) + "</dd></div>" : "") +
+        '<div><dt>Fornecedor</dt><dd>' + esc(row.fornecedor) + "</dd></div>" +
+        '<div><dt>Pedido</dt><dd>' + esc(row.pedido) + "</dd></div>" +
+        '<div><dt>Período</dt><dd>' + esc(formatPeriod(row)) + "</dd></div>" +
+        '<div><dt>Status</dt><dd><span class="programacao-card__status">' +
+          esc(row.status) + "</span></dd></div>" +
       "</dl>" +
       (note ? '<p class="programacao-card__note">' + esc(note) + "</p>" : "") +
     "</article>";
@@ -171,13 +191,16 @@
     var keys = Object.keys(groups).sort().reverse();
     el.mural.innerHTML = keys.map(function (key) {
       var group = groups[key];
-      group.sort(function (a, b) { return a.fiscal.localeCompare(b.fiscal, "pt-BR"); });
+      group.sort(function (a, b) {
+        return a.fiscal.localeCompare(b.fiscal, "pt-BR") ||
+          a.data_inicio.localeCompare(b.data_inicio);
+      });
       return '<section class="programacao-semana-card">' +
         '<header class="programacao-semana-card__head">' +
           '<div><div class="programacao-card__eyebrow">Planejamento</div>' +
           '<h2>Semana ' + esc(group[0].semana) + " · " + esc(group[0].ano) + "</h2></div>" +
           '<div class="programacao-semana-card__total">' +
-            intFmt.format(expectation(group)) + " peças previstas</div>" +
+            intFmt.format(pieces(group)) + " peças programadas</div>" +
         "</header>" +
         '<div class="programacao-grid">' + group.map(assignmentCard).join("") + "</div>" +
       "</section>";
@@ -194,15 +217,17 @@
     }
     el.tabela.innerHTML =
       '<div class="table-scroll"><table><thead><tr>' +
-      "<th>Ano</th><th>Semana</th><th>Fiscal</th><th>Fornecedor</th><th>Local</th>" +
-      "<th>Expectativa de Peças</th><th>Observações</th>" +
+      "<th>ID</th><th>Fornecedor</th><th>Pedido</th><th>Fiscal</th>" +
+      "<th>Data Início</th><th>Data Fim</th><th>Qtde Peças</th><th>Status</th><th>Observações</th>" +
       "</tr></thead><tbody>" +
       rows.map(function (row) {
-        return "<tr><td>" + esc(row.ano) + "</td><td>" + esc(row.semana) +
-          "</td><td>" + esc(row.fiscal) + "</td><td>" + esc(text(row.fornecedor) || "—") +
-          "</td><td>" + esc(row.local) + '</td><td class="num">' +
-          intFmt.format(Number(row.expectativa_pecas) || 0) + "</td><td>" +
-          esc(text(row.observacoes) || "—") + "</td></tr>";
+        return "<tr><td>" + esc(row.excel_id) + "</td><td>" + esc(row.fornecedor) +
+          "</td><td>" + esc(row.pedido) + "</td><td>" + esc(row.fiscal) +
+          "</td><td>" + esc(formatDate(row.data_inicio)) + "</td><td>" +
+          esc(formatDate(row.data_fim)) + '</td><td class="num">' +
+          intFmt.format(Number(row.qtde_pecas) || 0) + "</td><td>" +
+          esc(row.status) + "</td><td>" + esc(text(row.observacoes) || "—") +
+          "</td></tr>";
       }).join("") +
       "</tbody></table></div>";
   }
@@ -211,8 +236,8 @@
     var rows = filtered();
     el.kpiRegistros.textContent = intFmt.format(rows.length);
     el.kpiFiscais.textContent = intFmt.format(distinct(rows, "fiscal").length);
-    el.kpiExpectativa.textContent = intFmt.format(expectation(rows));
-    el.kpiLocais.textContent = intFmt.format(distinct(rows, "local").length);
+    el.kpiPecas.textContent = intFmt.format(pieces(rows));
+    el.kpiFornecedores.textContent = intFmt.format(distinct(rows, "fornecedor").length);
     el.status.textContent = rows.length
       ? "Mostrando a programação sincronizada para os filtros selecionados."
       : "";
@@ -230,9 +255,10 @@
     el.refresh.disabled = true;
     el.status.textContent = force ? "Atualizando programação…" : "Carregando programação…";
     return global.sbClient.from("programacao_semanal")
-      .select("id, excel_id, ano, semana, fiscal, fornecedor, local, expectativa_pecas, observacoes, integrado_em")
+      .select("id, excel_id, ano, semana, fornecedor, pedido, fiscal, data_inicio, data_fim, qtde_pecas, status, observacoes, integrado_em")
       .order("ano", { ascending: false })
       .order("semana", { ascending: false })
+      .order("data_inicio", { ascending: true })
       .order("fiscal", { ascending: true })
       .then(function (result) {
         el.refresh.disabled = false;

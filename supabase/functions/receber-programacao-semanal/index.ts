@@ -50,10 +50,13 @@ function serverDatabaseKey(): string | null {
 function comparable(row: Partial<ProgramacaoRow>, payload: ProgramacaoSemanalPayload): boolean {
   return row.ano === payload.ano &&
     row.semana === payload.semana &&
+    row.fornecedor === payload.fornecedor &&
+    row.pedido === payload.pedido &&
     row.fiscal === payload.fiscal &&
-    (row.fornecedor ?? null) === payload.fornecedor &&
-    row.local === payload.local &&
-    Number(row.expectativa_pecas) === payload.expectativa_pecas &&
+    row.data_inicio === payload.data_inicio &&
+    row.data_fim === payload.data_fim &&
+    Number(row.qtde_pecas) === payload.qtde_pecas &&
+    row.status === payload.status &&
     (row.observacoes ?? null) === payload.observacoes;
 }
 
@@ -99,7 +102,7 @@ Deno.serve(async (req: Request) => {
     const payload = normalizeProgramacaoSemanalPayload(body);
     const { data: previous, error: previousError } = await admin
       .from("programacao_semanal")
-      .select("id, excel_id, ano, semana, fiscal, fornecedor, local, expectativa_pecas, observacoes, updated_at")
+      .select("id, excel_id, ano, semana, fornecedor, pedido, fiscal, data_inicio, data_fim, qtde_pecas, status, observacoes, updated_at")
       .eq("excel_id", payload.excel_id)
       .maybeSingle();
     if (previousError) {
@@ -118,7 +121,7 @@ Deno.serve(async (req: Request) => {
     const { data: saved, error: saveError } = await admin
       .from("programacao_semanal")
       .upsert(row, { onConflict: "excel_id" })
-      .select("id, excel_id, ano, semana, fiscal, fornecedor, local, expectativa_pecas, observacoes, updated_at")
+      .select("id, excel_id, ano, semana, fornecedor, pedido, fiscal, data_inicio, data_fim, qtde_pecas, status, observacoes, updated_at")
       .single();
     if (saveError) {
       throw new Error(`Falha ao gravar a programação semanal: ${saveError.message}`);

@@ -5,19 +5,25 @@
 Transforme os dados da segunda aba em uma **Tabela** do Excel e dê a ela o nome
 `tbProgramacaoSemanal`.
 
+Use exatamente estes cabeçalhos:
+
 | Coluna no Excel | Obrigatória | Uso no site |
 |---|---:|---|
-| ID Programação | Sim | Identificador único da linha; evita duplicações |
-| Ano | Sim | Ano da programação |
-| Semana | Sim | Número da semana, de 1 a 53 |
-| Fiscal | Sim | Fiscal programado |
-| Fornecedor | Não | Fornecedor que será visitado |
-| Local | Sim | Local da inspeção |
-| Expectativa de Peças | Sim | Quantidade prevista para inspeção |
+| ID | Sim | Identificador único da linha; evita duplicações |
+| Fornecedor | Sim | Fornecedor da programação |
+| Pedido | Sim | Número do pedido |
+| Fiscal | Sim | Fiscal responsável |
+| Data Início | Sim | Primeiro dia da programação |
+| Data Fim | Sim | Último dia da programação |
+| Qtde Peças | Sim | Quantidade prevista para inspeção |
+| Status | Sim | Situação atual da programação |
 | Observações | Não | Orientações adicionais |
 
-Não altere o `ID Programação` de uma linha já enviada. Quando o mesmo ID for
-recebido novamente, o registro existente será atualizado.
+O site calcula automaticamente o **ano** e o **número da semana** a partir de
+`Data Início`; essas duas colunas não precisam existir no Excel.
+
+Não altere o `ID` de uma linha já enviada. Quando o mesmo ID for recebido
+novamente, o registro existente será atualizado, sem criar duplicação.
 
 ## URL e cabeçalhos
 
@@ -40,16 +46,19 @@ Dentro do segundo **Aplicar a cada**, use:
 
 ```json
 {
-  "excel_id": "@{item()?['ID Programação']}",
-  "ano": "@{item()?['Ano']}",
-  "semana": "@{item()?['Semana']}",
-  "fiscal": "@{item()?['Fiscal']}",
+  "excel_id": "@{item()?['ID']}",
   "fornecedor": "@{item()?['Fornecedor']}",
-  "local": "@{item()?['Local']}",
-  "expectativa_pecas": "@{item()?['Expectativa de Peças']}",
+  "pedido": "@{item()?['Pedido']}",
+  "fiscal": "@{item()?['Fiscal']}",
+  "data_inicio": "@{item()?['Data Início']}",
+  "data_fim": "@{item()?['Data Fim']}",
+  "qtde_pecas": "@{item()?['Qtde Peças']}",
+  "status": "@{item()?['Status']}",
   "observacoes": "@{item()?['Observações']}"
 }
 ```
+
+Não coloque vírgula depois de `observacoes`.
 
 ## Configuração do fluxo
 

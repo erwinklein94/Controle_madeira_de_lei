@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=programacao-semanal-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=programacao-colunas-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -455,18 +455,22 @@
             <select id="programacao-fornecedor"><option value="">Todos</option></select>
           </div>
           <div class="filters__field">
-            <label for="programacao-local">Local</label>
-            <select id="programacao-local"><option value="">Todos</option></select>
+            <label for="programacao-pedido">Pedido</label>
+            <select id="programacao-pedido"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="programacao-status-filtro">Status</label>
+            <select id="programacao-status-filtro"><option value="">Todos</option></select>
           </div>
           <div class="filters__spacer"></div>
           <button id="programacao-limpar" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
         </section>
 
         <section class="programacao-resumo" aria-label="Resumo da programação">
-          <article class="kpi"><div class="kpi__label">Programações</div><div id="programacao-kpi-registros" class="kpi__value">0</div><div class="kpi__sub">destinos planejados</div></article>
+          <article class="kpi"><div class="kpi__label">Programações</div><div id="programacao-kpi-registros" class="kpi__value">0</div><div class="kpi__sub">períodos planejados</div></article>
           <article class="kpi"><div class="kpi__label">Fiscais</div><div id="programacao-kpi-fiscais" class="kpi__value">0</div><div class="kpi__sub">na seleção atual</div></article>
-          <article class="kpi"><div class="kpi__label">Expectativa total</div><div id="programacao-kpi-expectativa" class="kpi__value">0</div><div class="kpi__sub">peças para inspeção</div></article>
-          <article class="kpi"><div class="kpi__label">Locais</div><div id="programacao-kpi-locais" class="kpi__value">0</div><div class="kpi__sub">frentes programadas</div></article>
+          <article class="kpi"><div class="kpi__label">Peças programadas</div><div id="programacao-kpi-pecas" class="kpi__value">0</div><div class="kpi__sub">previstas para inspeção</div></article>
+          <article class="kpi"><div class="kpi__label">Fornecedores</div><div id="programacao-kpi-fornecedores" class="kpi__value">0</div><div class="kpi__sub">na seleção atual</div></article>
         </section>
 
         <div id="programacao-status" class="programacao-status" role="status" aria-live="polite"></div>
@@ -842,7 +846,7 @@
   <script src="assets/js/contas.js?v=fornecedores-excel-1"></script>
   <script src="assets/js/comentarios.js?v=contato-rumo-1"></script>
   <script src="assets/js/report-semanal.js?v=fabricar-minimo-1"></script>
-  <script src="assets/js/programacao-semanal.js?v=programacao-semanal-1"></script>
+  <script src="assets/js/programacao-semanal.js?v=programacao-colunas-1"></script>
   <script src="assets/js/historico-atualizacoes.js?v=historico-integracao-1"></script>
   <script src="assets/js/app.js?v=programacao-semanal-1"></script>
   <script src="assets/js/pedidos.js?v=pagina-pedidos-1"></script>
