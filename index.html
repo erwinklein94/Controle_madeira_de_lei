@@ -75,6 +75,7 @@
       <nav class="nav">
         <a class="nav__item" href="#fornecedor" data-view="fornecedor" data-supplier-nav><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Área do fornecedor</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-dashboard"></use></svg> Dashboard</a>
+        <a class="nav__item" href="#pedidos" data-view="pedidos"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-flow"></use></svg> Pedidos</a>
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report dos fiscais</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-records"></use></svg> Registros</a>
@@ -267,6 +268,88 @@
             </section>
           </div>
         </div>
+      </section>
+
+      <!-- ============================ TELA: PEDIDOS ============================ -->
+      <section id="view-pedidos" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Pedidos</div>
+            <h1>Acompanhamento consolidado dos pedidos</h1>
+            <p class="page-head__sub">Volumes e conclusão sem duplicar pedidos repetidos na planilha Excel Online.</p>
+          </div>
+          <div class="page-head__actions">
+            <button id="pedidos-refresh" class="btn btn--ghost" type="button">Atualizar dados</button>
+          </div>
+        </header>
+
+        <section class="card filters pedidos-filters">
+          <div class="filters__field">
+            <label for="pedidos-f-fornecedor">Fornecedor</label>
+            <select id="pedidos-f-fornecedor"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="pedidos-f-fiscal">Fiscal</label>
+            <select id="pedidos-f-fiscal"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="pedidos-f-semana">Semana</label>
+            <select id="pedidos-f-semana"><option value="">Todas</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="pedidos-f-pedido">Pedido</label>
+            <select id="pedidos-f-pedido"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="pedidos-f-local">Local</label>
+            <select id="pedidos-f-local"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__spacer"></div>
+          <button id="pedidos-f-limpar" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
+          <div class="filters__count" id="pedidos-filter-count"></div>
+        </section>
+
+        <div class="pedidos-summary-grid">
+          <section class="card pedidos-chart-card">
+            <div class="card__head">
+              <h2 class="card__title">Volume e transporte por pedido</h2>
+              <p class="card__hint">Volume total, transportado acumulado e percentual de conclusão.</p>
+            </div>
+            <div class="card__body">
+              <div id="pedidos-orders-chart-wrap" class="pedidos-chart-box pedidos-chart-box--orders">
+                <canvas id="pedidos-orders-chart"></canvas>
+              </div>
+            </div>
+          </section>
+
+          <section class="card pedidos-chart-card">
+            <div class="card__head">
+              <h2 class="card__title">Pedidos concluídos</h2>
+              <p class="card__hint">Percentual da quantidade total de pedidos que atingiu 100%.</p>
+            </div>
+            <div class="card__body">
+              <div class="pedidos-chart-box pedidos-chart-box--completion">
+                <canvas id="pedidos-completion-chart"></canvas>
+                <div class="pedidos-completion-center" aria-live="polite">
+                  <strong id="pedidos-completion-pct">0%</strong>
+                  <span id="pedidos-completion-detail">0 de 0 pedidos</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="card pedidos-table-card">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">Pedidos registrados</h2>
+              <p class="card__hint" id="pedidos-table-count">Nenhum pedido.</p>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="pedidos-table"></div>
+          </div>
+        </section>
       </section>
 
       <!-- ============================ TELA: REPORT SEMANAL ============================ -->
@@ -640,10 +723,11 @@
   <script src="assets/js/contas.js?v=fornecedores-excel-1"></script>
   <script src="assets/js/comentarios.js?v=pedidos-excel-1"></script>
   <script src="assets/js/report-semanal.js?v=fabricar-minimo-1"></script>
-  <script src="assets/js/app.js?v=pedidos-verticais-1"></script>
-  <script src="assets/js/presentation.js?v=modo-apresentacao-1"></script>
+  <script src="assets/js/app.js?v=pagina-pedidos-1"></script>
+  <script src="assets/js/pedidos.js?v=pagina-pedidos-1"></script>
+  <script src="assets/js/presentation.js?v=pagina-pedidos-1"></script>
   <script src="assets/js/pdf-export.js?v=remove-entregas-pedido-1"></script>
-  <script src="assets/js/tema.js?v=brandbook-rumo-1"></script>
+  <script src="assets/js/tema.js?v=pagina-pedidos-1"></script>
   <script src="assets/js/auth.js?v=fornecedor-edita-1"></script>
 </body>
 </html>

@@ -30,6 +30,7 @@
     syncBtn();
     // Redesenha os gráficos com as cores do tema.
     if (window.DashboardUI && window.DashboardUI.onThemeChange) window.DashboardUI.onThemeChange();
+    if (window.PedidosUI && window.PedidosUI.redraw) window.PedidosUI.redraw();
   }
 
   if (btn) {

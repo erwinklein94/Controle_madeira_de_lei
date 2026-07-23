@@ -554,6 +554,82 @@ body.sidebar-collapsed .main {
 .chart-box--tall { height: 420px; }
 .chart-head-flex { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 
+/* =====================================================================
+   Pedidos - gráficos e tabela consolidados sem repetição
+   ===================================================================== */
+.pedidos-filters .filters__field select { min-width: 145px; }
+.pedidos-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+.pedidos-chart-card { min-width: 0; }
+.pedidos-chart-card .card__body { position: relative; }
+.pedidos-chart-box { position: relative; width: 100%; }
+.pedidos-chart-box--orders {
+  height: 420px;
+  min-height: 360px;
+  transition: height var(--rumo-transicao);
+}
+.pedidos-chart-box--completion { height: 360px; }
+.pedidos-completion-center {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 150px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  text-align: center;
+}
+.pedidos-completion-center strong {
+  color: var(--rumo-azul);
+  font-size: 30px;
+  line-height: 1;
+}
+.pedidos-completion-center span {
+  color: var(--txt-suave);
+  font-size: 11px;
+  font-weight: 600;
+}
+.pedidos-chart-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  text-align: center;
+}
+.pedidos-table-card { margin-top: 18px; }
+.pedidos-table { min-width: 1320px; }
+.pedido-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.pedido-status--done {
+  color: #13775f;
+  background: rgba(30, 159, 127, 0.15);
+}
+.pedido-status--progress {
+  color: #b95a26;
+  background: rgba(247, 131, 68, 0.16);
+}
+:root[data-theme="dark"] .pedidos-completion-center strong { color: var(--rumo-azul-claro); }
+:root[data-theme="dark"] .pedido-status--done { color: var(--rumo-verde-claro); }
+:root[data-theme="dark"] .pedido-status--progress { color: #ffad78; }
+
 .section-title {
   font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--rumo-azul-claro); margin: 30px 0 14px;
@@ -563,6 +639,8 @@ body.sidebar-collapsed .main {
    Responsivo
    ===================================================================== */
 @media (max-width: 1100px) {
+  .pedidos-summary-grid { grid-template-columns: 1fr; }
+  .pedidos-chart-box--completion { height: 320px; }
   .kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .form-grid { grid-template-columns: repeat(2, 1fr); }
   .field--wide { grid-column: span 1; }

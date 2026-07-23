@@ -1533,6 +1533,7 @@
   var views = {
     registros: document.getElementById("view-registros"),
     dashboard: document.getElementById("view-dashboard"),
+    pedidos: document.getElementById("view-pedidos"),
     "report-semanal": document.getElementById("view-report-semanal"),
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
@@ -1559,6 +1560,7 @@
     document.body.classList.toggle("dashboard-mode", view === "dashboard");
 
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
+    if (view === "pedidos" && window.PedidosUI) window.PedidosUI.render();
     if (view === "report-semanal" && window.ReportSemanalUI) window.ReportSemanalUI.render();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
