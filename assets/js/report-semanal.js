@@ -37,6 +37,9 @@
     return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : "—";
   }
   function sum(records, field) {
+    if (field === "volTransportado" && window.Store) {
+      return Store.sumStage(records, field);
+    }
     return records.reduce(function (total, record) { return total + num(record[field]); }, 0);
   }
   function uniqueCount(records, field) {
@@ -123,8 +126,16 @@
       if (!byDate[date]) byDate[date] = { fabricado: 0, inspecionado: 0, transportado: 0 };
       byDate[date].fabricado += num(record.volPronto);
       byDate[date].inspecionado += num(record.volInspecionado);
-      byDate[date].transportado += num(record.volTransportado);
     });
+    if (window.Store) {
+      Store.cumulativeTransported(records).forEach(function (point) {
+        var date = point.date;
+        var iso = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" +
+          String(date.getDate()).padStart(2, "0");
+        if (!byDate[iso]) byDate[iso] = { fabricado: 0, inspecionado: 0, transportado: 0 };
+        byDate[iso].transportado = point.total;
+      });
+    }
     var dates = Object.keys(byDate).sort().slice(-14);
     return {
       labels: dates.map(dateBr),

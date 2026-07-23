@@ -210,11 +210,10 @@
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
 
   function pedidoKey(r) {
-    var id = String(r && (r.pedidoId || r.pedido_id) || "").trim();
-    if (id) return "id:" + id;
     var pedido = String(r && r.pedido != null ? r.pedido : "").trim();
-    var fornecedor = String(r && r.fornecedor != null ? r.fornecedor : "").trim();
-    return pedido ? "legado:" + fornecedor + "::" + pedido : "__registro__" + String(r && r.id ? r.id : "sem-id");
+    if (pedido) return "pedido:" + pedido;
+    var id = String(r && (r.pedidoId || r.pedido_id) || "").trim();
+    return id ? "id:" + id : "__registro__" + String(r && r.id ? r.id : "sem-id");
   }
 
   function pedidoOfficialTotal(r) {
@@ -229,9 +228,8 @@
   }
 
   /* Regra operacional: o total contratado pertence ao pedido e entra uma vez.
-     Os demais volumes pertencem ao movimento diário e são somados em todos os
-     registros consolidados. pedido_id é a identidade principal; o texto fica
-     somente como compatibilidade para registros legados. */
+     pedido_id é a identidade principal; o texto fica somente como
+     compatibilidade para registros legados. */
   function pedidoTotals(list) {
     var totals = {};
     list.forEach(function (r) {
@@ -253,8 +251,22 @@
     }, 0);
   }
 
+  /* O Excel informa o total transportado acumulado do pedido, não o movimento
+     do dia. Registros repetidos contribuem apenas com o maior valor. */
+  function maxStageByPedido(list, key) {
+    var maxima = {};
+    list.forEach(function (r) {
+      var pedido = pedidoKey(r);
+      maxima[pedido] = Math.max(maxima[pedido] || 0, num(r[key]));
+    });
+    return Object.keys(maxima).reduce(function (total, pedido) {
+      return total + maxima[pedido];
+    }, 0);
+  }
+
   function sumStage(list, key) {
     if (key === "volPedido") return totalPedidos(list);
+    if (key === "volTransportado") return maxStageByPedido(list, key);
     return list.reduce(function (acc, r) { return acc + num(r[key]); }, 0);
   }
 
@@ -281,22 +293,22 @@
     list.forEach(function (r) {
       var k = field === "pedido" ? pedidoKey(r) : (r[field] || "—");
       var label = field === "pedido" ? (r.pedido || "—") : k;
-      if (!map[k]) map[k] = { label: label, registros: [], fabricado: 0, inspecionado: 0, transportado: 0 };
+      if (!map[k]) map[k] = { label: label, registros: [], fabricado: 0, inspecionado: 0 };
       map[k].registros.push(r);
       map[k].fabricado += num(r.volPronto);
       map[k].inspecionado += num(r.volInspecionado);
-      map[k].transportado += num(r.volTransportado);
     });
     return Object.keys(map)
       .map(function (k) {
         var pedido = totalPedidos(map[k].registros);
-        var saldo = Math.max(pedido - map[k].transportado, 0);
+        var transportado = sumStage(map[k].registros, "volTransportado");
+        var saldo = Math.max(pedido - transportado, 0);
         return {
           label: map[k].label,
           pedido: pedido,
           fabricado: map[k].fabricado,
           inspecionado: map[k].inspecionado,
-          transportado: map[k].transportado,
+          transportado: transportado,
           saldo: saldo
         };
       })
@@ -326,7 +338,7 @@
         var key = pedidoKey(r);
         var item = totals[key];
         var total = item ? (item.official !== null ? item.official : item.fallback) : 0;
-        accumulated[key] = (accumulated[key] || 0) + num(r.volTransportado);
+        accumulated[key] = Math.max(accumulated[key] || 0, num(r.volTransportado));
         var pct = total > 0 ? (accumulated[key] / total) * 100 : 0;
         return { pedido: r.pedido, date: refDate(r), pct: Math.round(pct * 10) / 10 };
       });
@@ -341,15 +353,19 @@
       var date = refDate(r);
       if (!date) return;
       var day = date.getTime();
-      if (!days[day]) days[day] = { date: date, movement: 0, pedidos: {} };
-      days[day].movement += num(r.volTransportado);
+      if (!days[day]) days[day] = { date: date, registros: [], pedidos: {} };
+      days[day].registros.push(r);
       if (r.pedido) days[day].pedidos[String(r.pedido)] = true;
     });
-    var acc = 0;
+    var maxima = {};
     return Object.keys(days).map(Number).sort(function (a, b) { return a - b; }).map(function (day) {
       var bucket = days[day];
-      acc += bucket.movement;
-      return { date: bucket.date, total: acc, label: Object.keys(bucket.pedidos).join(", ") };
+      bucket.registros.forEach(function (r) {
+        var pedido = pedidoKey(r);
+        maxima[pedido] = Math.max(maxima[pedido] || 0, num(r.volTransportado));
+      });
+      var total = Object.keys(maxima).reduce(function (sum, pedido) { return sum + maxima[pedido]; }, 0);
+      return { date: bucket.date, total: total, label: Object.keys(bucket.pedidos).join(", ") };
     });
   }
 
@@ -409,6 +425,7 @@
     refDate: refDate,
     count: count,
     sumStage: sumStage,
+    maxStageByPedido: maxStageByPedido,
     totalPedidos: totalPedidos,
     funnelTotals: funnelTotals,
     groupSum: groupSum,
@@ -1268,9 +1285,10 @@
 
   /* Previsão de término: ritmo médio desde o primeiro registro. */
   function etaInfo(list) {
-    var totalPedido = Store.totalPedidos(list), totalTransp = 0, minData = null;
+    var totalPedido = Store.totalPedidos(list);
+    var totalTransp = Store.sumStage(list, "volTransportado");
+    var minData = null;
     list.forEach(function (r) {
-      totalTransp += Number(r.volTransportado) || 0;
       var d = Store.refDate(r);
       var t = d ? d.getTime() : NaN;
       if (!isNaN(t) && (minData === null || t < minData)) minData = t;
@@ -1284,21 +1302,24 @@
     return { restante: restante, dias: dias, data: new Date(Date.now() + dias * 86400000), alvo: totalPedido };
   }
 
-  /* Ritmo semanal: soma o transportado por semana (segunda-feira como início),
-     usando o campo Data do registro. */
+  /* Ritmo semanal: diferença entre os maiores totais acumulados de cada
+     pedido no fim de semanas consecutivas. */
   function ritmoConfig(list, expanded) {
     var SEMANA = 7 * 86400000;
-    var buckets = {};
-    list.forEach(function (r) {
-      var k = weekStart(Store.refDate(r));
+    var accumulatedByWeek = {};
+    Store.cumulativeTransported(list).forEach(function (point) {
+      var k = weekStart(point.date);
       if (k === null) return;
-      buckets[k] = (buckets[k] || 0) + (Number(r.volTransportado) || 0);
+      accumulatedByWeek[k] = point.total;
     });
-    var keys = Object.keys(buckets).map(Number).sort(function (a, b) { return a - b; });
+    var keys = Object.keys(accumulatedByWeek).map(Number).sort(function (a, b) { return a - b; });
     var labels = [], data = [];
+    var previous = 0;
     for (var t = keys[0]; keys.length && t <= keys[keys.length - 1]; t += SEMANA) {
+      var current = accumulatedByWeek[t] === undefined ? previous : accumulatedByWeek[t];
       labels.push("sem. " + fmtDate.format(new Date(t)));
-      data.push(buckets[t] || 0);
+      data.push(Math.max(current - previous, 0));
+      previous = Math.max(previous, current);
     }
     var scales = colScales(expanded, function (v) { return fmtC.format(v); });
     scales.y.suggestedMax = paddedMax(data, expanded ? 1.25 : 1.18);
@@ -1356,16 +1377,23 @@
      uma série por valor do campo (fornecedor ou pedido). */
   function weeklyDeliveredSeries(list, field) {
     var SEMANA = 7 * 86400000;
-    var groups = {};
+    var recordsByGroup = {};
     var min = null, max = null;
     list.forEach(function (r) {
-      var k = weekStart(Store.refDate(r));
-      if (k === null) return;
-      if (min === null || k < min) min = k;
-      if (max === null || k > max) max = k;
       var g = r[field] || "—";
-      if (!groups[g]) groups[g] = {};
-      groups[g][k] = (groups[g][k] || 0) + (Number(r.volTransportado) || 0);
+      if (!recordsByGroup[g]) recordsByGroup[g] = [];
+      recordsByGroup[g].push(r);
+    });
+    var groups = {};
+    Object.keys(recordsByGroup).forEach(function (g) {
+      groups[g] = {};
+      Store.cumulativeTransported(recordsByGroup[g]).forEach(function (point) {
+        var k = weekStart(point.date);
+        if (k === null) return;
+        groups[g][k] = point.total;
+        if (min === null || k < min) min = k;
+        if (max === null || k > max) max = k;
+      });
     });
     var weeks = [];
     if (min !== null) for (var t = min; t <= max; t += SEMANA) weeks.push(t);
@@ -1373,7 +1401,16 @@
     return {
       labels: weeks.map(function (t) { return "sem. " + fmtDate.format(new Date(t)); }),
       series: names.map(function (name) {
-        return { name: name, data: weeks.map(function (t) { return groups[name][t] || 0; }) };
+        var previous = 0;
+        return {
+          name: name,
+          data: weeks.map(function (t) {
+            var current = groups[name][t] === undefined ? previous : groups[name][t];
+            var delivered = Math.max(current - previous, 0);
+            previous = Math.max(previous, current);
+            return delivered;
+          })
+        };
       })
     };
   }
