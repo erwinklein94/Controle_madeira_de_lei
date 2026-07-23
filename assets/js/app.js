@@ -1156,7 +1156,7 @@
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: expanded ? 36 : 22, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { color: tickColor(), font: { size: expanded ? 12 : 10 }, maxRotation: expanded ? 25 : 40, minRotation: 0, autoSkip: true, maxTicksLimit: expanded ? 14 : 8 } },
+          x: { stacked: true, grid: { display: false }, ticks: { color: tickColor(), font: { size: expanded ? 11 : 9 }, maxRotation: 90, minRotation: 90, autoSkip: false } },
           y: { stacked: true, beginAtZero: true, suggestedMax: max, grid: { color: gridColor() }, ticks: { color: tickColor(), font: { size: expanded ? 12 : 10 }, callback: function (v) { return fmtC.format(v); } } }
         },
         plugins: {
@@ -1180,13 +1180,11 @@
       display: function (ctx) {
         var saldo = d[ctx.dataIndex].saldo;
         var segmentoDoTopo = ctx.dataset.label === "Falta concluir" ? saldo > 0 : saldo <= 0;
-        // "auto" preserva o rótulo quando há espaço e oculta somente os que
-        // colidiriam com outro percentual. O valor continua no tooltip.
-        return segmentoDoTopo ? "auto" : false;
+        return segmentoDoTopo;
       },
       anchor: "end", align: "top", offset: expanded ? 6 : 3, clamp: true, clip: false,
-      color: dataLabelInk(C.azul), backgroundColor: dataLabelBg(0.9), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
-      font: { size: expanded ? 12 : 9, weight: "700" },
+      color: dataLabelInk(C.azulClaro), padding: 0,
+      font: { size: expanded ? 11 : 8, weight: "700" },
       formatter: function (v, ctx) { return pct(pcts[ctx.dataIndex]); }
     };
   }
