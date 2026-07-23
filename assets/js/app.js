@@ -937,6 +937,9 @@
 
     var rows = totals.map(function (st) {
       var w = base > 0 ? (st.total / base) * 100 : 0;
+      // A porcentagem real continua no rótulo, mas a largura visual nunca
+      // ultrapassa o trilho e corta o valor quando uma etapa passa de 100%.
+      var visualW = Math.min(100, Math.max(w, 6));
       var pofp = base > 0 ? (st.total / base) * 100 : 0;
       var txt = FUNNEL_TEXT[st.key] || "#fff";
       var shadow = txt === "#fff" ? "text-shadow:0 1px 2px rgba(0,0,0,.28);" : "";
@@ -944,7 +947,7 @@
         '<div class="funnel__row">' +
           '<div class="funnel__name">' + st.short + "<small>" + st.label + "</small></div>" +
           '<div class="funnel__track">' +
-            '<div class="funnel__bar" data-w="' + Math.max(w, 6).toFixed(1) + '" style="width:' + Math.max(w, 6).toFixed(1) + "% ;background:" + st.color + ";color:" + txt + ";" + shadow + '">' +
+            '<div class="funnel__bar" data-w="' + visualW.toFixed(1) + '" style="width:' + visualW.toFixed(1) + "% ;background:" + st.color + ";color:" + txt + ";" + shadow + '">' +
               '<span class="funnel__value">' +
                 withUnit(st.total) +
                 '<span class="pct">' + Math.round(pofp) + "%</span>" +
@@ -977,8 +980,9 @@
       value = row.querySelector(".funnel__value");
       if (!bar || !value) continue;
       if (value.parentNode !== bar) bar.appendChild(value);
-      value.classList.remove("funnel__value--out");
+      value.classList.remove("funnel__value--out", "funnel__value--pinned");
       value.style.left = "";
+      value.style.right = "";
     }
 
     // 2) Mede cada linha e move o rótulo para fora quando não couber.
@@ -994,9 +998,12 @@
 
       // Largura final da barra (não depende da animação de width em curso).
       var frac = (parseFloat(bar.getAttribute("data-w")) || 0) / 100;
-      var minBar = container.classList.contains("chart-modal__funnel") ? 92 : 64;
-      var barW = Math.max(trackW * frac, minBar);
-      var innerW = barW - 24;
+      var barStyle = window.getComputedStyle(bar);
+      var minBar = parseFloat(barStyle.minWidth) || 0;
+      var barW = Math.min(trackW, Math.max(trackW * frac, minBar));
+      var horizontalPadding = (parseFloat(barStyle.paddingLeft) || 0) +
+        (parseFloat(barStyle.paddingRight) || 0);
+      var innerW = Math.max(0, barW - horizontalPadding);
       var need = value.getBoundingClientRect().width;
 
       if (need > innerW) {
@@ -1005,6 +1012,13 @@
           value.classList.add("funnel__value--out");
           value.style.left = left + "px";
           track.appendChild(value);
+        } else {
+          // Em telas estreitas ou barras de 100%, fixa o rótulo dentro do
+          // trilho para que valor e porcentagem permaneçam totalmente visíveis.
+          value.classList.add("funnel__value--out", "funnel__value--pinned");
+          track.appendChild(value);
+          var pinnedNeed = value.getBoundingClientRect().width;
+          value.style.left = Math.max(6, trackW - pinnedNeed - 8) + "px";
         }
       }
     }

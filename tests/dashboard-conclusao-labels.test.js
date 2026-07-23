@@ -22,5 +22,5 @@ test("Conclusão por Pedido exibe todos os pedidos na vertical e percentuais sem
   assert.doesNotMatch(labelsConfig, /backgroundColor|borderColor|borderWidth|borderRadius/);
   assert.match(html, /class="card chart-card chart-card--wide" data-modal-chart="tendencia"/);
   assert.match(css, /#view-dashboard \.chart-card--wide\s*\{\s*grid-column:\s*span 2;/);
-  assert.match(html, /app\.js\?v=historico-integracao-1/);
+  assert.match(html, /app\.js\?v=funil-valores-1/);
 });
