@@ -4,3 +4,8 @@ project_id = "rgafzmmnpjlrxfjkabsl"
 # POWER_AUTOMATE_INTEGRATION_KEY no cabeçalho x-integration-key.
 [functions.receber-controle-estoque]
 verify_jwt = false
+
+# O Power Automate também envia a programação sem JWT. A função valida o
+# mesmo segredo no cabeçalho x-integration-key.
+[functions.receber-programacao-semanal]
+verify_jwt = false

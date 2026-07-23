@@ -2577,3 +2577,131 @@ body.role-fornecedor .pdf-export-toggle { display: none !important; }
   .presentation-theme-toggle,
   .pdf-export-toggle { padding-inline: 9px; font-size: 11px; }
 }
+
+/* =====================================================================
+   PROGRAMAÇÃO SEMANAL — mural de destinos e expectativa de inspeção
+   ===================================================================== */
+.programacao-filtros { margin-bottom: 14px; }
+.programacao-resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.programacao-status {
+  min-height: 20px;
+  margin: 0 2px 10px;
+  color: var(--txt-suave);
+  font-size: 13px;
+}
+.programacao-mural { display: grid; gap: 16px; }
+.programacao-semana-card {
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: var(--rumo-raio);
+  background: var(--card);
+  box-shadow: var(--rumo-sombra);
+}
+.programacao-semana-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--borda);
+  background: linear-gradient(105deg, rgba(50, 166, 230, 0.13), rgba(30, 159, 127, 0.09));
+}
+.programacao-semana-card__head h2 {
+  margin: 2px 0 0;
+  color: var(--rumo-azul);
+  font-size: 20px;
+}
+.programacao-semana-card__total {
+  color: var(--rumo-verde);
+  font-size: 14px;
+  font-weight: 800;
+}
+.programacao-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+.programacao-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-top: 3px solid var(--rumo-azul-claro);
+  border-radius: var(--rumo-raio-sm);
+  background: var(--card);
+}
+.programacao-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.programacao-card__eyebrow {
+  color: var(--rumo-azul-claro);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.programacao-card h3 {
+  margin: 3px 0 0;
+  color: var(--rumo-azul);
+  font-size: 18px;
+}
+.programacao-card__expectativa {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  color: var(--rumo-verde);
+}
+.programacao-card__expectativa strong { font-size: 21px; line-height: 1; }
+.programacao-card__expectativa span { margin-top: 3px; font-size: 11px; }
+.programacao-card__details {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0 0;
+}
+.programacao-card__details div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.programacao-card__details dt {
+  color: var(--txt-suave);
+  font-size: 12px;
+  font-weight: 700;
+}
+.programacao-card__details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+}
+.programacao-card__note {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(50, 166, 230, 0.09);
+  color: var(--txt);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.programacao-detalhes { margin-top: 16px; }
+
+@media (max-width: 1040px) {
+  .programacao-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .programacao-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+  .programacao-resumo,
+  .programacao-grid { grid-template-columns: 1fr; }
+  .programacao-semana-card__head { align-items: flex-start; flex-direction: column; }
+}

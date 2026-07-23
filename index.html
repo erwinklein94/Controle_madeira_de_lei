@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=contato-rumo-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=programacao-semanal-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -78,6 +78,7 @@
         <a class="nav__item" href="#dashboard" data-view="dashboard"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-dashboard"></use></svg> Dashboard</a>
         <a class="nav__item" href="#pedidos" data-view="pedidos"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-flow"></use></svg> Pedidos</a>
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report dos fiscais</a>
+        <a class="nav__item" href="#programacao-semanal" data-view="programacao-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Programação Semanal</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-records"></use></svg> Registros</a>
         <a class="nav__item" href="#historico-atualizacoes" data-view="historico-atualizacoes"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Histórico de Atualizações</a>
@@ -421,6 +422,65 @@
         <div id="report-fiscais" class="report-fiscais">
           <div class="report-empty">Carregando fiscais…</div>
         </div>
+      </section>
+
+      <!-- ===================== TELA: PROGRAMAÇÃO SEMANAL ===================== -->
+      <section id="view-programacao-semanal" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Planejamento de inspeções</div>
+            <h1>Programação Semanal</h1>
+            <p class="page-head__sub">Mural sincronizado do Excel Online com o destino e a expectativa de inspeção de cada fiscal.</p>
+          </div>
+          <div class="page-head__actions">
+            <button id="programacao-refresh" class="btn btn--ghost" type="button">Atualizar mural</button>
+          </div>
+        </header>
+
+        <section class="card filters programacao-filtros" aria-label="Filtros da programação semanal">
+          <div class="filters__field">
+            <label for="programacao-ano">Ano</label>
+            <select id="programacao-ano"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="programacao-semana">Semana</label>
+            <select id="programacao-semana"><option value="">Todas</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="programacao-fiscal">Fiscal</label>
+            <select id="programacao-fiscal"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="programacao-fornecedor">Fornecedor</label>
+            <select id="programacao-fornecedor"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__field">
+            <label for="programacao-local">Local</label>
+            <select id="programacao-local"><option value="">Todos</option></select>
+          </div>
+          <div class="filters__spacer"></div>
+          <button id="programacao-limpar" class="btn btn--ghost btn--sm" type="button">Limpar filtros</button>
+        </section>
+
+        <section class="programacao-resumo" aria-label="Resumo da programação">
+          <article class="kpi"><div class="kpi__label">Programações</div><div id="programacao-kpi-registros" class="kpi__value">0</div><div class="kpi__sub">destinos planejados</div></article>
+          <article class="kpi"><div class="kpi__label">Fiscais</div><div id="programacao-kpi-fiscais" class="kpi__value">0</div><div class="kpi__sub">na seleção atual</div></article>
+          <article class="kpi"><div class="kpi__label">Expectativa total</div><div id="programacao-kpi-expectativa" class="kpi__value">0</div><div class="kpi__sub">peças para inspeção</div></article>
+          <article class="kpi"><div class="kpi__label">Locais</div><div id="programacao-kpi-locais" class="kpi__value">0</div><div class="kpi__sub">frentes programadas</div></article>
+        </section>
+
+        <div id="programacao-status" class="programacao-status" role="status" aria-live="polite"></div>
+        <div id="programacao-mural" class="programacao-mural"></div>
+
+        <section class="card programacao-detalhes">
+          <div class="card__head">
+            <h2 class="card__title">Lista da programação</h2>
+            <p id="programacao-contador" class="card__hint">Nenhuma programação.</p>
+          </div>
+          <div class="card__body">
+            <div id="programacao-tabela"></div>
+          </div>
+        </section>
       </section>
 
       <!-- ============================ TELA: FORNECEDOR ============================ -->
@@ -782,8 +842,9 @@
   <script src="assets/js/contas.js?v=fornecedores-excel-1"></script>
   <script src="assets/js/comentarios.js?v=contato-rumo-1"></script>
   <script src="assets/js/report-semanal.js?v=fabricar-minimo-1"></script>
+  <script src="assets/js/programacao-semanal.js?v=programacao-semanal-1"></script>
   <script src="assets/js/historico-atualizacoes.js?v=historico-integracao-1"></script>
-  <script src="assets/js/app.js?v=contato-rumo-1"></script>
+  <script src="assets/js/app.js?v=programacao-semanal-1"></script>
   <script src="assets/js/pedidos.js?v=pagina-pedidos-1"></script>
   <script src="assets/js/presentation.js?v=tema-apresentacao-1"></script>
   <script src="assets/js/pdf-export.js?v=remove-entregas-pedido-1"></script>

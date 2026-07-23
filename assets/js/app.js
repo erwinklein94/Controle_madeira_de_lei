@@ -1550,6 +1550,7 @@
     dashboard: document.getElementById("view-dashboard"),
     pedidos: document.getElementById("view-pedidos"),
     "report-semanal": document.getElementById("view-report-semanal"),
+    "programacao-semanal": document.getElementById("view-programacao-semanal"),
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
@@ -1578,6 +1579,9 @@
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
     if (view === "pedidos" && window.PedidosUI) window.PedidosUI.render();
     if (view === "report-semanal" && window.ReportSemanalUI) window.ReportSemanalUI.render();
+    if (view === "programacao-semanal" && window.ProgramacaoSemanalUI) {
+      window.ProgramacaoSemanalUI.render();
+    }
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "historico-atualizacoes" && window.HistoricoAtualizacoesUI) {
       window.HistoricoAtualizacoesUI.render();
