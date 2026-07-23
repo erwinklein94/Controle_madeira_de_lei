@@ -2152,6 +2152,12 @@ body.role-analista #view-auditoria { display: none !important; }
   }
 }
 
+/* Alinhamento uniforme: todo conteúdo tabular fica centralizado na coluna. */
+table th,
+table td {
+  text-align: center !important;
+}
+
 /* =====================================================================
    FLUXO DE DADOS — organograma explicativo e responsivo
    ===================================================================== */
