@@ -1553,7 +1553,8 @@
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
-    fornecedor: document.getElementById("view-fornecedor")
+    fornecedor: document.getElementById("view-fornecedor"),
+    "contato-rumo": document.getElementById("view-contato-rumo")
   };
 
   function show(view, preserveScroll) {
@@ -1585,6 +1586,7 @@
     if (view === "contas" && window.ContasUI) window.ContasUI.render();
     if (view === "comentarios" && window.ComentariosUI) window.ComentariosUI.render();
     if (view === "fornecedor" && window.FornecedorUI) window.FornecedorUI.render();
+    if (view === "contato-rumo" && window.FornComentariosUI) window.FornComentariosUI.render();
     if (window.PDFExport && window.PDFExport.sync) window.setTimeout(window.PDFExport.sync, 80);
 
     if (!preserveScroll) window.scrollTo(0, 0);

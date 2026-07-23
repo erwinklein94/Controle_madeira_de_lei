@@ -1,9 +1,9 @@
 -- =====================================================================
--- Comentários — página Comentários (admin) e área do fornecedor.
+-- Comentários — página Comentários (equipe Rumo) e Contato com a Rumo.
 -- Regras (garantidas por RLS, não só pela interface):
---  - admin lê todos os comentários e pode excluir qualquer um;
+--  - Editor, Coordenador e Analista leem todos e podem excluir qualquer um;
 --  - fornecedor só lê e cria comentários do PRÓPRIO fornecedor (não vê
---    os demais fornecedores nem seus pedidos);
+--    os demais fornecedores nem suas conversas);
 --  - o autor pode excluir o próprio comentário.
 -- Já aplicado no projeto rgafzmmnpjlrxfjkabsl (migrações
 -- create_comentarios, grant_comentarios_authenticated e
@@ -27,26 +27,32 @@ alter table public.comentarios enable row level security;
 
 drop policy if exists comentarios_select on public.comentarios;
 create policy comentarios_select on public.comentarios
-  for select using (
-    public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal')
-    or (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor())
+  for select to authenticated using (
+    (select public.has_full_access())
+    or (
+      (select public.current_role_name()) = 'fornecedor'
+      and fornecedor = (select public.current_fornecedor())
+    )
   );
 
 drop policy if exists comentarios_insert on public.comentarios;
 create policy comentarios_insert on public.comentarios
-  for insert with check (
-    autor_id = auth.uid()
+  for insert to authenticated with check (
+    autor_id = (select auth.uid())
     and (
-      public.current_role_name() in ('editor', 'coordenador', 'analista', 'fiscal')
-      or (public.current_role_name() = 'fornecedor' and fornecedor = public.current_fornecedor())
+      (select public.has_full_access())
+      or (
+        (select public.current_role_name()) = 'fornecedor'
+        and fornecedor = (select public.current_fornecedor())
+      )
     )
   );
 
 drop policy if exists comentarios_delete on public.comentarios;
 create policy comentarios_delete on public.comentarios
-  for delete using (
-    autor_id = auth.uid()
-    or public.current_role_name() in ('editor', 'coordenador', 'analista')
+  for delete to authenticated using (
+    autor_id = (select auth.uid())
+    or (select public.has_full_access())
   );
 
 -- Usuários logados podem ler, criar e excluir (RLS restringe o alcance).

@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=report-leitura-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=contato-rumo-1" />
 </head>
 <body class="sidebar-collapsed auth-loading">
   <!-- ============================ LOGIN ============================ -->
@@ -74,6 +74,7 @@
       <div class="sidebar__rule"></div>
       <nav class="nav">
         <a class="nav__item" href="#fornecedor" data-view="fornecedor" data-supplier-nav><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-suppliers"></use></svg> Área do fornecedor</a>
+        <a class="nav__item" href="#contato-rumo" data-view="contato-rumo" data-supplier-nav><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-comments"></use></svg> Contato com a Rumo</a>
         <a class="nav__item" href="#dashboard" data-view="dashboard"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-dashboard"></use></svg> Dashboard</a>
         <a class="nav__item" href="#pedidos" data-view="pedidos"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-flow"></use></svg> Pedidos</a>
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report dos fiscais</a>
@@ -488,11 +489,23 @@
           </div>
         </section>
 
+      </section>
+
+      <!-- ===================== TELA: CONTATO COM A RUMO (fornecedor) ===================== -->
+      <section id="view-contato-rumo" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Fornecedor</div>
+            <h1>Contato com a Rumo</h1>
+            <p>Consulte as mensagens enviadas pela equipe Rumo e responda sobre um pedido ou assunto geral.</p>
+          </div>
+        </header>
+
         <section class="card form-card">
           <div class="card__head">
-            <h2 class="card__title">Novo comentário</h2>
+            <h2 class="card__title">Enviar mensagem para a Rumo</h2>
             <p class="card__hint">
-              Escolha um dos seus pedidos e escreva a mensagem para a equipe Rumo.
+              Escolha um dos seus pedidos ou a opção “Geral” e escreva a mensagem para a equipe Rumo.
               <strong>Apenas você ou um usuário com acesso completo podem excluir um comentário seu.</strong>
             </p>
           </div>
@@ -500,7 +513,7 @@
             <form id="forncom-form" novalidate>
               <div class="form-grid">
                 <div class="field">
-                  <label for="forncom-pedido">Pedido</label>
+                  <label for="forncom-pedido">Assunto ou pedido</label>
                   <select id="forncom-pedido" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field field--wide coment-field-texto">
@@ -510,7 +523,7 @@
                 </div>
               </div>
               <div class="form-foot">
-                <button class="btn btn--success" type="submit">Publicar comentário</button>
+                <button class="btn btn--success" type="submit">Enviar mensagem</button>
                 <span id="forncom-msg" class="form-msg" role="status" aria-live="polite"></span>
               </div>
             </form>
@@ -521,7 +534,7 @@
           <div class="card__head">
             <div class="chart-head-flex">
               <div>
-                <h2 class="card__title">Comentários dos seus pedidos</h2>
+                <h2 class="card__title">Conversa com a Rumo</h2>
                 <p class="card__hint" id="forncom-count">—</p>
               </div>
             </div>
@@ -673,8 +686,8 @@
           <div class="card__head">
             <h2 class="card__title">Novo comentário</h2>
             <p class="card__hint">
-              Indique o fornecedor e o pedido a que o comentário se refere e escreva a mensagem.
-              Os fornecedores também comentam por aqui (cada um só vê os comentários dos próprios pedidos).
+              Selecione o fornecedor que receberá a mensagem e indique um pedido ou assunto geral.
+              Cada fornecedor vê somente a conversa destinada à própria conta.
               <strong>Quem criou um comentário pode excluí-lo; Editor, Coordenador e Analista podem excluir qualquer comentário.</strong>
             </p>
           </div>
@@ -682,21 +695,21 @@
             <form id="coment-form" novalidate>
               <div class="form-grid">
                 <div class="field">
-                  <label for="coment-fornecedor">Fornecedor</label>
+                  <label for="coment-fornecedor">Fornecedor destinatário</label>
                   <select id="coment-fornecedor" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field">
-                  <label for="coment-pedido">Pedido</label>
+                  <label for="coment-pedido">Assunto ou pedido</label>
                   <select id="coment-pedido" required><option value="">Selecione…</option></select>
                 </div>
                 <div class="field field--wide coment-field-texto">
                   <label for="coment-texto">Comentário</label>
                   <textarea id="coment-texto" rows="3" maxlength="2000" required
-                    placeholder="Escreva aqui o comentário para a equipe…"></textarea>
+                    placeholder="Escreva a mensagem que o fornecedor receberá…"></textarea>
                 </div>
               </div>
               <div class="form-foot">
-                <button class="btn btn--primary" type="submit">Publicar comentário</button>
+                <button class="btn btn--primary" type="submit">Enviar ao fornecedor</button>
                 <span id="coment-msg" class="form-msg" role="status" aria-live="polite"></span>
               </div>
             </form>
@@ -707,7 +720,7 @@
           <div class="card__head">
             <div class="chart-head-flex">
               <div>
-                <h2 class="card__title">Comentários da equipe</h2>
+                <h2 class="card__title">Mensagens enviadas pela equipe Rumo</h2>
                 <p class="card__hint" id="coment-count-equipe">—</p>
               </div>
             </div>
@@ -721,7 +734,7 @@
           <div class="card__head">
             <div class="chart-head-flex">
               <div>
-                <h2 class="card__title">Comentários dos fornecedores</h2>
+                <h2 class="card__title">Respostas dos fornecedores</h2>
                 <p class="card__hint" id="coment-count-forn">—</p>
               </div>
             </div>
@@ -764,17 +777,17 @@
   <!-- Supabase (autenticação + dados). Precisa de internet. -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabase-config.js?v=realtime-1"></script>
-  <script src="assets/js/access-control.js?v=menu-simplificado-1"></script>
+  <script src="assets/js/access-control.js?v=contato-rumo-1"></script>
   <script src="assets/js/pendencias.js?v=pedido-livre-1"></script>
   <script src="assets/js/contas.js?v=fornecedores-excel-1"></script>
-  <script src="assets/js/comentarios.js?v=pedidos-excel-1"></script>
+  <script src="assets/js/comentarios.js?v=contato-rumo-1"></script>
   <script src="assets/js/report-semanal.js?v=fabricar-minimo-1"></script>
   <script src="assets/js/historico-atualizacoes.js?v=historico-integracao-1"></script>
-  <script src="assets/js/app.js?v=funil-valores-1"></script>
+  <script src="assets/js/app.js?v=contato-rumo-1"></script>
   <script src="assets/js/pedidos.js?v=pagina-pedidos-1"></script>
   <script src="assets/js/presentation.js?v=tema-apresentacao-1"></script>
   <script src="assets/js/pdf-export.js?v=remove-entregas-pedido-1"></script>
   <script src="assets/js/tema.js?v=tema-apresentacao-1"></script>
-  <script src="assets/js/auth.js?v=fornecedor-edita-1"></script>
+  <script src="assets/js/auth.js?v=contato-rumo-1"></script>
 </body>
 </html>

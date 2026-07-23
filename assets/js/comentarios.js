@@ -1,5 +1,5 @@
 /* =====================================================================
-   COMENTÁRIOS — mural da equipe + comentários na área do fornecedor.
+   COMENTÁRIOS — mensagens da equipe + página Contato com a Rumo.
    Regras (espelhadas no RLS da tabela comentarios):
    - perfis de acesso completo leem tudo e podem excluir qualquer comentário;
    - fornecedor só lê/cria comentários do próprio fornecedor;
@@ -24,6 +24,14 @@
     return isNaN(d.getTime()) ? "—" : fmtDataHora.format(d);
   }
 
+  function chaveTexto(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLocaleLowerCase("pt-BR");
+  }
+
   function isAdmin() {
     return !!(window.currentProfile && window.AccessControl && window.AccessControl.isFull(window.currentProfile.role));
   }
@@ -35,6 +43,9 @@
     var tagAutor = !showAutorTag ? "" : (c.autor_role === "fornecedor"
       ? '<span class="comentario__tag comentario__tag--autor">Fornecedor</span>'
       : '<span class="comentario__tag">Equipe Rumo</span>');
+    var assunto = chaveTexto(c.pedido) === "geral"
+      ? "Assunto geral"
+      : "Pedido " + esc(c.pedido);
     return (
       '<article class="comentario">' +
         '<div class="comentario__head">' +
@@ -42,7 +53,7 @@
           tagAutor +
           '<span class="comentario__data">' + dataHora(c.created_at) + "</span>" +
           (showForn ? '<span class="comentario__tag">' + esc(c.fornecedor) + "</span>" : "") +
-          '<span class="comentario__tag comentario__tag--pedido">Pedido ' + esc(c.pedido) + "</span>" +
+          '<span class="comentario__tag comentario__tag--pedido">' + assunto + "</span>" +
           (podeExcluir
             ? '<button class="btn btn--ghost btn--sm coment-del" data-id="' + c.id + '" type="button" title="Excluir comentário">Excluir</button>'
             : "") +
@@ -52,12 +63,15 @@
     );
   }
 
-  function listarComentarios() {
+  function listarComentarios(fornecedor) {
+    var query = sb.from("comentarios")
+      .select("id, autor_id, autor_nome, autor_role, fornecedor, pedido, texto, created_at")
+      .order("created_at", { ascending: false });
+    if (fornecedor) query = query.eq("fornecedor", fornecedor);
+
     return Promise.all([
       sb.auth.getUser(),
-      sb.from("comentarios")
-        .select("id, autor_id, autor_nome, autor_role, fornecedor, pedido, texto, created_at")
-        .order("created_at", { ascending: false })
+      query
     ]).then(function (out) {
       var userId = out[0].data && out[0].data.user ? out[0].data.user.id : null;
       return { userId: userId, res: out[1] };
@@ -110,9 +124,15 @@
       els.listaForn.innerHTML = "";
       return;
     }
-    // Selects de fornecedor/pedido vêm dos registros cadastrados.
-    Store.refresh().catch(function () { return null; }).then(function () {
-      fillFornecedores();
+    // O nome do destinatário vem do perfil do fornecedor. Assim o valor salvo
+    // coincide exatamente com o usado pelo RLS, mesmo quando os registros do
+    // Excel possuem diferença de acentuação.
+    Promise.all([
+      Store.refresh().catch(function () { return null; }),
+      sb.from("profiles").select("fornecedor").eq("role", "fornecedor").not("fornecedor", "is", null)
+    ]).then(function (out) {
+      var perfis = out[1] && !out[1].error ? out[1].data : [];
+      fillFornecedores(perfis);
       fillPedidos();
     });
     listar();
@@ -129,17 +149,30 @@
     if (values.indexOf(prev) >= 0) sel.value = prev;
   }
 
-  function fillFornecedores() {
-    var values = Store.distinct(Store.getAll(), "fornecedor");
+  function fillFornecedores(perfis) {
+    var values = (perfis || []).map(function (p) { return p.fornecedor; }).filter(Boolean);
+    if (!values.length) values = Store.distinct(Store.getAll(), "fornecedor");
+    values = values.filter(function (value, index, all) { return all.indexOf(value) === index; });
     fillSelect(els.forn, values);
   }
 
   /* A lista de pedidos acompanha o fornecedor escolhido. */
   function fillPedidos() {
     var forn = els.forn.value;
-    var base = Store.getAll().filter(function (r) { return !forn || r.fornecedor === forn; });
+    if (!forn) {
+      fillSelect(els.pedido, []);
+      els.pedido.disabled = true;
+      return;
+    }
+    els.pedido.disabled = false;
+    var fornKey = chaveTexto(forn);
+    var base = Store.getAll().filter(function (r) {
+      return chaveTexto(r.fornecedor) === fornKey;
+    });
     var values = Store.distinct(base, "pedido");
-    fillSelect(els.pedido, values);
+    fillSelect(els.pedido, ["Geral"].concat(values.filter(function (p) {
+      return chaveTexto(p) !== "geral";
+    })));
   }
 
   function listar() {
@@ -161,9 +194,9 @@
     var equipe = lista.filter(function (c) { return c.autor_role !== "fornecedor"; });
     var forn = lista.filter(function (c) { return c.autor_role === "fornecedor"; });
     drawGrupo(els.listaEquipe, els.countEquipe, equipe,
-      "Use o formulário acima para deixar o primeiro comentário para a equipe.");
+      "Use o formulário acima para enviar a primeira mensagem a um fornecedor.");
     drawGrupo(els.listaForn, els.countForn, forn,
-      "Os comentários que os fornecedores fizerem na área deles aparecem aqui.");
+      "As respostas enviadas pelos fornecedores aparecem aqui.");
   }
 
   function drawGrupo(listaEl, countEl, lista, textoVazio) {
@@ -189,8 +222,8 @@
     showMsg("");
 
     var forn = els.forn.value, ped = els.pedido.value, texto = els.texto.value.trim();
-    if (!forn || !ped) { showMsg("Escolha o fornecedor e o pedido do comentário.", false); return; }
-    if (!texto) { showMsg("Escreva o comentário antes de publicar.", false); return; }
+    if (!forn || !ped) { showMsg("Escolha o fornecedor destinatário e o assunto ou pedido.", false); return; }
+    if (!texto) { showMsg("Escreva a mensagem antes de enviar.", false); return; }
 
     var prof = window.currentProfile || {};
     var btn = els.form.querySelector('button[type="submit"]');
@@ -205,7 +238,7 @@
       btn.disabled = false;
       if (res.error) { showMsg("Erro ao publicar: " + res.error.message, false); return; }
       els.texto.value = "";
-      showMsg("Comentário publicado.", true);
+      showMsg("Mensagem enviada ao fornecedor.", true);
       listar();
     });
   }
@@ -223,7 +256,7 @@
   window.ComentariosUI = { render: render };
   })();
 
-  /* ============== ÁREA DO FORNECEDOR (comentários dos pedidos) ============== */
+  /* ============== CONTATO COM A RUMO (área exclusiva do fornecedor) ============== */
   (function () {
 
   var wired = false;
@@ -254,7 +287,7 @@
     els.msg.className = "form-msg" + (ok === true ? " is-ok" : ok === false ? " is-error" : "");
   }
 
-  /* Chamado no login do fornecedor (auth.js). */
+  /* Chamado ao abrir a página Contato com a Rumo. */
   function render() {
     setup();
     if (!sb) {
@@ -278,7 +311,9 @@
       });
       var prev = els.pedido.value;
       els.pedido.innerHTML = '<option value="">Selecione…</option>';
-      Object.keys(seen).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).forEach(function (p) {
+      var pedidos = Object.keys(seen).filter(function (p) { return chaveTexto(p) !== "geral"; });
+      pedidos.sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
+      ["Geral"].concat(pedidos).forEach(function (p) {
         var o = document.createElement("option");
         o.value = p; o.textContent = p;
         els.pedido.appendChild(o);
@@ -288,7 +323,8 @@
   }
 
   function listar() {
-    listarComentarios().then(function (out) {
+    var fornecedor = window.currentProfile ? window.currentProfile.fornecedor : null;
+    listarComentarios(fornecedor).then(function (out) {
       userId = out.userId;
       var res = out.res;
       if (res.error) {
@@ -302,13 +338,13 @@
 
   function draw(lista) {
     els.count.textContent = lista.length
-      ? lista.length + (lista.length === 1 ? " comentário" : " comentários") + " sobre os seus pedidos."
-      : "Nenhum comentário ainda.";
+      ? lista.length + (lista.length === 1 ? " mensagem" : " mensagens") + " na conversa com a Rumo."
+      : "Nenhuma mensagem ainda.";
 
     if (!lista.length) {
       els.lista.innerHTML =
         '<div class="empty"><div class="empty__title">Nenhum comentário ainda</div>' +
-        '<div class="empty__txt">Use o formulário acima para deixar um comentário para a equipe Rumo.</div></div>';
+        '<div class="empty__txt">Use o formulário acima para enviar uma mensagem para a equipe Rumo.</div></div>';
       return;
     }
 
@@ -326,8 +362,8 @@
     var prof = window.currentProfile || {};
     var ped = els.pedido.value, texto = els.texto.value.trim();
     if (!prof.fornecedor) { showMsg("Seu perfil não tem fornecedor definido. Fale com a equipe responsável.", false); return; }
-    if (!ped) { showMsg("Escolha o pedido do comentário.", false); return; }
-    if (!texto) { showMsg("Escreva o comentário antes de publicar.", false); return; }
+    if (!ped) { showMsg("Escolha o assunto ou pedido da mensagem.", false); return; }
+    if (!texto) { showMsg("Escreva a mensagem antes de enviar.", false); return; }
 
     var btn = els.form.querySelector('button[type="submit"]');
     btn.disabled = true;
@@ -341,7 +377,7 @@
       btn.disabled = false;
       if (res.error) { showMsg("Erro ao publicar: " + res.error.message, false); return; }
       els.texto.value = "";
-      showMsg("Comentário publicado.", true);
+      showMsg("Mensagem enviada para a Rumo.", true);
       listar();
     });
   }

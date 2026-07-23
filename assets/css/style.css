@@ -1598,9 +1598,12 @@ body:not(.auth-loading) .auth__loading { display: none; }
 .user-chip { font-size: 13px; font-weight: 600; color: var(--rumo-azul); }
 
 /* Perfil FORNECEDOR: enxerga apenas a própria área. */
-#view-fornecedor { display: none; }
-body.role-fornecedor #view-fornecedor:not([hidden]) { display: block; }
-body.role-fornecedor #view-fornecedor[hidden] { display: none !important; }
+#view-fornecedor,
+#view-contato-rumo { display: none; }
+body.role-fornecedor #view-fornecedor:not([hidden]),
+body.role-fornecedor #view-contato-rumo:not([hidden]) { display: block; }
+body.role-fornecedor #view-fornecedor[hidden],
+body.role-fornecedor #view-contato-rumo[hidden] { display: none !important; }
 body.role-fornecedor .sidebar,
 body.role-fornecedor .menu-toggle,
 body.role-fornecedor #view-registros,
