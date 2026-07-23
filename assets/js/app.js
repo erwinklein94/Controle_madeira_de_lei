@@ -259,18 +259,6 @@
     });
   }
 
-  function groupSum(list, field, stageKey) {
-    var map = {};
-    list.forEach(function (r) {
-      var k = r[field] || "—";
-      if (!map[k]) map[k] = [];
-      map[k].push(r);
-    });
-    return Object.keys(map)
-      .map(function (k) { return { label: k, value: sumStage(map[k], stageKey) }; })
-      .sort(function (a, b) { return b.value - a.value; });
-  }
-
   function pedidoVsTransportado(list, field) {
     var map = {};
     list.forEach(function (r) {
@@ -410,7 +398,6 @@
     maxStageByPedido: maxStageByPedido,
     totalPedidos: totalPedidos,
     funnelTotals: funnelTotals,
-    groupSum: groupSum,
     pedidoVsTransportado: pedidoVsTransportado,
     trendByOrder: trendByOrder,
     cumulativeTransported: cumulativeTransported,
@@ -620,7 +607,7 @@
     volPedido: "#fff", volPronto: "#fff", volInspecionado: "#0c2c3f",
     volLiberado: "#fff", volTransportado: "#0c2c3f"
   };
-  var CHART_IDS = ["chart-fornecedor", "chart-local", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-entregasforn"];
+  var CHART_IDS = ["chart-fornecedor", "chart-tendencia", "chart-historico", "chart-ritmo", "chart-conclforn", "chart-entregasforn"];
 
   var charts = {};
   var modalChart = null;
@@ -729,11 +716,10 @@
     var map = {
       funnel: { title: "Funil de volume", hint: "Do pedido ao transporte, com retenção por etapa." },
       fornecedor: { title: "Volume por fornecedor", hint: "Pedido x transportado, com saldo a transportar." },
-      local: { title: "Distribuição por local", hint: "Participação no volume do pedido." },
       tendencia: { title: "Conclusão por Pedido", hint: "Volume, saldo a concluir e % de conclusão por pedido." },
-      historico: { title: "Transportado acumulado", hint: "Evolução do total entregue + projeção no ritmo atual." },
+      historico: { title: "Transportado acumulado", hint: "Evolução do volume transportado acumulado." },
       ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
-      conclforn: { title: "Conclusão por fornecedor", hint: "% do pedido já transportado." },
+      conclforn: { title: "Distribuição e conclusão por fornecedor", hint: "Legenda: volume total · % concluído." },
       entregasforn: { title: "Entregas semanais por fornecedor", hint: "Dormentes entregues por semana, por fornecedor." }
     };
     return map[kind] || { title: "Gráfico", hint: "Visualização expandida." };
@@ -814,6 +800,14 @@
     var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
     return x.getTime();
+  }
+
+  function weekNumberLabel(timestamp) {
+    var date = new Date(timestamp);
+    var iso = date.getFullYear() + "-" +
+      String(date.getMonth() + 1).padStart(2, "0") + "-" +
+      String(date.getDate()).padStart(2, "0");
+    return "Semana " + Store.isoWeekNumber(iso);
   }
 
   function resetSemanas(list) {
@@ -1050,7 +1044,6 @@
     clearChartFallback();
     ensureDefaults();
     chartFornecedor(list);
-    chartLocal(list);
     chartTendencia(list);
     chartHistorico(list);
     mount("chart-ritmo", buildChartConfig("ritmo", list, false));
@@ -1079,13 +1072,11 @@
   }
 
   function chartFornecedor(list) { mount("chart-fornecedor", buildChartConfig("fornecedor", list, false)); }
-  function chartLocal(list) { mount("chart-local", buildChartConfig("local", list, false)); }
   function chartTendencia(list) { mount("chart-tendencia", buildChartConfig("tendencia", list, false)); }
   function chartHistorico(list) { mount("chart-historico", buildChartConfig("historico", list, false)); }
 
   function buildChartConfig(kind, list, expanded) {
     if (kind === "fornecedor") return fornecedorConfig(list, expanded);
-    if (kind === "local") return localConfig(list, expanded);
     if (kind === "tendencia") return tendenciaConfig(list, expanded);
     if (kind === "historico") return historicoConfig(list, expanded);
     if (kind === "ritmo") return ritmoConfig(list, expanded);
@@ -1120,34 +1111,6 @@
           legend: legendConfig(expanded),
           tooltip: { callbacks: { label: tipVal } },
           datalabels: barEndLabelsExact(expanded)
-        }
-      },
-      plugins: [ChartDataLabels]
-    };
-  }
-
-  function localConfig(list, expanded) {
-    var d = Store.groupSum(list, "local", "volPedido");
-    var max = paddedMax(d.map(function (x) { return x.value; }), expanded ? 1.28 : 1.22);
-    var scales = baseScales(expanded);
-    scales.x.suggestedMax = max;
-    scales.y.ticks.autoSkip = false;
-
-    return {
-      type: "bar",
-      data: {
-        labels: d.map(function (x) { return x.label; }),
-        datasets: [{ label: "Volume do pedido", data: d.map(function (x) { return x.value; }), backgroundColor: C.azulClaro, borderRadius: expanded ? 7 : 4 }]
-      },
-      options: {
-        indexAxis: "y",
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: expanded ? 70 : 38, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2 } },
-        scales: scales,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: tipVal } },
-          datalabels: barEndLabels(expanded)
         }
       },
       plugins: [ChartDataLabels]
@@ -1209,7 +1172,6 @@
 
   function historicoConfig(list, expanded) {
     var d = Store.cumulativeTransported(list);
-    var eta = etaInfo(list);
     var labels = d.map(function (x) { return fmtDate.format(new Date(x.date)); });
     var real = d.map(function (x) { return x.total; });
 
@@ -1219,24 +1181,8 @@
       fill: true, tension: 0.3, pointRadius: expanded ? 5 : 2, pointBackgroundColor: C.verde, borderWidth: expanded ? 3 : 2
     }];
 
-    // Projeção: liga o último ponto real à meta (volume total do pedido) na data prevista.
-    var comProjecao = eta.dias > 0 && d.length > 0;
-    if (comProjecao) {
-      labels = labels.concat([fmtDate.format(eta.data)]);
-      var proj = labels.map(function () { return null; });
-      proj[d.length - 1] = real[real.length - 1];
-      proj[labels.length - 1] = eta.alvo;
-      datasets.push({
-        label: "Projeção (ritmo atual)", data: proj,
-        borderColor: C.laranja, borderDash: [6, 5], borderWidth: expanded ? 3 : 2,
-        pointRadius: expanded ? 5 : 3, pointStyle: "rectRot", pointBackgroundColor: C.laranja,
-        fill: false, tension: 0
-      });
-    }
-
-    var maxVals = real.concat(comProjecao ? [eta.alvo] : []);
     var scales = baseScales(expanded);
-    scales.y.suggestedMax = paddedMax(maxVals, expanded ? 1.25 : 1.16);
+    scales.y.suggestedMax = paddedMax(real, expanded ? 1.25 : 1.16);
 
     return {
       type: "line",
@@ -1246,15 +1192,15 @@
         layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 32 : 16, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: scales,
         plugins: {
-          legend: comProjecao ? legendConfig(expanded) : { display: false },
+          legend: { display: false },
           tooltip: {
             callbacks: {
               title: function (items) {
                 var i = items[0].dataIndex;
-                return (d[i] ? d[i].label + " · " : "Previsão · ") + items[0].label;
+                return (d[i] && d[i].label ? d[i].label + " · " : "") + items[0].label;
               },
               label: function (c) {
-                return " " + (c.datasetIndex === 0 ? "Acumulado: " : "Meta: ") + withUnit(c.parsed.y);
+                return " Acumulado: " + withUnit(c.parsed.y);
               }
             }
           },
@@ -1263,25 +1209,6 @@
       },
       plugins: [ChartDataLabels]
     };
-  }
-
-  /* Previsão de término: ritmo médio desde o primeiro registro. */
-  function etaInfo(list) {
-    var totalPedido = Store.totalPedidos(list);
-    var totalTransp = Store.sumStage(list, "volTransportado");
-    var minData = null;
-    list.forEach(function (r) {
-      var d = Store.refDate(r);
-      var t = d ? d.getTime() : NaN;
-      if (!isNaN(t) && (minData === null || t < minData)) minData = t;
-    });
-    var restante = totalPedido - totalTransp;
-    if (restante <= 0 && totalPedido > 0) return { restante: 0, dias: 0, alvo: totalPedido };
-    if (totalTransp <= 0 || minData === null) return { restante: restante, dias: null, alvo: totalPedido };
-    var diasCorridos = Math.max(1, (Date.now() - minData) / 86400000);
-    var taxa = totalTransp / diasCorridos;
-    var dias = Math.ceil(restante / taxa);
-    return { restante: restante, dias: dias, data: new Date(Date.now() + dias * 86400000), alvo: totalPedido };
   }
 
   /* Ritmo semanal: diferença entre os maiores totais acumulados de cada
@@ -1299,7 +1226,7 @@
     var previous = 0;
     for (var t = keys[0]; keys.length && t <= keys[keys.length - 1]; t += SEMANA) {
       var current = accumulatedByWeek[t] === undefined ? previous : accumulatedByWeek[t];
-      labels.push("sem. " + fmtDate.format(new Date(t)));
+      labels.push(weekNumberLabel(t));
       data.push(Math.max(current - previous, 0));
       previous = Math.max(previous, current);
     }
@@ -1322,36 +1249,67 @@
     };
   }
 
-  /* % de conclusão por fornecedor (barras horizontais normalizadas). */
+  /* Distribuição do volume total por fornecedor. A legenda informa, para
+     cada fornecedor, o volume total e a respectiva conclusão. */
   function conclFornConfig(list, expanded) {
     var d = Store.pedidoVsTransportado(list, "fornecedor");
     var pcts = d.map(function (x) {
       return x.pedido > 0 ? Math.round(Math.min(100, (x.transportado / x.pedido) * 100) * 10) / 10 : 0;
     });
-    var scales = baseScales(expanded);
-    scales.x.max = 118;
-    scales.x.ticks.callback = function (v) { return v <= 100 ? v + "%" : ""; };
-    scales.y.ticks.autoSkip = false;
+    var colors = d.map(function (_, i) { return DOUGHNUT[i % DOUGHNUT.length]; });
     return {
-      type: "bar",
-      data: { labels: d.map(function (x) { return x.label; }), datasets: [{ label: "% concluído", data: pcts, backgroundColor: C.verde, borderRadius: expanded ? 6 : 3 }] },
+      type: "doughnut",
+      data: {
+        labels: d.map(function (x) { return x.label; }),
+        datasets: [{
+          label: "Volume total",
+          data: d.map(function (x) { return x.pedido; }),
+          backgroundColor: colors,
+          borderColor: isDark() ? C.azulNoite : "#ffffff",
+          borderWidth: expanded ? 3 : 2
+        }]
+      },
       options: {
-        indexAxis: "y",
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { right: expanded ? 70 : 40, top: expanded ? 12 : 2, bottom: expanded ? 10 : 2 } },
-        scales: scales,
+        cutout: expanded ? "50%" : "56%",
+        layout: { padding: expanded ? 16 : 6 },
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: function (c) { return " Concluído: " + pct(c.parsed.x); } } },
-          datalabels: {
-            anchor: "end", align: "right", clamp: true, clip: false, offset: expanded ? 8 : 4,
-            color: dataLabelInk(), backgroundColor: dataLabelBg(0.9), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
-            font: { size: expanded ? 12 : 9, weight: "700" },
-            formatter: function (v) { return pct(v); }
+          legend: {
+            position: "top",
+            labels: {
+              color: legendInk(),
+              boxWidth: expanded ? 14 : 10,
+              boxHeight: expanded ? 14 : 10,
+              padding: expanded ? 16 : 10,
+              font: { size: expanded ? 13 : 10 },
+              generateLabels: function (chart) {
+                return d.map(function (item, i) {
+                  return {
+                    text: item.label + " · " + (expanded ? fmt.format(Math.round(item.pedido)) : fmtC.format(item.pedido)) + " · " + pct(pcts[i]),
+                    fillStyle: colors[i],
+                    strokeStyle: colors[i],
+                    fontColor: legendInk(),
+                    hidden: !chart.getDataVisibility(i),
+                    index: i
+                  };
+                });
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (c) {
+                var item = d[c.dataIndex];
+                return " Total: " + withUnit(item.pedido);
+              },
+              afterLabel: function (c) {
+                var item = d[c.dataIndex];
+                return " Concluído: " + withUnit(item.transportado) + " · " + pct(pcts[c.dataIndex]);
+              }
+            }
           }
         }
-      },
-      plugins: [ChartDataLabels]
+      }
     };
   }
 
@@ -1381,7 +1339,7 @@
     if (min !== null) for (var t = min; t <= max; t += SEMANA) weeks.push(t);
     var names = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); });
     return {
-      labels: weeks.map(function (t) { return "sem. " + fmtDate.format(new Date(t)); }),
+      labels: weeks.map(weekNumberLabel),
       series: names.map(function (name) {
         var previous = 0;
         return {
@@ -1397,7 +1355,7 @@
     };
   }
 
-  /* Evolução semanal dos dormentes entregues, uma linha por fornecedor/pedido. */
+  /* Entregas semanais agrupadas: uma barra vertical por fornecedor em cada semana. */
   function entregasSemanaisConfig(list, field, expanded) {
     var d = weeklyDeliveredSeries(list, field);
     var all = [];
@@ -1407,14 +1365,14 @@
       return {
         label: s.name, data: s.data,
         borderColor: cor, backgroundColor: cor,
-        fill: false, tension: 0.3,
-        pointRadius: expanded ? 4 : 2, borderWidth: expanded ? 3 : 2
+        borderWidth: 1, borderRadius: expanded ? 6 : 3,
+        barPercentage: 0.82, categoryPercentage: 0.78
       };
     });
     var scales = colScales(expanded, function (v) { return fmtC.format(v); });
     scales.y.suggestedMax = paddedMax(all, expanded ? 1.25 : 1.18);
     return {
-      type: "line",
+      type: "bar",
       data: { labels: d.labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
