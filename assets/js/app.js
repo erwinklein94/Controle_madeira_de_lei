@@ -1532,6 +1532,7 @@
 
   var views = {
     registros: document.getElementById("view-registros"),
+    "historico-atualizacoes": document.getElementById("view-historico-atualizacoes"),
     dashboard: document.getElementById("view-dashboard"),
     pedidos: document.getElementById("view-pedidos"),
     "report-semanal": document.getElementById("view-report-semanal"),
@@ -1563,6 +1564,9 @@
     if (view === "pedidos" && window.PedidosUI) window.PedidosUI.render();
     if (view === "report-semanal" && window.ReportSemanalUI) window.ReportSemanalUI.render();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
+    if (view === "historico-atualizacoes" && window.HistoricoAtualizacoesUI) {
+      window.HistoricoAtualizacoesUI.render();
+    }
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();
     if (view === "comentarios" && window.ComentariosUI) window.ComentariosUI.render();

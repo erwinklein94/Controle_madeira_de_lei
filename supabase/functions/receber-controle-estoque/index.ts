@@ -35,8 +35,19 @@ type Database = {
         Row: {
           id: string;
           excel_id: string | null;
+          data_ref: string | null;
+          semana: number | null;
+          fiscal: string | null;
+          fornecedor: string;
+          local: string | null;
           pedido: string;
           pedido_id: string;
+          vol_pedido: number;
+          vol_fabricar: number;
+          vol_pronto: number;
+          vol_inspecionado: number;
+          vol_liberado: number;
+          vol_transportado: number;
           updated_at: string;
         };
         Insert: {
@@ -63,14 +74,53 @@ type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      registrar_atualizacao_integracao: {
+        Args: {
+          p_acao: "created" | "updated" | "unchanged" | "skipped" | "error";
+          p_excel_id?: string | null;
+          p_registro_id?: string | null;
+          p_pedido?: string | null;
+          p_fornecedor?: string | null;
+          p_fiscal?: string | null;
+          p_campos_alterados?: Record<string, FieldChange>;
+          p_dados?: Record<string, unknown>;
+          p_mensagem?: string | null;
+          p_chave_execucao?: string | null;
+          p_recebido_em?: string;
+        };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
 };
 type AdminClient = ReturnType<typeof createClient<Database>>;
+type RegistroRow = Database["public"]["Tables"]["registros"]["Row"];
+type RegistroInsert = Database["public"]["Tables"]["registros"]["Insert"];
+type IntegrationAction = "created" | "updated" | "unchanged" | "skipped" | "error";
+type FieldChange = { label: string; before: unknown; after: unknown };
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
+const TRACKED_FIELDS: Array<{
+  key: keyof RegistroInsert;
+  label: string;
+  numeric?: boolean;
+}> = [
+  { key: "data_ref", label: "Data" },
+  { key: "semana", label: "Semana", numeric: true },
+  { key: "fiscal", label: "Fiscal" },
+  { key: "fornecedor", label: "Fornecedor" },
+  { key: "local", label: "Local" },
+  { key: "pedido", label: "Pedido" },
+  { key: "vol_pedido", label: "Volume do pedido", numeric: true },
+  { key: "vol_fabricar", label: "Volume a ser fabricado", numeric: true },
+  { key: "vol_pronto", label: "Volume fabricado", numeric: true },
+  { key: "vol_inspecionado", label: "Volume inspecionado", numeric: true },
+  { key: "vol_liberado", label: "Volume em estoque para entrega", numeric: true },
+  { key: "vol_transportado", label: "Volume transportado", numeric: true },
+];
 
 function json(body: unknown, status = 200, extraHeaders: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -102,6 +152,67 @@ function serverDatabaseKey(): string | null {
     }
   }
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? null;
+}
+
+function rawValue(body: unknown, field: string): string | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const value = (body as Record<string, unknown>)[field];
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+}
+
+function comparable(value: unknown, numeric = false): string | number | null {
+  if (numeric) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+}
+
+function changedFields(previous: RegistroRow, row: RegistroInsert): Record<string, FieldChange> {
+  const changes: Record<string, FieldChange> = {};
+  for (const field of TRACKED_FIELDS) {
+    const before = comparable(previous[field.key as keyof RegistroRow], field.numeric);
+    const after = comparable(row[field.key], field.numeric);
+    if (before !== after) {
+      changes[String(field.key)] = { label: field.label, before, after };
+    }
+  }
+  return changes;
+}
+
+async function recordIntegrationHistory(
+  admin: AdminClient,
+  action: IntegrationAction,
+  options: {
+    body?: unknown;
+    payload?: ControleEstoquePayload;
+    registroId?: string | null;
+    changes?: Record<string, FieldChange>;
+    message?: string | null;
+    runId?: string | null;
+    receivedAt?: string;
+  } = {},
+): Promise<void> {
+  const payload = options.payload;
+  const body = options.body;
+  const { error } = await admin.rpc("registrar_atualizacao_integracao", {
+    p_acao: action,
+    p_excel_id: payload?.excel_id ?? rawValue(body, "excel_id"),
+    p_registro_id: options.registroId ?? null,
+    p_pedido: payload?.pedido ?? rawValue(body, "pedido"),
+    p_fornecedor: payload?.fornecedor ?? rawValue(body, "fornecedor"),
+    p_fiscal: payload?.fiscal ?? rawValue(body, "fiscal"),
+    p_campos_alterados: options.changes ?? {},
+    p_dados: payload ? { ...payload } : {},
+    p_mensagem: options.message ?? null,
+    p_chave_execucao: options.runId ?? null,
+    p_recebido_em: options.receivedAt ?? new Date().toISOString(),
+  });
+  if (error) console.error("Falha ao registrar histórico da atualização:", error.message);
 }
 
 async function findOrCreatePedido(
@@ -169,29 +280,46 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Content-Type deve ser application/json." }, 415);
   }
 
+  const admin = createClient<Database>(supabaseUrl, databaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const receivedAt = new Date().toISOString();
+  const runId = req.headers.get("x-integration-run-id");
+  let body: unknown;
   try {
-    let body: unknown;
     try {
       body = await req.json();
     } catch {
+      await recordIntegrationHistory(admin, "error", {
+        message: "JSON inválido.",
+        runId,
+        receivedAt,
+      });
       return json({ error: "JSON inválido." }, 400);
     }
     if (isBlankControleEstoqueRow(body)) {
+      await recordIntegrationHistory(admin, "skipped", {
+        body,
+        message: "Linha sem fornecedor ou pedido.",
+        runId,
+        receivedAt,
+      });
       return json({ ok: true, action: "skipped", reason: "Linha sem fornecedor ou pedido." });
     }
     const payload = normalizeControleEstoquePayload(body);
-    const admin = createClient<Database>(supabaseUrl, databaseKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const pedido = await findOrCreatePedido(admin, payload);
 
     const { data: previous, error: previousError } = await admin.from("registros")
-      .select("id")
+      .select(
+        "id, excel_id, data_ref, semana, fiscal, fornecedor, local, pedido, pedido_id, " +
+          "vol_pedido, vol_fabricar, vol_pronto, vol_inspecionado, vol_liberado, " +
+          "vol_transportado, updated_at",
+      )
       .eq("excel_id", payload.excel_id)
       .maybeSingle();
     if (previousError) throw new Error(`Falha ao verificar o registro: ${previousError.message}`);
 
-    const row = {
+    const row: RegistroInsert = {
       excel_id: payload.excel_id,
       origem_integracao: "power_automate_excel",
       integrado_em: new Date().toISOString(),
@@ -210,22 +338,46 @@ Deno.serve(async (req: Request) => {
       vol_transportado: payload.vol_transportado,
       created_by: null,
     };
+    const changes = previous ? changedFields(previous as RegistroRow, row) : {};
+    const action: IntegrationAction = previous
+      ? (Object.keys(changes).length ? "updated" : "unchanged")
+      : "created";
     const { data: saved, error: saveError } = await admin.from("registros")
       .upsert(row, { onConflict: "excel_id" })
       .select("id, excel_id, pedido, pedido_id, updated_at")
       .single();
     if (saveError) throw new Error(`Falha ao gravar o controle de estoque: ${saveError.message}`);
 
+    await recordIntegrationHistory(admin, action, {
+      payload,
+      registroId: saved.id,
+      changes,
+      runId,
+      receivedAt,
+    });
+
     return json({
       ok: true,
-      action: previous ? "updated" : "created",
+      action,
       registro: saved,
-    }, previous ? 200 : 201);
+    }, action === "created" ? 201 : 200);
   } catch (error) {
     if (error instanceof PayloadError) {
+      await recordIntegrationHistory(admin, "error", {
+        body,
+        message: error.message,
+        runId,
+        receivedAt,
+      });
       return json({ error: error.message, field: error.field }, 400);
     }
     console.error(error);
+    await recordIntegrationHistory(admin, "error", {
+      body,
+      message: error instanceof Error ? error.message : "Erro interno desconhecido.",
+      runId,
+      receivedAt,
+    });
     return json({ error: "Não foi possível processar o registro." }, 500);
   }
 });

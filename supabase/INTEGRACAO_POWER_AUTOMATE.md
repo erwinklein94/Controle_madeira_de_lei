@@ -21,6 +21,18 @@ Content-Type: application/json
 x-integration-key: <SEGREDO_DA_INTEGRACAO>
 ```
 
+Cabeçalho opcional recomendado para identificar exatamente cada execução:
+
+```text
+x-integration-run-id: @{workflow()?['run']?['name']}
+```
+
+Adicione esse cabeçalho na mesma ação HTTP dentro do **Aplicar a cada**. Todas
+as linhas de uma execução receberão o mesmo identificador e aparecerão juntas
+na página **Histórico de Atualizações**. Se o cabeçalho não for adicionado, o
+site continua funcionando e agrupa automaticamente as linhas pela hora em que
+foram recebidas.
+
 Não envie `service_role`, `sb_secret` ou qualquer chave privilegiada no Power
 Automate ou no frontend. O fluxo conhece somente o segredo exclusivo da
 integração. A credencial do banco é disponibilizada pelo Supabase apenas no
@@ -176,6 +188,7 @@ Invoke-RestMethod `
 ```
 
 Resultado esperado na primeira chamada: HTTP `201`, `action: "created"`.
+Repita sem mudar os dados e o esperado será HTTP `200`, `action: "unchanged"`.
 Repita com o mesmo `excel_id` e um volume diferente; o esperado é HTTP `200`,
 `action: "updated"`, mantendo o mesmo `registro.id`.
 

@@ -79,6 +79,7 @@
         <a class="nav__item" href="#report-semanal" data-view="report-semanal"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Report dos fiscais</a>
         <div class="nav__sep"></div>
         <a class="nav__item is-active" href="#registros" data-view="registros"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-records"></use></svg> Registros</a>
+        <a class="nav__item" href="#historico-atualizacoes" data-view="historico-atualizacoes"><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-report"></use></svg> Histórico de Atualizações</a>
         <a class="nav__item" href="#pendentes" data-view="pendentes" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-pending"></use></svg> Informações dos Fornecedores</a>
         <div class="nav__sep"></div>
         <a class="nav__item" href="#contas" data-view="contas" data-requires-full><svg class="nav__ico" aria-hidden="true"><use href="assets/img/rumo-icons.svg#icon-accounts"></use></svg> Contas</a>
@@ -146,6 +147,50 @@
           </div>
           <div class="card__body">
             <div id="tabela-area"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ===================== TELA: HISTÓRICO DE ATUALIZAÇÕES ===================== -->
+      <section id="view-historico-atualizacoes" class="view" hidden>
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow">Sincronização Excel Online</div>
+            <h1>Histórico de Atualizações</h1>
+            <p class="page-head__sub">Veja o que cada atualização automática trouxe da planilha para o site.</p>
+          </div>
+          <div class="page-head__actions">
+            <button id="historico-refresh" class="btn btn--ghost" type="button">Atualizar histórico</button>
+          </div>
+        </header>
+
+        <section class="historico-sync-info" aria-label="Periodicidade da integração">
+          <div class="historico-sync-info__icon" aria-hidden="true">1h</div>
+          <div>
+            <strong>Atualização automática a cada 1 hora</strong>
+            <p>As linhas enviadas pelo Power Automate são agrupadas por atualização. Novos dados, alterações, linhas sem mudança e erros ficam registrados abaixo.</p>
+          </div>
+        </section>
+
+        <div id="historico-kpis" class="historico-kpis" aria-live="polite">
+          <section class="kpi"><span class="kpi__label">Última atualização</span><strong class="kpi__value">—</strong></section>
+          <section class="kpi"><span class="kpi__label">Linhas recebidas</span><strong class="kpi__value">0</strong></section>
+          <section class="kpi"><span class="kpi__label">Novos registros</span><strong class="kpi__value">0</strong></section>
+          <section class="kpi"><span class="kpi__label">Registros alterados</span><strong class="kpi__value">0</strong></section>
+          <section class="kpi"><span class="kpi__label">Erros</span><strong class="kpi__value">0</strong></section>
+        </div>
+
+        <section class="card historico-list-card">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">Atualizações recebidas</h2>
+              <p id="historico-count" class="card__hint">Carregando histórico…</p>
+            </div>
+          </div>
+          <div class="card__body">
+            <div id="historico-lista" class="historico-lista">
+              <p class="card__hint">Carregando atualizações…</p>
+            </div>
           </div>
         </section>
       </section>
@@ -723,7 +768,8 @@
   <script src="assets/js/contas.js?v=fornecedores-excel-1"></script>
   <script src="assets/js/comentarios.js?v=pedidos-excel-1"></script>
   <script src="assets/js/report-semanal.js?v=fabricar-minimo-1"></script>
-  <script src="assets/js/app.js?v=pagina-pedidos-1"></script>
+  <script src="assets/js/historico-atualizacoes.js?v=historico-integracao-1"></script>
+  <script src="assets/js/app.js?v=historico-integracao-1"></script>
   <script src="assets/js/pedidos.js?v=pagina-pedidos-1"></script>
   <script src="assets/js/presentation.js?v=pagina-pedidos-1"></script>
   <script src="assets/js/pdf-export.js?v=remove-entregas-pedido-1"></script>
