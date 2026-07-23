@@ -110,7 +110,7 @@
       Promise.all([sb.rpc("list_accounts"), recordsReady]).then(function (out) {
         var res = out[0];
         if (res.error) {
-          equipeTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Execute supabase/auditoria-perfis.sql.</p>";
+          equipeTabela.innerHTML = '<p class="card__hint">Não foi possível carregar (' + esc(res.error.message) + "). Execute supabase/perfis-acesso.sql.</p>";
           fornTabela.innerHTML = "";
           return;
         }

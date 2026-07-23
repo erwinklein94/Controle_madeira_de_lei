@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
     const { data: caller, error: callerErr } = await admin.from("profiles")
-      .select("role, nome").eq("id", userData.user.id).maybeSingle();
+      .select("role").eq("id", userData.user.id).maybeSingle();
     if (callerErr) return json({ error: "Falha ao ler o perfil do solicitante: " + callerErr.message }, 500);
     if (!caller || !FULL_ROLES.includes(caller.role)) {
       return json({ error: "Apenas Editor, Coordenador ou Analista podem criar contas." }, 403);
@@ -50,21 +50,6 @@ Deno.serve(async (req) => {
       await admin.auth.admin.deleteUser(created.user.id);
       return json({ error: "Erro ao criar o perfil: " + profileErr.message }, 400);
     }
-
-    // Nunca registra a senha. O log guarda apenas identidade e perfil criados.
-    await admin.from("audit_logs").insert({
-      actor_id: userData.user.id,
-      actor_email: userData.user.email,
-      actor_role: caller.role === "admin" ? "editor" : caller.role,
-      actor_name: caller.nome,
-      action: "INSERT",
-      entity: "contas",
-      record_id: created.user.id,
-      new_data: { email, role, nome: profile.nome, fornecedor: profile.fornecedor, fiscal: profile.fiscal },
-      summary: "Conta criada",
-      ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
-      user_agent: req.headers.get("user-agent"),
-    });
 
     return json({ ok: true, id: created.user.id });
   } catch (error) {

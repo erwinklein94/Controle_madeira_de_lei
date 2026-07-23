@@ -1519,7 +1519,6 @@
     registros: document.getElementById("view-registros"),
     dashboard: document.getElementById("view-dashboard"),
     "report-semanal": document.getElementById("view-report-semanal"),
-    auditoria: document.getElementById("view-auditoria"),
     pendentes: document.getElementById("view-pendentes"),
     contas: document.getElementById("view-contas"),
     comentarios: document.getElementById("view-comentarios"),
@@ -1546,7 +1545,6 @@
 
     if (view === "dashboard" && window.DashboardUI) window.DashboardUI.refresh();
     if (view === "report-semanal" && window.ReportSemanalUI) window.ReportSemanalUI.render();
-    if (view === "auditoria" && window.AuditoriaUI) window.AuditoriaUI.render();
     if (view === "registros" && window.RegistrosUI) window.RegistrosUI.render();
     if (view === "pendentes" && window.PendentesUI) window.PendentesUI.render();
     if (view === "contas" && window.ContasUI) window.ContasUI.render();

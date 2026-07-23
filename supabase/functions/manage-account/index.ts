@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Não autenticado." }, 401);
 
     const { data: caller, error: callerErr } = await admin.from("profiles")
-      .select("role, nome").eq("id", userData.user.id).maybeSingle();
+      .select("role").eq("id", userData.user.id).maybeSingle();
     if (callerErr) return json({ error: "Falha ao ler o perfil do solicitante: " + callerErr.message }, 500);
     if (!caller || !FULL_ROLES.includes(caller.role)) {
       return json({ error: "Apenas Editor, Coordenador ou Analista podem gerenciar contas." }, 403);
@@ -31,32 +31,18 @@ Deno.serve(async (req) => {
     const { action, id, email, password, role, nome, fornecedor, fiscal } = await req.json();
     if (!id) return json({ error: "Conta não informada." }, 400);
 
-    const { data: oldUser } = await admin.auth.admin.getUserById(id);
-    const { data: oldProfile } = await admin.from("profiles")
-      .select("role, nome, fornecedor, fiscal").eq("id", id).maybeSingle();
-    const before = {
-      email: oldUser?.user?.email ?? null,
-      role: oldProfile?.role ?? null,
-      nome: oldProfile?.nome ?? null,
-      fornecedor: oldProfile?.fornecedor ?? null,
-      fiscal: oldProfile?.fiscal ?? null,
-    };
-
     if (action === "delete") {
       if (id === userData.user.id) return json({ error: "Você não pode excluir a própria conta." }, 400);
       const { error: deleteErr } = await admin.auth.admin.deleteUser(id);
       if (deleteErr) return json({ error: deleteErr.message }, 400);
-      await admin.from("audit_logs").insert({
-        actor_id: userData.user.id, actor_email: userData.user.email,
-        actor_role: caller.role === "admin" ? "editor" : caller.role, actor_name: caller.nome,
-        action: "DELETE", entity: "contas", record_id: id, old_data: before, summary: "Conta excluída",
-        ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
-        user_agent: req.headers.get("user-agent"),
-      });
       return json({ ok: true });
     }
 
     if (action === "update") {
+      const { data: oldProfile, error: oldProfileErr } = await admin.from("profiles")
+        .select("role, nome, fornecedor, fiscal").eq("id", id).maybeSingle();
+      if (oldProfileErr) return json({ error: "Falha ao ler o perfil: " + oldProfileErr.message }, 500);
+
       if (role && !VALID_ROLES.includes(role)) return json({ error: "Perfil inválido." }, 400);
       if (id === userData.user.id && role && !FULL_ROLES.includes(role)) {
         return json({ error: "Você não pode retirar o próprio acesso completo." }, 400);
@@ -86,18 +72,6 @@ Deno.serve(async (req) => {
       const { error: profileErr } = await admin.from("profiles").upsert(merged);
       if (profileErr) return json({ error: "Erro ao salvar o perfil: " + profileErr.message }, 400);
 
-      const after = {
-        email: email || before.email, role: merged.role, nome: merged.nome,
-        fornecedor: merged.fornecedor, fiscal: merged.fiscal,
-        password_changed: !!password,
-      };
-      await admin.from("audit_logs").insert({
-        actor_id: userData.user.id, actor_email: userData.user.email,
-        actor_role: caller.role === "admin" ? "editor" : caller.role, actor_name: caller.nome,
-        action: "UPDATE", entity: "contas", record_id: id, old_data: before, new_data: after, summary: "Conta atualizada",
-        ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
-        user_agent: req.headers.get("user-agent"),
-      });
       return json({ ok: true });
     }
 

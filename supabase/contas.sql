@@ -1,7 +1,7 @@
 -- =====================================================================
 -- Compatibilidade da antiga função de Contas.
 -- A função usada pela interface agora é list_accounts(), criada por
--- auditoria-perfis.sql com proteção adicional no schema private.
+-- perfis-acesso.sql com proteção adicional no schema private.
 -- Rode no painel do Supabase: SQL Editor -> New query -> cole -> Run
 -- Projeto: rgafzmmnpjlrxfjkabsl
 -- =====================================================================

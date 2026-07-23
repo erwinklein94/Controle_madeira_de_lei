@@ -85,7 +85,7 @@
     return access ? access.isTeam(profileRole) : profileRole !== "fornecedor";
   }
 
-  /* Compatibilidade enquanto a migração auditoria-perfis.sql ainda não foi
+  /* Compatibilidade enquanto o script perfis-acesso.sql ainda não foi
      aplicada: bancos antigos não possuem a coluna profiles.fiscal. */
   function loadProfile(userId) {
     return sb.from("profiles")

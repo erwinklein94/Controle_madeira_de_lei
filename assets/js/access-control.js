@@ -6,7 +6,6 @@
   "use strict";
 
   var FULL = ["editor", "coordenador", "analista"];
-  var AUDIT = ["editor", "coordenador"];
   var TEAM = FULL.slice();
   var LABELS = {
     editor: "Editor",
@@ -27,14 +26,12 @@
     role = normalized(role || currentRole());
     if (role === "fornecedor") return view === "fornecedor";
     if (view === "fornecedor") return false;
-    if (view === "auditoria") return AUDIT.indexOf(role) >= 0;
     if (role === "fiscal" && (view === "contas" || view === "pendentes")) return false;
     return TEAM.indexOf(role) >= 0;
   }
 
   global.AccessControl = {
     fullRoles: FULL.slice(),
-    auditRoles: AUDIT.slice(),
     teamRoles: TEAM.slice(),
     normalized: normalized,
     label: function (role) { return LABELS[role] || LABELS[normalized(role)] || role || "Perfil"; },
@@ -42,7 +39,6 @@
     isFiscal: isFiscal,
     isFornecedor: isFornecedor,
     isTeam: isTeam,
-    canViewAudit: function (role) { return AUDIT.indexOf(normalized(role || currentRole())) >= 0; },
     canView: canView,
     canEditRecords: function (role) { return isFull(role || currentRole()); }
   };

@@ -1351,62 +1351,18 @@ body.role-fornecedor #view-dashboard,
 body.role-fornecedor #view-report-semanal,
 body.role-fornecedor #view-pendentes,
 body.role-fornecedor #view-contas,
-body.role-fornecedor #view-auditoria,
 body.role-fornecedor #view-comentarios { display: none; }
 
 /* Fiscal/Inspetor: operacao em modo controlado. As mesmas restricoes sao
    aplicadas pelo RLS; estas regras apenas deixam a interface coerente. */
 body.role-fiscal [data-requires-full],
-body.role-fiscal [data-requires-audit],
 body.role-fiscal #view-contas,
-body.role-fiscal #view-auditoria,
 body.role-fiscal #view-pendentes,
 body.role-fiscal #view-registros > .form-card,
 body.role-fiscal #view-pendentes .pend-ok,
 body.role-fiscal #view-pendentes .pend-no,
 body.role-fiscal #view-pendentes .solic-ok,
 body.role-fiscal #view-pendentes .solic-no { display: none !important; }
-
-/* Auditoria e exclusiva para Editor e Coordenador. */
-body.role-analista [data-requires-audit],
-body.role-analista #view-auditoria { display: none !important; }
-
-/* =====================================================================
-   Auditoria
-   ===================================================================== */
-.audit-filters .filters__field input,
-.audit-filters .filters__field select { min-width: 145px; }
-.audit-table { min-width: 1120px; }
-.audit-table td { vertical-align: top; }
-.audit-table td strong,
-.audit-table td small { display: block; }
-.audit-table td small { margin-top: 2px; color: var(--txt-suave); font-size: 10.5px; font-weight: 400; }
-.audit-role,
-.audit-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: var(--rumo-cinza-100);
-  color: var(--txt);
-  font-size: 10.5px;
-  font-weight: 800;
-}
-.audit-action--insert { background: rgba(30, 159, 127, 0.14); color: var(--rumo-verde); }
-.audit-action--update { background: rgba(50, 166, 230, 0.14); color: var(--rumo-azul); }
-.audit-action--delete { background: rgba(216, 69, 69, 0.14); color: var(--rumo-erro); }
-.audit-summary { min-width: 320px; }
-.audit-summary details { margin-top: 5px; }
-.audit-summary summary { color: var(--rumo-azul-claro); cursor: pointer; font-size: 11px; font-weight: 700; }
-.audit-detail-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 11px; }
-.audit-detail-table th,
-.audit-detail-table td { padding: 6px 8px; border: 1px solid var(--borda); text-align: left; white-space: normal; overflow-wrap: anywhere; }
-.audit-detail-table thead th { background: var(--rumo-cinza-50); }
-.audit-detail-table tbody th { width: 25%; color: var(--txt); }
-.audit-detail-empty { margin: 6px 0 0; color: var(--txt-suave); font-size: 11px; }
-:root[data-theme="dark"] .audit-action--update { color: var(--rumo-azul-claro); }
 
 .account-role {
   display: inline-flex;
