@@ -21,6 +21,11 @@ const sandbox = {
 
 vm.runInNewContext(source, sandbox, { filename: appPath });
 const Store = sandbox.window.Store;
+
+assert.equal(Store.isoWeekNumber("2026-07-17"), 29, "17/07/2026 pertence à semana ISO 29");
+assert.equal(Store.isoWeekNumber("2027-01-01"), 53, "a semana ISO deve respeitar a virada do ano");
+assert.equal(Store.isoWeekNumber("", 12), 12, "sem data, preserva uma semana válida já gravada");
+
 const records = [
   { id: "r1", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-20", volPedido: 1000, volPronto: 120, volInspecionado: 100, volTransportado: 40 },
   { id: "r2", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-20", volPedido: 9999, volPronto: 180, volInspecionado: 150, volTransportado: 60 },

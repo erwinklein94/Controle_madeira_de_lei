@@ -18,7 +18,7 @@ test("normaliza uma linha completa do Excel", async () => {
   const payload = normalizeControleEstoquePayload({
     excel_id: " ESTOQUE-1 ",
     data_ref: "17/07/2026",
-    semana: "29",
+    semana: "30",
     fiscal: " Fiscal A ",
     fornecedor: " Fornecedor A ",
     local: " Local A ",
@@ -30,7 +30,7 @@ test("normaliza uma linha completa do Excel", async () => {
   assert.equal(payload.excel_id, "ESTOQUE-1");
   assert.equal(payload.pedido, "4500123456");
   assert.equal(payload.data_ref, "2026-07-17");
-  assert.equal(payload.semana, 29);
+  assert.equal(payload.semana, 29, "a data deve prevalecer sobre uma semana incompatível");
   assert.equal(payload.vol_pedido, 1200.5);
   assert.equal(payload.vol_transportado, 25.5);
   assert.equal(payload.vol_inspecionado, 0);
@@ -42,6 +42,7 @@ test("aceita data serial do Excel e identifica linhas vazias", async () => {
     excel_id: "EST-2", data_ref: 45855, fornecedor: "Fornecedor", pedido: "P-2"
   });
   assert.match(payload.data_ref, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(payload.semana >= 1 && payload.semana <= 53);
   assert.equal(isBlankControleEstoqueRow({ excel_id: "EST-3", fornecedor: 0, pedido: 0 }), true);
 });
 

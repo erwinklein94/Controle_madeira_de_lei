@@ -32,12 +32,33 @@
 
   function sb() { return global.sbClient; }
 
+  /* Calcula a semana ISO a partir da data do registro. A data é a fonte de
+     verdade, mesmo quando a planilha não envia uma semana válida. */
+  function isoWeekNumber(dataRef, fallback) {
+    var match = String(dataRef || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) {
+      var saved = Number(fallback);
+      return Number.isInteger(saved) && saved >= 1 && saved <= 53 ? saved : null;
+    }
+
+    var date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    if (Number.isNaN(date.getTime()) || date.getUTCFullYear() !== Number(match[1]) ||
+        date.getUTCMonth() !== Number(match[2]) - 1 || date.getUTCDate() !== Number(match[3])) {
+      return null;
+    }
+
+    var day = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - day);
+    var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  }
+
   function fromDb(r) {
     return {
       id: r.id,
       excelId: r.excel_id || "",
       dataRef: r.data_ref || "",
-      semana: r.semana || null,
+      semana: isoWeekNumber(r.data_ref, r.semana),
       fiscal: r.fiscal || "",
       fornecedor: r.fornecedor || "",
       local: r.local || "",
@@ -395,7 +416,8 @@
     trendByOrder: trendByOrder,
     cumulativeTransported: cumulativeTransported,
     kpis: kpis,
-    distinct: distinct
+    distinct: distinct,
+    isoWeekNumber: isoWeekNumber
   };
 })(window);
 

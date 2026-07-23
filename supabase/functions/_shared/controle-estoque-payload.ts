@@ -115,6 +115,14 @@ function weekValue(source: Record<string, unknown>): number | null {
   return value;
 }
 
+function isoWeekValue(isoDate: string): number {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
 export function isBlankControleEstoqueRow(body: unknown): boolean {
   if (!body || typeof body !== "object" || Array.isArray(body)) return false;
   const source = body as Record<string, unknown>;
@@ -133,10 +141,11 @@ export function normalizeControleEstoquePayload(body: unknown): ControleEstoqueP
     throw new PayloadError("pedido_id", "O campo pedido_id deve ser um UUID válido.");
   }
 
+  const dataRef = dateValue(source);
   const payload: ControleEstoquePayload = {
     excel_id: textValue(source, "excel_id", { required: true, maxLength: 200 })!,
-    data_ref: dateValue(source),
-    semana: weekValue(source),
+    data_ref: dataRef,
+    semana: dataRef ? isoWeekValue(dataRef) : weekValue(source),
     fiscal: textValue(source, "fiscal", { maxLength: 200 }),
     fornecedor: textValue(source, "fornecedor", { required: true, maxLength: 200 })!,
     local: textValue(source, "local", { maxLength: 200 }),
