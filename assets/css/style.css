@@ -697,6 +697,9 @@ body.dashboard-mode .menu-toggle {
   gap: 8px;
   align-items: stretch;
 }
+#view-dashboard .chart-card--wide {
+  grid-column: span 2;
+}
 #view-dashboard .card {
   border-radius: 10px;
 }
@@ -845,6 +848,9 @@ body.dashboard-mode { overflow-y: scroll; }
 @media (max-width: 900px) {
   #view-dashboard .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+  #view-dashboard .chart-card--wide {
+    grid-column: auto;
   }
   #view-dashboard .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
