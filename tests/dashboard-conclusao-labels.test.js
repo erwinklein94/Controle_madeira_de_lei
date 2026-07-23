@@ -18,5 +18,5 @@ test("rótulos da Conclusão por Pedido evitam sobreposição", () => {
   assert.match(labelsConfig, /formatter:[\s\S]*pct\(pcts\[ctx\.dataIndex\]\)/);
   assert.match(html, /class="card chart-card chart-card--wide" data-modal-chart="tendencia"/);
   assert.match(css, /#view-dashboard \.chart-card--wide\s*\{\s*grid-column:\s*span 2;/);
-  assert.match(html, /app\.js\?v=menu-simplificado-1/);
+  assert.match(html, /app\.js\?v=fabricar-minimo-1/);
 });

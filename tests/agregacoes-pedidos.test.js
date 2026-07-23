@@ -18,10 +18,10 @@ assert.equal(Store.isoWeekNumber("2027-01-01"), 53, "a semana ISO deve respeitar
 assert.equal(Store.isoWeekNumber("", 12), 12, "sem data, preserva uma semana válida já gravada");
 
 const records = [
-  { id: "r1", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-20", volPedido: 1000, volPronto: 120, volInspecionado: 100, volTransportado: 40 },
-  { id: "r2", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-20", volPedido: 900, volPronto: 180, volInspecionado: 150, volTransportado: 60 },
-  { id: "r3", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-21", volPedido: 1000, volPronto: 200, volInspecionado: 170, volTransportado: 90 },
-  { id: "r4", pedidoId: "order-b", pedido: "200", fornecedor: "Fornecedor B", dataRef: "2026-07-21", volPedido: 500, volPronto: 80, volInspecionado: 70, volTransportado: 50 }
+  { id: "r1", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-20", volPedido: 1000, volFabricar: 600, volPronto: 120, volInspecionado: 100, volTransportado: 40 },
+  { id: "r2", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-20", volPedido: 900, volFabricar: 500, volPronto: 180, volInspecionado: 150, volTransportado: 60 },
+  { id: "r3", pedidoId: "order-a", pedido: "100", fornecedor: "Fornecedor A", dataRef: "2026-07-21", volPedido: 1000, volFabricar: 400, volPronto: 200, volInspecionado: 170, volTransportado: 90 },
+  { id: "r4", pedidoId: "order-b", pedido: "200", fornecedor: "Fornecedor B", dataRef: "2026-07-21", volPedido: 500, volFabricar: 300, volPronto: 80, volInspecionado: 70, volTransportado: 50 }
 ];
 
 assert.equal(Store.totalPedidos(records), 1500, "o total de cada pedido deve entrar uma única vez");
@@ -35,7 +35,17 @@ assert.equal(
 );
 assert.equal(Store.sumStage(records, "volPronto"), 580, "os movimentos diários fabricados devem ser somados");
 assert.equal(Store.sumStage(records, "volInspecionado"), 490, "os movimentos diários inspecionados devem ser somados");
+assert.equal(Store.sumStage(records, "volFabricar"), 700, "a fabricar deve usar o menor saldo de cada pedido");
 assert.equal(Store.sumStage(records, "volTransportado"), 140, "o transportado deve usar o maior acumulado de cada pedido");
+assert.equal(
+  Store.sumStage([
+    { id: "f1", pedido: "300", volFabricar: 100 },
+    { id: "f2", pedido: "300", volFabricar: 0 },
+    { id: "f3", pedido: "400", volFabricar: 50 }
+  ], "volFabricar"),
+  50,
+  "saldo zero é válido e deve prevalecer como menor valor do pedido"
+);
 assert.equal(
   Store.sumStage([
     { id: "x1", pedidoId: "id-antigo", pedido: "300", volTransportado: 70 },

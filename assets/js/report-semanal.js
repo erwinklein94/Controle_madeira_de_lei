@@ -37,7 +37,7 @@
     return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : "—";
   }
   function sum(records, field) {
-    if (field === "volTransportado" && window.Store) {
+    if ((field === "volFabricar" || field === "volTransportado") && window.Store) {
       return Store.sumStage(records, field);
     }
     return records.reduce(function (total, record) { return total + num(record[field]); }, 0);

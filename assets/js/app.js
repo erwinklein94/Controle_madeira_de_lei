@@ -247,8 +247,28 @@
     }, 0);
   }
 
+  /* O volume a fabricar também é acumulado no Excel, mas representa o saldo
+     restante. Para cada pedido repetido, somente o menor valor deve entrar nos
+     gráficos e totais consolidados; zero é um saldo válido e deve prevalecer. */
+  function minStageByPedido(list, key) {
+    var minima = {};
+    list.forEach(function (r) {
+      var pedido = pedidoKey(r);
+      var value = Math.max(num(r[key]), 0);
+      if (!Object.prototype.hasOwnProperty.call(minima, pedido)) {
+        minima[pedido] = value;
+      } else {
+        minima[pedido] = Math.min(minima[pedido], value);
+      }
+    });
+    return Object.keys(minima).reduce(function (total, pedido) {
+      return total + minima[pedido];
+    }, 0);
+  }
+
   function sumStage(list, key) {
     if (key === "volPedido") return totalPedidos(list);
+    if (key === "volFabricar") return minStageByPedido(list, key);
     if (key === "volTransportado") return maxStageByPedido(list, key);
     return list.reduce(function (acc, r) { return acc + num(r[key]); }, 0);
   }
@@ -396,6 +416,7 @@
     count: count,
     sumStage: sumStage,
     maxStageByPedido: maxStageByPedido,
+    minStageByPedido: minStageByPedido,
     totalPedidos: totalPedidos,
     funnelTotals: funnelTotals,
     pedidoVsTransportado: pedidoVsTransportado,

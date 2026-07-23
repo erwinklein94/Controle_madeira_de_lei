@@ -17,6 +17,7 @@ test("Report dos fiscais é somente leitura e usa a aba Registros", () => {
   assert.match(html, /Painel somente de leitura/);
   assert.match(script, /Store\.refresh\(\)/);
   assert.match(script, /draw\(Store\.getAll\(\)\)/);
+  assert.match(script, /field === "volFabricar" \|\| field === "volTransportado"/);
   assert.match(script, /Store\.sumStage\(records, field\)/);
   assert.match(script, /Store\.cumulativeTransported\(records\)/);
   assert.match(script, /report-stage-/);
