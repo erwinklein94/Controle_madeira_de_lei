@@ -27,6 +27,11 @@ test("gráficos semanais usam o número da semana e entregas são barras agrupad
   const entregas = functionBlock("entregasSemanaisConfig", "colScales");
   assert.match(app, /return "Semana " \+ Store\.isoWeekNumber\(iso\)/);
   assert.match(ritmo, /labels\.push\(weekNumberLabel\(t\)\)/);
+  assert.match(ritmo, /type: "line"/);
+  assert.match(ritmo, /borderDash: \[7, 5\]/);
+  assert.match(ritmo, /var changes = data\.map/);
+  assert.match(ritmo, /return \(\(value - prior\) \/ prior\) \* 100/);
+  assert.match(ritmo, /return variation \? \[fmtC\.format\(value\), variation\] : fmtC\.format\(value\)/);
   assert.match(entregas, /type: "bar"/);
   assert.match(entregas, /barPercentage: 0\.82, categoryPercentage: 0\.78/);
   assert.match(entregas, /var weekTotals = d\.labels\.map/);

@@ -1263,19 +1263,84 @@
       data.push(Math.max(current - previous, 0));
       previous = Math.max(previous, current);
     }
+    var changes = data.map(function (value, index) {
+      if (index === 0) return null;
+      var prior = Number(data[index - 1]) || 0;
+      if (prior === 0) return value > 0 ? 100 : 0;
+      return ((value - prior) / prior) * 100;
+    });
+    function changeLabel(value) {
+      if (value === null) return "";
+      if (value > 0) return "+" + pct(value);
+      if (value < 0) return "−" + pct(Math.abs(value));
+      return "0%";
+    }
     var scales = colScales(expanded, function (v) { return fmtC.format(v); });
-    scales.y.suggestedMax = paddedMax(data, expanded ? 1.25 : 1.18);
+    scales.y.suggestedMax = paddedMax(data, expanded ? 1.42 : 1.36);
     return {
       type: "bar",
-      data: { labels: labels, datasets: [{ label: "Transportado na semana", data: data, backgroundColor: C.verde, borderRadius: expanded ? 6 : 3 }] },
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Transportado na semana",
+            data: data,
+            backgroundColor: C.verde,
+            borderRadius: expanded ? 6 : 3,
+            order: 2
+          },
+          {
+            type: "line",
+            label: "Variação entre semanas",
+            data: data,
+            borderColor: C.azulClaro,
+            backgroundColor: C.azulClaro,
+            borderWidth: expanded ? 3 : 2,
+            borderDash: [7, 5],
+            pointRadius: expanded ? 4 : 3,
+            pointHoverRadius: expanded ? 6 : 5,
+            pointBackgroundColor: C.azulClaro,
+            tension: 0,
+            fill: false,
+            order: 1
+          }
+        ]
+      },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: expanded ? 34 : 20, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: 0 } },
+        layout: { padding: { top: expanded ? 46 : 36, right: expanded ? 16 : 6, left: expanded ? 8 : 2, bottom: 0 } },
         scales: scales,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: function (c) { return " Transportado: " + withUnit(c.parsed.y); } } },
-          datalabels: colTopLabels(expanded, function (v) { return fmtC.format(v); })
+          tooltip: {
+            filter: function (item) { return item.datasetIndex === 0; },
+            callbacks: {
+              label: function (c) {
+                var variation = changeLabel(changes[c.dataIndex]);
+                return " Transportado: " + withUnit(c.parsed.y) +
+                  (variation ? " · Variação: " + variation : "");
+              }
+            }
+          },
+          datalabels: {
+            display: function (ctx) {
+              return ctx.datasetIndex === 0 && Number(ctx.dataset.data[ctx.dataIndex]) >= 0;
+            },
+            anchor: "end", align: "top", offset: expanded ? 7 : 4,
+            clamp: true, clip: false, textAlign: "center",
+            color: function (ctx) {
+              var variation = changes[ctx.dataIndex];
+              return variation !== null && variation < 0 ? C.laranja : dataLabelInk();
+            },
+            backgroundColor: dataLabelBg(0.92),
+            borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4,
+            padding: expanded ? 5 : 3,
+            font: { size: expanded ? 11 : 9, weight: "700", lineHeight: 1.15 },
+            formatter: function (value, ctx) {
+              var variation = changeLabel(changes[ctx.dataIndex]);
+              return variation ? [fmtC.format(value), variation] : fmtC.format(value);
+            }
+          }
         }
       },
       plugins: [ChartDataLabels]
