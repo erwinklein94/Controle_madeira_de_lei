@@ -760,7 +760,7 @@
       funnel: { title: "Funil de volume", hint: "Do pedido ao transporte, com retenção por etapa." },
       fornecedor: { title: "Volume por fornecedor", hint: "Pedido x transportado, com saldo a transportar." },
       tendencia: { title: "Conclusão por Pedido", hint: "Volume, saldo a concluir e % de conclusão por pedido." },
-      historico: { title: "Transportado acumulado", hint: "Evolução do volume transportado acumulado." },
+      historico: { title: "Transportado acumulado", hint: "Acumulado real comparado à tendência histórica, sem projeção futura." },
       ritmo: { title: "Ritmo de transporte", hint: "Volume transportado por semana." },
       conclforn: { title: "Distribuição e conclusão por fornecedor", hint: "Barra: volume do pedido · rótulo: % concluído." },
       entregasforn: { title: "Entregas semanais por fornecedor", hint: "Dormentes entregues por semana, por fornecedor." }
@@ -1248,15 +1248,43 @@
     var d = Store.cumulativeTransported(list);
     var labels = d.map(function (x) { return fmtDate.format(new Date(x.date)); });
     var real = d.map(function (x) { return x.total; });
+    var trend = real.slice();
+    if (real.length >= 2) {
+      var n = real.length;
+      var sx = 0, sy = 0, sxy = 0, sxx = 0;
+      real.forEach(function (value, index) {
+        sx += index;
+        sy += value;
+        sxy += index * value;
+        sxx += index * index;
+      });
+      var divisor = n * sxx - sx * sx;
+      var slope = divisor ? (n * sxy - sx * sy) / divisor : 0;
+      var intercept = (sy - slope * sx) / n;
+      trend = real.map(function (_, index) {
+        return Math.max(Math.round(slope * index + intercept), 0);
+      });
+    }
 
-    var datasets = [{
-      label: "Transportado acumulado", data: real,
-      borderColor: C.verde, backgroundColor: "rgba(30,159,127,0.14)",
-      fill: true, tension: 0.3, pointRadius: expanded ? 5 : 2, pointBackgroundColor: C.verde, borderWidth: expanded ? 3 : 2
-    }];
+    var datasets = [
+      {
+        label: "Transportado acumulado", data: real,
+        borderColor: C.verde, backgroundColor: "rgba(30,159,127,0.14)",
+        fill: true, tension: 0.3, pointRadius: expanded ? 5 : 2,
+        pointBackgroundColor: C.verde, borderWidth: expanded ? 3 : 2,
+        order: 1
+      },
+      {
+        label: "Tendência histórica", data: trend,
+        borderColor: C.azulClaro, backgroundColor: C.azulClaro,
+        borderWidth: expanded ? 3 : 2, borderDash: [8, 5],
+        fill: false, tension: 0, pointRadius: 0, pointHoverRadius: expanded ? 5 : 4,
+        order: 0
+      }
+    ];
 
     var scales = baseScales(expanded);
-    scales.y.suggestedMax = paddedMax(real, expanded ? 1.25 : 1.16);
+    scales.y.suggestedMax = paddedMax(real.concat(trend), expanded ? 1.25 : 1.16);
 
     return {
       type: "line",
@@ -1266,7 +1294,7 @@
         layout: { padding: { top: expanded ? 34 : 18, right: expanded ? 32 : 16, left: expanded ? 8 : 2, bottom: expanded ? 10 : 0 } },
         scales: scales,
         plugins: {
-          legend: { display: false },
+          legend: legendConfig(expanded),
           tooltip: {
             callbacks: {
               title: function (items) {
@@ -1274,7 +1302,14 @@
                 return (d[i] && d[i].label ? d[i].label + " · " : "") + items[0].label;
               },
               label: function (c) {
-                return " Acumulado: " + withUnit(c.parsed.y);
+                return " " + c.dataset.label + ": " + withUnit(c.parsed.y);
+              },
+              afterBody: function (items) {
+                var index = items[0].dataIndex;
+                var difference = real[index] - trend[index];
+                if (difference === 0) return "Na tendência histórica";
+                return withUnit(Math.abs(difference)) +
+                  (difference > 0 ? " acima da tendência" : " abaixo da tendência");
               }
             }
           },

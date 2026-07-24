@@ -14,11 +14,15 @@ function functionBlock(name, nextName) {
   return app.slice(start, end);
 }
 
-test("transportado acumulado contém somente a série real", () => {
+test("transportado acumulado compara o realizado com a tendência histórica", () => {
   const block = functionBlock("historicoConfig", "ritmoConfig");
   assert.match(block, /label: "Transportado acumulado"/);
-  assert.match(block, /legend: \{ display: false \}/);
-  assert.doesNotMatch(block, /Projeção|ritmo atual|etaInfo|datasets\.push/);
+  assert.match(block, /label: "Tendência histórica"/);
+  assert.match(block, /borderDash: \[8, 5\]/);
+  assert.match(block, /var slope = divisor \?/);
+  assert.match(block, /difference > 0 \? " acima da tendência" : " abaixo da tendência"/);
+  assert.match(block, /legend: legendConfig\(expanded\)/);
+  assert.doesNotMatch(block, /Projeção|ritmo atual|etaInfo|datasets\.push|future/i);
   assert.doesNotMatch(html, /projeção no ritmo atual/i);
 });
 
