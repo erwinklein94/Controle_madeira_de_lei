@@ -22,6 +22,12 @@ test("Report dos fiscais é somente leitura e usa a aba Registros", () => {
   assert.match(script, /Store\.cumulativeTransported\(records\)/);
   assert.match(script, /report-stage-/);
   assert.match(script, /report-timeline-/);
+  assert.match(script, /options: chartOptions\(true\)/);
+  assert.match(script, /anchor: "end"/);
+  assert.match(script, /align: "end"/);
+  assert.match(script, /formatter: function \(value\) \{ return fmt\.format\(num\(value\)\); \}/);
+  assert.match(script, /plugins: window\.ChartDataLabels \? \[window\.ChartDataLabels\] : \[\]/);
+  assert.match(html, /report-semanal\.js\?v=valores-etapas-1/);
   assert.doesNotMatch(css, /report-history|report-readonly/);
   assert.match(html, /id="report-fiscais"/);
 });

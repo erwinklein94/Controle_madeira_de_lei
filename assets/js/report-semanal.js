@@ -145,21 +145,32 @@
     };
   }
 
-  function chartOptions() {
+  function chartOptions(showBarValues) {
     var dark = document.documentElement.getAttribute("data-theme") === "dark";
     return {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      layout: { padding: { top: showBarValues ? 24 : 0 } },
       interaction: { mode: "index", intersect: false },
       plugins: {
         legend: { labels: { color: dark ? "#e6eff6" : "#425466", boxWidth: 12 } },
-        datalabels: { display: false },
+        datalabels: showBarValues ? {
+          display: true,
+          anchor: "end",
+          align: "end",
+          offset: 2,
+          clamp: true,
+          clip: false,
+          color: dark ? "#e6eff6" : "#003865",
+          font: { weight: "700", size: 11 },
+          formatter: function (value) { return fmt.format(num(value)); }
+        } : { display: false },
         tooltip: { callbacks: { label: function (context) { return context.dataset.label + ": " + fmt.format(num(context.raw)); } } }
       },
       scales: {
         x: { ticks: { color: dark ? "#c6d4df" : "#526778" }, grid: { color: dark ? "rgba(255,255,255,.08)" : "rgba(0,56,101,.08)" } },
-        y: { beginAtZero: true, ticks: { color: dark ? "#c6d4df" : "#526778" }, grid: { color: dark ? "rgba(255,255,255,.08)" : "rgba(0,56,101,.08)" } }
+        y: { beginAtZero: true, grace: showBarValues ? "15%" : 0, ticks: { color: dark ? "#c6d4df" : "#526778" }, grid: { color: dark ? "rgba(255,255,255,.08)" : "rgba(0,56,101,.08)" } }
       }
     };
   }
@@ -176,7 +187,8 @@
           labels: STAGES.map(function (stage) { return stage.label; }),
           datasets: [{ label: "Volume", data: STAGES.map(function (stage) { return sum(records, stage.key); }), backgroundColor: STAGES.map(function (stage) { return stage.color; }), borderRadius: 4 }]
         },
-        options: chartOptions()
+        options: chartOptions(true),
+        plugins: window.ChartDataLabels ? [window.ChartDataLabels] : []
       });
     }
     if (timelineCanvas) {
@@ -191,7 +203,7 @@
             { label: "Transportado", data: daily.transportado, borderColor: "#1E9F7F", backgroundColor: "rgba(30,159,127,.12)", tension: 0.25 }
           ]
         },
-        options: chartOptions()
+        options: chartOptions(false)
       });
     }
   }
