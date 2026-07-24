@@ -24,7 +24,7 @@ test("Histórico de Atualizações aparece abaixo de Registros e possui sua pró
   assert.ok(historyPosition > recordsPosition);
   assert.ok(historyPosition < supplierInfoPosition);
   assert.match(html, /id="view-historico-atualizacoes"/);
-  assert.match(html, /Atualização automática a cada 1 hora/);
+  assert.match(html, /Atualização automática a cada 6 horas/);
   assert.match(html, /id="historico-kpis"/);
   assert.match(html, /id="historico-lista"/);
   assert.match(html, /assets\/js\/historico-atualizacoes\.js\?v=historico-integracao-1/);
