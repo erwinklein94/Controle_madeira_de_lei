@@ -2802,6 +2802,42 @@ body.role-fornecedor .pdf-export-toggle { display: none !important; }
 }
 .programacao-detalhes .card__title { color: var(--rumo-azul); }
 :root[data-theme="dark"] .programacao-detalhes .card__title { color: var(--rumo-azul-claro); }
+.programacao-detalhes .table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+.programacao-tabela {
+  width: 100%;
+  min-width: 1120px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.programacao-tabela th,
+.programacao-tabela td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rumo-cinza-100);
+  text-align: center;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.programacao-tabela th {
+  color: var(--rumo-azul);
+  background: var(--rumo-cinza-50);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.programacao-tabela td {
+  color: var(--txt);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.programacao-tabela td.num { text-align: center; }
+.programacao-tabela tbody tr:hover { background: rgba(50, 166, 230, 0.055); }
+:root[data-theme="dark"] .programacao-tabela th {
+  color: var(--rumo-azul-claro);
+  background: rgba(255, 255, 255, 0.04);
+}
 
 @media (max-width: 1040px) {
   .programacao-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -216,7 +216,7 @@
       return;
     }
     el.tabela.innerHTML =
-      '<div class="table-scroll"><table><thead><tr>' +
+      '<div class="table-scroll"><table class="programacao-tabela"><thead><tr>' +
       "<th>ID</th><th>Fornecedor</th><th>Pedido</th><th>Fiscal</th>" +
       "<th>Data Início</th><th>Data Fim</th><th>Qtde Peças</th><th>Status</th><th>Observações</th>" +
       "</tr></thead><tbody>" +

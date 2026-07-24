@@ -135,9 +135,13 @@ test("site possui mural e tabela com as nove colunas do Excel", () => {
     assert.match(page, new RegExp(heading));
   }
   assert.doesNotMatch(page, /expectativa_pecas|programacao-local/);
+  assert.match(page, /<table class="programacao-tabela">/);
   assert.match(css, /\.programacao-detalhes \{[\s\S]*?margin-top: 40px;[\s\S]*?border-top: 4px solid var\(--rumo-azul-claro\)/);
   assert.match(css, /\.programacao-detalhes::before/);
   assert.match(css, /\.programacao-detalhes \.card__head \{[\s\S]*?border-bottom: 1px solid var\(--borda\)/);
+  assert.match(css, /\.programacao-tabela \{[\s\S]*?width: 100%;[\s\S]*?min-width: 1120px;[\s\S]*?table-layout: fixed;/);
+  assert.match(css, /\.programacao-tabela th,[\s\S]*?\.programacao-tabela td \{[\s\S]*?text-align: center;/);
+  assert.match(html, /programacao-semanal\.js\?v=programacao-tabela-1/);
 });
 
 test("documentação mostra os cabeçalhos exatos e o segundo loop do Power Automate", () => {
