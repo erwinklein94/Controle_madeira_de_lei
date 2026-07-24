@@ -1388,6 +1388,11 @@
   function entregasSemanaisConfig(list, field, expanded) {
     var d = weeklyDeliveredSeries(list, field);
     var all = [];
+    var weekTotals = d.labels.map(function (_, weekIndex) {
+      return d.series.reduce(function (sum, series) {
+        return sum + (Number(series.data[weekIndex]) || 0);
+      }, 0);
+    });
     var datasets = d.series.map(function (s, i) {
       var cor = DOUGHNUT[i % DOUGHNUT.length];
       all = all.concat(s.data);
@@ -1399,19 +1404,43 @@
       };
     });
     var scales = colScales(expanded, function (v) { return fmtC.format(v); });
-    scales.y.suggestedMax = paddedMax(all, expanded ? 1.25 : 1.18);
+    scales.y.suggestedMax = paddedMax(all, expanded ? 1.32 : 1.26);
     return {
       type: "bar",
       data: { labels: d.labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: expanded ? 20 : 8, right: expanded ? 16 : 8, left: expanded ? 8 : 2, bottom: 0 } },
+        layout: { padding: { top: expanded ? 28 : 18, right: expanded ? 16 : 8, left: expanded ? 8 : 2, bottom: 0 } },
         scales: scales,
         plugins: {
           legend: legendConfig(expanded),
-          tooltip: { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + withUnit(c.parsed.y); } } }
+          tooltip: {
+            callbacks: {
+              label: function (c) {
+                var total = weekTotals[c.dataIndex] || 0;
+                var percentage = total > 0 ? pct((Number(c.parsed.y) || 0) * 100 / total) : "0%";
+                return " " + c.dataset.label + ": " + withUnit(c.parsed.y) + " · " + percentage;
+              }
+            }
+          },
+          datalabels: {
+            display: function (ctx) {
+              return Number(ctx.dataset.data[ctx.dataIndex]) > 0;
+            },
+            anchor: "end", align: "top", offset: expanded ? 6 : 3,
+            clamp: true, clip: false,
+            color: dataLabelInk(), backgroundColor: dataLabelBg(0.92),
+            borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4,
+            padding: expanded ? 4 : 2,
+            font: { size: expanded ? 11 : 9, weight: "700" },
+            formatter: function (value, ctx) {
+              var total = weekTotals[ctx.dataIndex] || 0;
+              return total > 0 ? pct((Number(value) || 0) * 100 / total) : "";
+            }
+          }
         }
-      }
+      },
+      plugins: [ChartDataLabels]
     };
   }
 

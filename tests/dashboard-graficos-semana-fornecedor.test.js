@@ -29,6 +29,11 @@ test("gráficos semanais usam o número da semana e entregas são barras agrupad
   assert.match(ritmo, /labels\.push\(weekNumberLabel\(t\)\)/);
   assert.match(entregas, /type: "bar"/);
   assert.match(entregas, /barPercentage: 0\.82, categoryPercentage: 0\.78/);
+  assert.match(entregas, /var weekTotals = d\.labels\.map/);
+  assert.match(entregas, /datalabels: \{/);
+  assert.match(entregas, /anchor: "end", align: "top"/);
+  assert.match(entregas, /pct\(\(Number\(value\) \|\| 0\) \* 100 \/ total\)/);
+  assert.match(entregas, /plugins: \[ChartDataLabels\]/);
   assert.doesNotMatch(entregas, /type: "line"/);
 });
 
