@@ -37,6 +37,20 @@ assert.equal(Store.sumStage(records, "volPronto"), 580, "os movimentos diários 
 assert.equal(Store.sumStage(records, "volInspecionado"), 490, "os movimentos diários inspecionados devem ser somados");
 assert.equal(Store.sumStage(records, "volFabricar"), 700, "a fabricar deve usar o menor saldo de cada pedido");
 assert.equal(Store.sumStage(records, "volTransportado"), 140, "o transportado deve usar o maior acumulado de cada pedido");
+assert.deepEqual(
+  Array.from(Store.pedidosEmAndamento(records)),
+  ["100", "200"],
+  "o cartão Em andamento deve listar cada pedido incompleto uma única vez"
+);
+assert.deepEqual(
+  Array.from(Store.pedidosEmAndamento([
+    { id: "p1", pedido: "100", volPedido: 1000, volTransportado: 1000 },
+    { id: "p2", pedido: "200", volPedido: 500, volTransportado: 400 },
+    { id: "p3", pedido: "200", volPedido: 500, volTransportado: 500 }
+  ])),
+  [],
+  "o maior transportado deve retirar da lista um pedido já concluído"
+);
 assert.equal(
   Store.sumStage([
     { id: "f1", pedido: "300", volFabricar: 100 },

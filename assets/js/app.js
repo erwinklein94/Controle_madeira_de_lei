@@ -398,6 +398,27 @@
     };
   }
 
+  function pedidosEmAndamento(list) {
+    var pedidos = {};
+    list.forEach(function (r) {
+      var numero = String(r && r.pedido != null ? r.pedido : "").trim();
+      if (!numero) return;
+      var key = pedidoKey(r);
+      if (!pedidos[key]) pedidos[key] = { numero: numero, total: 0, transportado: 0 };
+      pedidos[key].total = Math.max(pedidos[key].total, num(r.volPedido), 0);
+      pedidos[key].transportado = Math.max(pedidos[key].transportado, num(r.volTransportado), 0);
+    });
+    return Object.keys(pedidos)
+      .map(function (key) { return pedidos[key]; })
+      .filter(function (pedido) {
+        return pedido.total > 0 && pedido.transportado < pedido.total;
+      })
+      .map(function (pedido) { return pedido.numero; })
+      .sort(function (a, b) {
+        return a.localeCompare(b, "pt-BR", { numeric: true });
+      });
+  }
+
   function distinct(list, field) {
     var seen = {};
     list.forEach(function (r) { if (r[field]) seen[r[field]] = true; });
@@ -423,6 +444,7 @@
     trendByOrder: trendByOrder,
     cumulativeTransported: cumulativeTransported,
     kpis: kpis,
+    pedidosEmAndamento: pedidosEmAndamento,
     distinct: distinct,
     isoWeekNumber: isoWeekNumber
   };
@@ -898,23 +920,42 @@
   function renderKpis(list) {
     var k = Store.kpis(list);
     var concClass = k.conclusao >= 70 ? "kpi--ok" : k.conclusao < 40 ? "kpi--warn" : "";
+    var pedidosEmAndamento = Store.pedidosEmAndamento(list);
 
     var cards = [
       kpiCard("Volume do pedido", val(k.totalPedido), "", k.registros + " registros"),
       kpiCard("Transportado", val(k.totalTransportado), "", pct(k.conclusao) + " do pedido", "kpi--ok"),
       kpiCard("Taxa de conclusão", pct(k.conclusao), "", "do volume do pedido", concClass),
-      kpiCard("Em andamento", val(k.emAndamento), "", "ainda não transportado"),
+      kpiCard("Em andamento", val(k.emAndamento), "", "ainda não transportado", "kpi--orders", pedidosEmAndamento),
       kpiCard("Cobertura", String(k.fornecedores), "", k.locais + " locais · " + k.fiscais + " fiscais")
     ];
     els.kpi.innerHTML = cards.join("");
   }
 
-  function kpiCard(label, value, unit, foot, extra) {
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"]/g, function (char) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char];
+    });
+  }
+
+  function kpiCard(label, value, unit, foot, extra, orderNumbers) {
+    var hasOrdersPopover = Array.isArray(orderNumbers);
+    var popover = hasOrdersPopover
+      ? '<div id="kpi-orders-popover" class="kpi-orders-popover" role="tooltip" aria-label="Pedidos em andamento">' +
+          (orderNumbers.length
+            ? orderNumbers.map(function (pedido) {
+                return "<span>" + escapeHtml(pedido) + "</span>";
+              }).join("")
+            : "<span>Nenhum</span>") +
+        "</div>"
+      : "";
     return (
-      '<div class="kpi ' + (extra || "") + '">' +
+      '<div class="kpi ' + (extra || "") + '"' +
+        (hasOrdersPopover ? ' tabindex="0" aria-describedby="kpi-orders-popover"' : "") + ">" +
         '<div class="kpi__label">' + label + "</div>" +
         '<div class="kpi__value">' + value + (unit ? '<span class="kpi__unit">' + unit + "</span>" : "") + "</div>" +
         '<div class="kpi__foot">' + foot + "</div>" +
+        popover +
       "</div>"
     );
   }

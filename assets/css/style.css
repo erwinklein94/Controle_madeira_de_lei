@@ -472,6 +472,69 @@ body.sidebar-collapsed .main {
 .kpi__unit { font-size: 14px; font-weight: 600; color: var(--rumo-texto-claro); margin-left: 3px; }
 .kpi__foot { margin-top: 6px; font-size: 12.5px; color: var(--txt-suave); }
 .kpi__foot strong { color: var(--rumo-azul); }
+.kpi.kpi--orders {
+  overflow: visible;
+  cursor: help;
+}
+.kpi.kpi--orders:hover,
+.kpi.kpi--orders:focus,
+.kpi.kpi--orders:focus-within {
+  z-index: 20;
+}
+.kpi.kpi--orders:focus-visible {
+  outline: 2px solid var(--rumo-azul-claro);
+  outline-offset: 2px;
+}
+.kpi-orders-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 9px);
+  right: 0;
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+  max-height: 230px;
+  padding: 10px 13px;
+  overflow-y: auto;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 12px 30px rgba(0, 30, 54, 0.2);
+  color: var(--rumo-azul);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+}
+.kpi-orders-popover::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: 22px;
+  width: 9px;
+  height: 9px;
+  border-top: 1px solid var(--borda);
+  border-left: 1px solid var(--borda);
+  background: var(--card);
+  transform: rotate(45deg);
+}
+.kpi-orders-popover span { display: block; white-space: nowrap; }
+.kpi.kpi--orders:hover .kpi-orders-popover,
+.kpi.kpi--orders:focus .kpi-orders-popover,
+.kpi.kpi--orders:focus-within .kpi-orders-popover {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+:root[data-theme="dark"] .kpi-orders-popover {
+  color: #e6eff6;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42);
+}
 
 /* =====================================================================
    Filtros do dashboard

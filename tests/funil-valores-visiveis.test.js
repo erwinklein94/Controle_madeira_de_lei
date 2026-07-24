@@ -21,5 +21,5 @@ test("rótulo do funil possui posição de segurança quando não cabe", () => {
   assert.match(app, /Math\.min\(trackW, Math\.max\(trackW \* frac, minBar\)\)/);
   assert.match(css, /\.funnel__value--pinned/);
   assert.match(css, /color: var\(--txt\) !important/);
-  assert.match(html, /app\.js\?v=conclusao-fornecedor-volume-1/);
+  assert.match(html, /app\.js\?v=andamento-pedidos-1/);
 });
