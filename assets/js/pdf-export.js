@@ -1,5 +1,5 @@
 /* =====================================================================
-   EXPORTAÇÃO PDF - resumo compacto da página e até quatro gráficos/página.
+   EXPORTAÇÃO PDF - resumo compacto e no máximo dois gráficos por página.
    Disponível apenas para a equipe nas páginas que possuem gráficos.
    ===================================================================== */
 (function () {
@@ -189,9 +189,9 @@
     var height = doc.internal.pageSize.getHeight();
     var margin = 10;
     var gap = 6;
-    var blockColumns = 3;
+    var blockColumns = 2;
     var columnWidth = (width - margin * 2 - gap * (blockColumns - 1)) / blockColumns;
-    var blockHeight = 67;
+    var blockHeight = 160;
     var title = pageTitle(view);
     var generatedAt = new Date();
     var page = 1;
@@ -238,7 +238,6 @@
     }
 
     function addPageBands(pageNumber) {
-      if (pageNumber !== 1) return;
       doc.addImage(canvasBand("header", pageNumber, null), "PNG", 0, 0, width, 19, "pdf-header-" + pageNumber, "FAST");
       doc.addImage(canvasBand("footer", pageNumber, null), "PNG", 0, height - 11, width, 11, "pdf-footer-" + pageNumber, "FAST");
     }
@@ -246,7 +245,7 @@
     function newPage() {
       doc.addPage("a4", "landscape");
       page += 1;
-      y = 12;
+      y = 25;
       column = 0;
       addPageBands(page);
     }
