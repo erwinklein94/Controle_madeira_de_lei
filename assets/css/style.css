@@ -494,13 +494,12 @@ body.sidebar-collapsed .main {
   display: grid;
   gap: 5px;
   min-width: 150px;
-  max-height: 230px;
   padding: 10px 13px;
-  overflow-y: auto;
+  overflow: visible;
   border: 1px solid var(--borda);
   border-radius: 8px;
-  background: var(--card);
-  box-shadow: 0 12px 30px rgba(0, 30, 54, 0.2);
+  background: #ffffff;
+  box-shadow: 0 14px 32px rgba(0, 30, 54, 0.3);
   color: var(--rumo-azul);
   font-size: 12px;
   font-weight: 800;
@@ -521,7 +520,7 @@ body.sidebar-collapsed .main {
   height: 9px;
   border-top: 1px solid var(--borda);
   border-left: 1px solid var(--borda);
-  background: var(--card);
+  background: #ffffff;
   transform: rotate(45deg);
 }
 .kpi-orders-popover span { display: block; white-space: nowrap; }
@@ -533,8 +532,14 @@ body.sidebar-collapsed .main {
   transform: translateY(0);
 }
 :root[data-theme="dark"] .kpi-orders-popover {
+  border-color: rgba(50, 166, 230, 0.72);
+  background: #002b49;
   color: #e6eff6;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.58);
+}
+:root[data-theme="dark"] .kpi-orders-popover::before {
+  border-color: rgba(50, 166, 230, 0.72);
+  background: #002b49;
 }
 
 /* =====================================================================
