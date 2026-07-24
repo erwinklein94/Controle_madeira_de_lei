@@ -32,7 +32,8 @@ test("gráficos semanais usam o número da semana e entregas são barras agrupad
   assert.match(entregas, /var weekTotals = d\.labels\.map/);
   assert.match(entregas, /datalabels: \{/);
   assert.match(entregas, /anchor: "end", align: "top"/);
-  assert.match(entregas, /pct\(\(Number\(value\) \|\| 0\) \* 100 \/ total\)/);
+  assert.match(entregas, /\[fmtC\.format\(Number\(value\) \|\| 0\), pct\(\(Number\(value\) \|\| 0\) \* 100 \/ total\)\]/);
+  assert.match(entregas, /textAlign: "center"/);
   assert.match(entregas, /plugins: \[ChartDataLabels\]/);
   assert.doesNotMatch(entregas, /type: "line"/);
 });

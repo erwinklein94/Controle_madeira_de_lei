@@ -1404,13 +1404,13 @@
       };
     });
     var scales = colScales(expanded, function (v) { return fmtC.format(v); });
-    scales.y.suggestedMax = paddedMax(all, expanded ? 1.32 : 1.26);
+    scales.y.suggestedMax = paddedMax(all, expanded ? 1.38 : 1.32);
     return {
       type: "bar",
       data: { labels: d.labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: expanded ? 28 : 18, right: expanded ? 16 : 8, left: expanded ? 8 : 2, bottom: 0 } },
+        layout: { padding: { top: expanded ? 36 : 28, right: expanded ? 16 : 8, left: expanded ? 8 : 2, bottom: 0 } },
         scales: scales,
         plugins: {
           legend: legendConfig(expanded),
@@ -1432,10 +1432,13 @@
             color: dataLabelInk(), backgroundColor: dataLabelBg(0.92),
             borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4,
             padding: expanded ? 4 : 2,
-            font: { size: expanded ? 11 : 9, weight: "700" },
+            textAlign: "center",
+            font: { size: expanded ? 11 : 9, weight: "700", lineHeight: 1.15 },
             formatter: function (value, ctx) {
               var total = weekTotals[ctx.dataIndex] || 0;
-              return total > 0 ? pct((Number(value) || 0) * 100 / total) : "";
+              return total > 0
+                ? [fmtC.format(Number(value) || 0), pct((Number(value) || 0) * 100 / total)]
+                : "";
             }
           }
         }
