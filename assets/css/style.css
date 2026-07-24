@@ -2779,7 +2779,29 @@ body.role-fornecedor .pdf-export-toggle { display: none !important; }
   line-height: 1.45;
   white-space: pre-wrap;
 }
-.programacao-detalhes { margin-top: 16px; }
+.programacao-detalhes {
+  position: relative;
+  margin-top: 40px;
+  overflow: visible;
+  border-top: 4px solid var(--rumo-azul-claro);
+  box-shadow: 0 10px 28px rgba(0, 56, 101, 0.12);
+}
+.programacao-detalhes::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 20px);
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--borda) 12%, var(--borda) 88%, transparent);
+}
+.programacao-detalhes .card__head {
+  padding: 19px 20px 17px;
+  border-bottom: 1px solid var(--borda);
+  background: linear-gradient(105deg, rgba(50, 166, 230, 0.1), rgba(30, 159, 127, 0.05));
+}
+.programacao-detalhes .card__title { color: var(--rumo-azul); }
+:root[data-theme="dark"] .programacao-detalhes .card__title { color: var(--rumo-azul-claro); }
 
 @media (max-width: 1040px) {
   .programacao-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }

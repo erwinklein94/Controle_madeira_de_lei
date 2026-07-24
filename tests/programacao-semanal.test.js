@@ -119,6 +119,7 @@ test("site possui mural e tabela com as nove colunas do Excel", () => {
   const html = read("index.html");
   const app = read("assets", "js", "app.js");
   const page = read("assets", "js", "programacao-semanal.js");
+  const css = read("assets", "css", "style.css");
 
   assert.match(html, /href="#programacao-semanal"[^>]+data-view="programacao-semanal"/);
   assert.match(html, /id="view-programacao-semanal"[\s\S]*?<h1>Programação Semanal<\/h1>/);
@@ -134,6 +135,9 @@ test("site possui mural e tabela com as nove colunas do Excel", () => {
     assert.match(page, new RegExp(heading));
   }
   assert.doesNotMatch(page, /expectativa_pecas|programacao-local/);
+  assert.match(css, /\.programacao-detalhes \{[\s\S]*?margin-top: 40px;[\s\S]*?border-top: 4px solid var\(--rumo-azul-claro\)/);
+  assert.match(css, /\.programacao-detalhes::before/);
+  assert.match(css, /\.programacao-detalhes \.card__head \{[\s\S]*?border-bottom: 1px solid var\(--borda\)/);
 });
 
 test("documentação mostra os cabeçalhos exatos e o segundo loop do Power Automate", () => {
