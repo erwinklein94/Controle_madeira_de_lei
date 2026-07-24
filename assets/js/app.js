@@ -1395,11 +1395,28 @@
             }
           },
           datalabels: {
-            display: true,
-            anchor: "end", align: "right", offset: expanded ? 8 : 5, clamp: true, clip: false,
-            color: dataLabelInk(C.azul), backgroundColor: dataLabelBg(0.92), borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4, padding: expanded ? 5 : 3,
-            font: { size: expanded ? 12 : 9, weight: "700" },
-            formatter: function (_, ctx) { return pct(pcts[ctx.dataIndex]); }
+            labels: {
+              concluido: {
+                display: true,
+                anchor: "center", align: "center", clamp: true, clip: true,
+                color: "#ffffff", backgroundColor: "rgba(0, 45, 80, 0.62)",
+                borderRadius: 4, padding: expanded ? 5 : 3,
+                font: { size: expanded ? 12 : 9, weight: "800" },
+                formatter: function (_, ctx) {
+                  return fmtC.format(Number(d[ctx.dataIndex].transportado) || 0);
+                }
+              },
+              percentual: {
+                display: true,
+                anchor: "end", align: "right", offset: expanded ? 8 : 5,
+                clamp: true, clip: false,
+                color: dataLabelInk(C.azul), backgroundColor: dataLabelBg(0.92),
+                borderColor: dataLabelBorder(), borderWidth: 1, borderRadius: 4,
+                padding: expanded ? 5 : 3,
+                font: { size: expanded ? 12 : 9, weight: "700" },
+                formatter: function (_, ctx) { return pct(pcts[ctx.dataIndex]); }
+              }
+            }
           }
         }
       },
