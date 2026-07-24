@@ -15,6 +15,7 @@ test("cartão Em andamento mostra pedidos filtrados sem repetição", () => {
 });
 
 test("lista aparece ao passar o mouse ou focar pelo teclado", () => {
+  assert.match(css, /#view-dashboard \.kpi\.kpi--orders \{[\s\S]*?overflow: visible;[\s\S]*?clip-path: none;/);
   assert.match(css, /\.kpi\.kpi--orders:hover \.kpi-orders-popover/);
   assert.match(css, /\.kpi\.kpi--orders:focus \.kpi-orders-popover/);
   assert.match(css, /visibility: visible/);

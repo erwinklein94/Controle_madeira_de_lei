@@ -474,6 +474,7 @@ body.sidebar-collapsed .main {
 .kpi__foot strong { color: var(--rumo-azul); }
 .kpi.kpi--orders {
   overflow: visible;
+  clip-path: none;
   cursor: help;
 }
 .kpi.kpi--orders:hover,
@@ -2215,6 +2216,10 @@ body.role-fiscal #view-pendentes .solic-no { display: none !important; }
 }
 #view-dashboard .card__head { padding-top: 18px; }
 #view-dashboard .kpi { border-radius: 7px 0 7px 7px; }
+#view-dashboard .kpi.kpi--orders {
+  overflow: visible;
+  clip-path: none;
+}
 
 .section-title {
   display: flex;
