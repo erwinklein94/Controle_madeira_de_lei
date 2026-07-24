@@ -9,9 +9,14 @@ const css = fs.readFileSync(path.join(root, "assets", "css", "style.css"), "utf8
 
 test("cartão Em andamento mostra pedidos filtrados sem repetição", () => {
   assert.match(app, /Store\.pedidosEmAndamento\(list\)/);
-  assert.match(app, /kpiCard\("Em andamento"[\s\S]*"kpi--orders", pedidosEmAndamento\)/);
+  assert.match(app, /kpiCard\("Em andamento"[\s\S]*"kpi--orders", pedidosEmAndamento, "kpi-ongoing-orders-popover", "Pedidos em andamento"\)/);
   assert.match(app, /class="kpi-orders-popover"/);
-  assert.match(app, /tabindex="0" aria-describedby="kpi-orders-popover"/);
+});
+
+test("cartão Taxa de conclusão mostra os pedidos concluídos", () => {
+  assert.match(app, /Store\.pedidosConcluidos\(list\)/);
+  assert.match(app, /kpiCard\("Taxa de conclusão"[\s\S]*pedidosConcluidos, "kpi-completed-orders-popover", "Pedidos concluídos"\)/);
+  assert.match(app, /aria-describedby="' \+ safePopoverId/);
 });
 
 test("lista aparece ao passar o mouse ou focar pelo teclado", () => {

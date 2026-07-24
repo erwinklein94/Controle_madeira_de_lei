@@ -18,5 +18,5 @@ test("gráficos e modal usam a paleta Rumo no tema escuro", () => {
   assert.match(css, /data-theme="dark"\] \.chart-modal__body \{ background: var\(--rumo-azul-profundo\)/);
   assert.match(css, /data-theme="dark"\] \.chart-modal__head h2 \{ color: #e6eff6/);
   assert.match(html, /style\.css\?v=andamento-pedidos-3/);
-  assert.match(html, /app\.js\?v=historico-tendencia-1/);
+  assert.match(html, /app\.js\?v=conclusao-pedidos-1/);
 });

@@ -51,6 +51,15 @@ assert.deepEqual(
   [],
   "o maior transportado deve retirar da lista um pedido já concluído"
 );
+assert.deepEqual(
+  Array.from(Store.pedidosConcluidos([
+    { id: "c1", pedido: "100", volPedido: 1000, volTransportado: 900 },
+    { id: "c2", pedido: "100", volPedido: 1000, volTransportado: 1000 },
+    { id: "c3", pedido: "200", volPedido: 500, volTransportado: 400 }
+  ])),
+  ["100"],
+  "a Taxa de conclusão deve listar apenas pedidos concluídos, sem repetição"
+);
 assert.equal(
   Store.sumStage([
     { id: "f1", pedido: "300", volFabricar: 100 },
